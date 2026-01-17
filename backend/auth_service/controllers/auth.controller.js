@@ -1,0 +1,211 @@
+const crypto = require("crypto");
+const Otp = require("../models/otp");
+const Session = require("../models/session");
+const userService = require("../services/user.service");
+const tokenService = require("../services/token.service");
+const userModel = require("../models/user");
+
+// OTP generation
+function generateOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+// integrate SMS provider here
+async function sendSmsOtp(mobileNumber, otp) {
+  console.log(`OTP for ${mobileNumber}: ${otp}`);
+}
+
+/**
+ * POST /auth/otp/send
+ * body: { mobileNumber }
+ */
+module.exports.sendOtp = async (req, res) => {
+  const { mobileNumber } = req.body;
+
+  if (!mobileNumber)
+    return res.status(400).json({ message: "mobileNumber is required" });
+
+  const otp = generateOtp();
+  const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+
+  const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 min expiry
+
+  await Otp.create({ mobileNumber, otpHash, expiresAt });
+
+  await sendSmsOtp(mobileNumber, otp);
+
+  return res.status(200).json({ message: "OTP sent" });
+};
+
+/**
+ * POST /auth/otp/verify
+ * body: { mobileNumber, otp, deviceId, requestedRole? }
+ *
+ * requestedRole: "rider" | "driver"
+ * - OPTIONAL
+ * - used if you want to automatically set activeRole during login
+ */
+module.exports.verifyOtp = async (req, res) => {
+  const { mobileNumber, otp, deviceId, requestedRole } = req.body;
+
+  if (!mobileNumber || !otp || !deviceId) {
+    return res
+      .status(400)
+      .json({ message: "mobileNumber, otp, deviceId required" });
+  }
+
+  // latest otp
+  const otpDoc = await Otp.findOne({ mobileNumber, consumed: false }).sort({
+    createdAt: -1,
+  });
+
+  if (!otpDoc) return res.status(400).json({ message: "OTP not found" });
+  if (otpDoc.expiresAt < new Date())
+    return res.status(400).json({ message: "OTP expired" });
+  if (otpDoc.attempts >= 5)
+    return res.status(429).json({ message: "Too many attempts" });
+
+  const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+
+  if (otpHash !== otpDoc.otpHash) {
+    otpDoc.attempts += 1;
+    await otpDoc.save();
+    return res.status(400).json({ message: "Invalid OTP" });
+  }
+
+  otpDoc.consumed = true;
+  await otpDoc.save();
+
+  // user find/create
+  const user = await userService.findOrCreateUserByMobile({ mobileNumber });
+
+  user.isVerified = true;
+
+  // ✅ Decide activeRole:
+  // If requestedRole is driver but user isn't driver yet -> onboarding required
+  if (requestedRole === "driver") {
+    user.activeRole = "driver";
+  } else {
+    user.activeRole = "rider";
+  }
+
+  await user.save();
+
+  // Create tokens
+  const accessToken = tokenService.signAccessToken(user);
+  const refreshToken = tokenService.generateRefreshToken();
+
+  await Session.create({
+    user: user._id,
+    deviceId,
+    refreshTokenHash: Session.hashToken(refreshToken),
+    revoked: false,
+    expiresAt: tokenService.refreshExpiryDate(),
+  });
+
+  return res.status(200).json({
+    message: "Login success",
+    user: {
+      id: user._id,
+      mobileNumber: user.mobileNumber,
+      roles: user.roles,
+      activeRole: user.activeRole,
+      onboardingCompleted: user.onboardingCompleted,
+      isVerified: user.isVerified,
+    },
+    accessToken,
+    refreshToken,
+  });
+};
+
+/**
+ * POST /auth/refresh
+ * body: { refreshToken, deviceId }
+ */
+module.exports.refresh = async (req, res) => {
+  const { refreshToken, deviceId } = req.body;
+
+  if (!refreshToken || !deviceId)
+    return res.status(400).json({ message: "refreshToken & deviceId required" });
+
+  const refreshTokenHash = Session.hashToken(refreshToken);
+
+  const session = await Session.findOne({
+    deviceId,
+    refreshTokenHash,
+    revoked: false,
+    expiresAt: { $gt: new Date() },
+  }).populate("user");
+
+  if (!session) return res.status(401).json({ message: "Invalid refresh token" });
+
+  // rotate refresh token
+  const newRefreshToken = tokenService.generateRefreshToken();
+  session.refreshTokenHash = Session.hashToken(newRefreshToken);
+  session.expiresAt = tokenService.refreshExpiryDate();
+  await session.save();
+
+  const accessToken = tokenService.signAccessToken(session.user);
+
+  return res.status(200).json({
+    accessToken,
+    refreshToken: newRefreshToken,
+  });
+};
+
+/**
+ * POST /auth/logout
+ * body: { refreshToken, deviceId }
+ */
+module.exports.logout = async (req, res) => {
+  const { refreshToken, deviceId } = req.body;
+
+  if (!refreshToken || !deviceId)
+    return res.status(400).json({ message: "refreshToken & deviceId required" });
+
+  const refreshTokenHash = Session.hashToken(refreshToken);
+
+  await Session.updateOne(
+    { deviceId, refreshTokenHash },
+    { $set: { revoked: true } }
+  );
+
+  return res.status(200).json({ message: "Logged out" });
+};
+
+/**
+ * POST /auth/role/activate
+ * body: { userId, role }   role="rider" | "driver"
+ *
+ * This is for switching UI between rider and driver (same account).
+ */
+module.exports.activateRole = async (req, res) => {
+  const { userId, role } = req.body;
+
+  if (!userId || !role) {
+    return res.status(400).json({ message: "userId and role required" });
+  }
+
+  if (!["rider", "driver"].includes(role)) {
+    return res.status(400).json({ message: "Invalid role" });
+  }
+
+  const user = await userModel.findById(userId);
+
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  // cannot activate a role user doesn't have
+  if (!user.roles[role]) {
+    return res.status(403).json({
+      message: `User is not registered as ${role}`,
+    });
+  }
+
+  user.activeRole = role;
+  await user.save();
+
+  return res.status(200).json({
+    message: "Role activated",
+    activeRole: user.activeRole,
+  });
+};
