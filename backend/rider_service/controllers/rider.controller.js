@@ -1,5 +1,42 @@
 const Rider = require("../models/riderModel");
 
+
+module.exports.onboard = async (req, res) => {
+  const userId = req.user.id;
+  const { name, email, emergencyContact, savedLocations, preferences } = req.body;
+
+  if (!name?.first) {
+    return res.status(400).json({ message: "First name required" });
+  }
+
+  const rider = await Rider.findOneAndUpdate(
+    { userId },
+    {
+      $set: {
+        name: { first: name.first, last: name.last || "" },
+        email: email || "",
+        emergencyContact: emergencyContact || {},
+        savedLocations: savedLocations || undefined,
+        preferences: preferences || undefined,
+        onboardingCompleted: true,
+        onboardingCompletedAt: new Date(),
+      },
+    },
+    { upsert: true, new: true }
+  );
+
+  /**
+   * Microservices problem:
+   * Auth service doesn't know rider onboarding is complete.
+   * So we must update auth service flag.
+   */
+  // TODO: Call Auth service to set onboarding flag:
+  // await authClient.patch(`/auth/users/${userId}/onboarding`, { riderOnboarded: true });
+
+  return res.status(200).json({ message: "Rider onboarded", rider });
+};
+
+
 // Create or update rider profile (called from Auth Service)
 exports.createOrUpdateRider = async (req, res) => {
   try {

@@ -83,11 +83,9 @@ module.exports.verifyOtp = async (req, res) => {
 
   // ✅ Decide activeRole:
   // If requestedRole is driver but user isn't driver yet -> onboarding required
-  if (requestedRole === "driver") {
-    user.activeRole = "driver";
-  } else {
-    user.activeRole = "rider";
-  }
+  if (requestedRole === "driver" && user.roles.driver) user.activeRole="driver";
+  else user.activeRole="rider";
+  
 
   await user.save();
 
@@ -110,7 +108,8 @@ module.exports.verifyOtp = async (req, res) => {
       mobileNumber: user.mobileNumber,
       roles: user.roles,
       activeRole: user.activeRole,
-      onboardingCompleted: user.onboardingCompleted,
+      onboarding: user.onboarding,
+
       isVerified: user.isVerified,
     },
     accessToken,
