@@ -208,3 +208,19 @@ module.exports.activateRole = async (req, res) => {
     activeRole: user.activeRole,
   });
 };
+
+module.exports.me = async (req, res) => {
+  const user = await userModel.findById(req.user.id).lean();
+
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  return res.status(200).json({
+    id: user._id,
+    mobileNumber: user.mobileNumber,
+    roles: user.roles,
+    activeRole: user.activeRole,
+    onboarding: user.onboarding,
+    isVerified: user.isVerified,
+    createdAt: user.createdAt,
+  });
+};

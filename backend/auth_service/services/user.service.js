@@ -7,10 +7,10 @@ module.exports.findOrCreateUserByMobile = async ({ mobileNumber }) => {
     user = await userModel.create({
       mobileNumber,
       isVerified: false,
-      roles: { rider: true, driver: false }, // default
+      roles: { rider: true, driver: false },
       activeRole: "rider",
-      onboardingCompleted: false,
-    });
+      onboarding: { rider: false, driver: false },
+    });    
   }
 
   return user;

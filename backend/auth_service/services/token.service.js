@@ -10,11 +10,14 @@ function signAccessToken(user) {
       id: user._id.toString(),
       mobileNumber: user.mobileNumber,
       activeRole: user.activeRole,
+      roles: user.roles,        // ✅ add this
+      onboarding: user.onboarding // ✅ add this too if you want frontend decisions
     },
-    process.env.JWT_SECRET || "goodkeymustchange",
+    process.env.JWT_SECRET,
     { expiresIn: ACCESS_EXPIRES }
   );
 }
+
 
 function generateRefreshToken() {
   return crypto.randomBytes(64).toString("hex");

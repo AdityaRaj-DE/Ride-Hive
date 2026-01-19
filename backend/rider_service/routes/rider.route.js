@@ -1,13 +1,17 @@
 const express = require("express");
-const { protect } = require("../middlewares/authMiddleware");
-const {
-  createOrUpdateRider,
-  getRiderProfile,
-} = require("../controllers/rider.controller");
+const {  protectWithAuthService,
+  requireRole,
+  requireActiveRole } = require("../middlewares/authMiddleware");
+const riderController = require("../controllers/rider.controller");
 
 const router = express.Router();
+router.post(
+  "/onboard",
+  protectWithAuthService,
+  requireRole("rider"),
+  requireActiveRole("rider"),
+  riderController.onboard
+);
 
-router.post("/profile", protect, createOrUpdateRider);
-router.get("/profile", protect, getRiderProfile);
 
 module.exports = router;
