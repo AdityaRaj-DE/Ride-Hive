@@ -1,4 +1,121 @@
 const Driver = require("../models/driverModel");
+const axios = require("axios");
+
+/**
+ * Auth Service update call
+ */
+async function markDriverOnboardedInAuth(userId) {
+  const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL;
+  if (!AUTH_SERVICE_URL) throw new Error("AUTH_SERVICE_URL missing");
+
+  // you must implement this endpoint in auth-service
+  await axios.patch(`${AUTH_SERVICE_URL}/users/${userId}/onboarding`, {
+    driver: true,
+  });
+}
+
+/**
+ * 1) Basic step
+ */
+module.exports.onboardBasic = async (req, res) => {
+  const userId = req.user.id;
+  const { firstname, lastname, licenseNumber } = req.body;
+
+  if (!firstname || firstname.length < 3) {
+    return res.status(400).json({ message: "firstname required (min 3 chars)" });
+  }
+
+  if (!licenseNumber) {
+    return res.status(400).json({ message: "licenseNumber required" });
+  }
+
+  const driver = await Driver.findOneAndUpdate(
+    { userId },
+    {
+      $set: {
+        userId,
+        fullname: { firstname, lastname: lastname || "" },
+        licenseNumber,
+        "onboarding.step": "vehicle",
+        status: "draft",
+      },
+    },
+    { upsert: true, new: true }
+  );
+
+  return res.status(200).json({
+    message: "Driver basic step completed",
+    driver,
+  });
+};
+
+/**
+ * 2) Vehicle step
+ */
+module.exports.onboardVehicle = async (req, res) => {
+  const userId = req.user.id;
+  const { model, plateNumber, color, type } = req.body;
+
+  if (!model || !plateNumber) {
+    return res.status(400).json({ message: "model and plateNumber required" });
+  }
+
+  const driver = await Driver.findOne({ userId });
+  if (!driver) return res.status(404).json({ message: "Driver profile not found" });
+
+  // step enforcement
+  if (driver.onboarding.step !== "vehicle") {
+    return res.status(400).json({ message: `Invalid step. Current: ${driver.onboarding.step}` });
+  }
+
+  driver.vehicleInfo = { model, plateNumber, color: color || "", type: type || "" };
+  driver.onboarding.step = "documents";
+  await driver.save();
+
+  return res.status(200).json({ message: "Vehicle details saved", driver });
+};
+
+/**
+ * 3) Documents step
+ * (Assuming frontend uploads docs & sends urls)
+ */
+module.exports.onboardDocuments = async (req, res) => {
+  const userId = req.user.id;
+  const { drivingLicenseUrl, rcBookUrl, insuranceUrl, profilePhotoUrl } = req.body;
+
+  const driver = await Driver.findOne({ userId });
+  if (!driver) return res.status(404).json({ message: "Driver profile not found" });
+
+  if (driver.onboarding.step !== "documents") {
+    return res.status(400).json({ message: `Invalid step. Current: ${driver.onboarding.step}` });
+  }
+
+  if (!drivingLicenseUrl || !rcBookUrl || !insuranceUrl || !profilePhotoUrl) {
+    return res.status(400).json({ message: "All document urls required" });
+  }
+
+  driver.documents.drivingLicense.url = drivingLicenseUrl;
+  driver.documents.drivingLicense.uploadedAt = new Date();
+
+  driver.documents.rcBook.url = rcBookUrl;
+  driver.documents.rcBook.uploadedAt = new Date();
+
+  driver.documents.insurance.url = insuranceUrl;
+  driver.documents.insurance.uploadedAt = new Date();
+
+  driver.documents.profilePhoto.url = profilePhotoUrl;
+  driver.documents.profilePhoto.uploadedAt = new Date();
+
+  // after docs upload: go to review
+  driver.onboarding.step = "review";
+  driver.status = "pending_review";
+  await driver.save();
+
+  return res.status(200).json({
+    message: "Documents uploaded. Driver moved to review.",
+    driver,
+  });
+};
 
 const PLANS = {
   Weekly: { name: "Weekly", durationDays: 7, price: 199 },
@@ -524,4 +641,59 @@ exports.getSubscriptionStatusForService = async (req, res) => {
     console.error("getSubscriptionStatusForService error:", err.message);
     return res.status(500).json({ message: "Server error" });
   }
+};
+
+
+module.exports.approveDriver = async (req, res) => {
+  const { driverId } = req.params;
+
+  const driver = await Driver.findById(driverId);
+  if (!driver) return res.status(404).json({ message: "Driver not found" });
+
+  // HARD validation checks
+  const docs = driver.documents;
+  const docsOk =
+    docs.drivingLicense.url &&
+    docs.rcBook.url &&
+    docs.insurance.url &&
+    docs.profilePhoto.url;
+
+  if (!docsOk) {
+    return res.status(400).json({ message: "Driver documents incomplete" });
+  }
+
+  driver.status = "approved";
+  driver.isAvailable = false; // driver still must turn on availability manually
+  driver.verification.licenseVerified = true;
+  driver.verification.vehicleVerified = true;
+  driver.verification.backgroundCheckPassed = true;
+  driver.verification.verifiedAt = new Date();
+
+  driver.onboarding.completed = true;
+  driver.onboarding.completedAt = new Date();
+  driver.onboarding.step = "done";
+
+  await driver.save();
+
+  // update auth-service onboarding flag
+  await markDriverOnboardedInAuth(driver.userId);
+
+  return res.status(200).json({ message: "Driver approved", driver });
+};
+
+
+module.exports.rejectDriver = async (req, res) => {
+  const { driverId } = req.params;
+  const { reason } = req.body;
+
+  const driver = await Driver.findById(driverId);
+  if (!driver) return res.status(404).json({ message: "Driver not found" });
+
+  driver.status = "rejected";
+  driver.isAvailable = false;
+  driver.onboarding.completed = false;
+
+  await driver.save();
+
+  return res.status(200).json({ message: "Driver rejected", driver });
 };

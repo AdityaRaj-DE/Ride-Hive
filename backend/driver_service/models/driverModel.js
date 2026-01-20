@@ -1,48 +1,94 @@
 const mongoose = require("mongoose");
 
-const reviewSchema = new mongoose.Schema(
+const documentSchema = new mongoose.Schema(
   {
-    rideId: { type: String },
-    userId: { type: String }, // rider/user who rated
-    rating: { type: Number, min: 1, max: 5 },
-    comment: { type: String },
-    createdAt: { type: Date, default: Date.now },
+    url: { type: String, default: "" },
+    uploadedAt: { type: Date },
+    verified: { type: Boolean, default: false },
+    verifiedAt: { type: Date },
+    rejectedReason: { type: String, default: "" },
   },
   { _id: false }
 );
 
 const driverSchema = new mongoose.Schema(
   {
-    userId: { type: String, required: true }, // Auth Service driver _id
+    // Link to auth-service user _id
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      unique: true,
+      index: true,
+    },
+
+    // Driver lifecycle
+    status: {
+      type: String,
+      enum: ["draft", "pending_review", "approved", "rejected", "suspended"],
+      default: "draft",
+      index: true,
+    },
+
+    // basic profile
     fullname: {
-      firstname: { type: String, required: true, minlength: 3 },
-      lastname: { type: String, minlength: 3 },
+      firstname: { type: String, required: true, minlength: 3, trim: true },
+      lastname: { type: String, trim: true },
     },
-    mobileNumber: { type: String, required: true, unique: true },
+
+    // vehicle info
     vehicleInfo: {
-      model: { type: String },
-      plateNumber: { type: String },
-      color: { type: String },
+      model: { type: String, default: "" },
+      plateNumber: { type: String, default: "" },
+      color: { type: String, default: "" },
+      type: { type: String, default: "" }, // bike/car/etc.
     },
-    licenseNumber: { type: String, required: true },
+
+    // legal info
+    licenseNumber: { type: String, required: true, index: true },
+
+    // Documents (required for approval)
+    documents: {
+      drivingLicense: { type: documentSchema, default: () => ({}) },
+      rcBook: { type: documentSchema, default: () => ({}) },
+      insurance: { type: documentSchema, default: () => ({}) },
+      profilePhoto: { type: documentSchema, default: () => ({}) },
+    },
+
+    // Verification block
+    verification: {
+      licenseVerified: { type: Boolean, default: false },
+      vehicleVerified: { type: Boolean, default: false },
+      backgroundCheckPassed: { type: Boolean, default: false },
+      verifiedAt: { type: Date },
+    },
+
+    onboarding: {
+      completed: { type: Boolean, default: false },
+      completedAt: { type: Date },
+      step: {
+        type: String,
+        enum: ["basic", "vehicle", "documents", "review", "done"],
+        default: "basic",
+      },
+    },
 
     // Ratings
-    rating: { type: Number, default: 5 },
+    rating: { type: Number, default: 5, min: 1, max: 5 },
     totalRatings: { type: Number, default: 0 },
 
     totalRides: { type: Number, default: 0 },
     totalEarnings: { type: Number, default: 0 },
 
-    isAvailable: { type: Boolean, default: true },
+    // IMPORTANT: must be false until approved
+    isAvailable: { type: Boolean, default: false },
+
     location: {
       lat: Number,
       lng: Number,
     },
 
-    // 💰 Wallet
     walletBalance: { type: Number, default: 0 },
 
-    // 📅 Subscription
     subscription: {
       isActive: { type: Boolean, default: false },
       plan: {
@@ -53,9 +99,6 @@ const driverSchema = new mongoose.Schema(
       startedAt: { type: Date },
       expiresAt: { type: Date },
     },
-
-    // optional reviews list
-    reviews: { type: [reviewSchema], default: [] },
   },
   { timestamps: true }
 );

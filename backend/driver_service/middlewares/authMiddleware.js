@@ -1,45 +1,118 @@
-const jwt = require("jsonwebtoken");
+const axios = require("axios");
 
-function protect(req, res, next) {
+function extractToken(req) {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    return authHeader.split(" ")[1];
+  }
+
+  // Optional cookie support
+  if (req.cookies?.token) return req.cookies.token;
+
+  return null;
+}
+
+/**
+ * This middleware DOES NOT verify JWT locally.
+ * It calls Auth Service /auth/me to validate token.
+ */
+async function protectWithAuthService(req, res, next) {
   try {
-    let token = null;
+    const token = extractToken(req);
 
-    // 1️⃣ Check cookies first (browser-based auth)
-    if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
-    }
-
-    // 2️⃣ Fallback: check Authorization header (mobile/postman)
-    if (!token && req.headers.authorization) {
-      const authHeader = req.headers.authorization;
-      if (authHeader.startsWith("Bearer ")) {
-        token = authHeader.split(" ")[1];
-      }
-    }
-
-    // 3️⃣ No token found
     if (!token) {
-      console.error("❌ No token found in cookie or header");
-      return res.status(401).json({ message: "Unauthorized: No token provided" });
+      return res.status(401).json({ message: "Unauthorized: token missing" });
     }
 
-    // 4️⃣ Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "goodkeymustchange");
+    const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL;
+    if (!AUTH_SERVICE_URL) {
+      return res.status(500).json({ message: "Server misconfigured: AUTH_SERVICE_URL missing" });
+    }
+
+    // Call auth service to validate token
+    const { data } = await axios.get(`${AUTH_SERVICE_URL}/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      timeout: 5000,
+    });
+
+    // Attach auth user to req.user (standardized)
     req.user = {
-      id: decoded.driverId,   // unified for all services
-      role: decoded.role
+      id: data.id,
+      mobileNumber: data.mobileNumber,
+      roles: data.roles,
+      activeRole: data.activeRole,
+      onboarding: data.onboarding,
+      isVerified: data.isVerified,
     };
-    
-    if (decoded.role !== "driver") {
-      return res.status(403).json({ message: "Forbidden: Driver access only" });
+
+    return next();
+  } catch (err) {
+    const status = err?.response?.status;
+
+    // auth service says token invalid
+    if (status === 401 || status === 403) {
+      return res.status(401).json({ message: "Unauthorized: invalid/expired token" });
     }
 
-    console.log("✅ Driver verified:", decoded);
-    next();
-  } catch (err) {
-    console.error("❌ JWT error:", err.message);
-    return res.status(403).json({ message: "Invalid or expired token" });
+    // auth service is down
+    console.error("❌ Auth service validate error:", err.message);
+    return res.status(503).json({ message: "Auth service unavailable" });
   }
 }
 
-module.exports = { protect };
+/**
+ * Guards based on role flags from auth service
+ */
+function requireRole(role) {
+  return (req, res, next) => {
+    if (!req.user?.roles) return res.status(403).json({ message: "Forbidden: roles missing" });
+
+    if (!req.user.roles[role]) {
+      return res.status(403).json({ message: `Forbidden: requires ${role} role` });
+    }
+
+    next();
+  };
+}
+
+/**
+ * Guards based on activeRole (UI mode)
+ */
+function requireActiveRole(role) {
+  return (req, res, next) => {
+    if (!req.user?.activeRole) return res.status(403).json({ message: "Forbidden: activeRole missing" });
+
+    if (req.user.activeRole !== role) {
+      return res.status(403).json({ message: `Forbidden: activeRole must be ${role}` });
+    }
+
+    next();
+  };
+}
+
+/**
+ * Guards based on onboarding flags
+ */
+function requireOnboarded(role) {
+  return (req, res, next) => {
+    if (!req.user?.onboarding) {
+      return res.status(403).json({ message: "Forbidden: onboarding missing" });
+    }
+
+    if (!req.user.onboarding[role]) {
+      return res.status(403).json({ message: `${role} onboarding required` });
+    }
+
+    next();
+  };
+}
+
+module.exports = {
+  protectWithAuthService,
+  requireRole,
+  requireActiveRole,
+  requireOnboarded,
+};
