@@ -44,7 +44,7 @@ app.use(express.json());
 app.get('/',(req,res)=>{
     res.send('working');
 })
-app.use('/users', userRoutes);
+app.use('/auth', userRoutes);
 
 // Error handling middleware - suppress "request aborted" errors
 app.use((err, req, res, next) => {

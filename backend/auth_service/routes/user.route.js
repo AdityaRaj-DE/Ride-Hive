@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/auth.controller");
-const protect = require("../middlewares/auth.middleware")
+const {protect} = require("../middlewares/auth.middleware")
 
 router.post("/otp/send", authController.sendOtp);
 router.post("/otp/verify", authController.verifyOtp);

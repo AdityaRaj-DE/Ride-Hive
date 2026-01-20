@@ -13,9 +13,10 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const connectToDb = require('./db/db');
 const riderRoutes = require('./routes/rider.route')
-const rideRequestRoutes = require('./routes/rideRequest.route')
+
 
 const app = express();
+app.use(express.json());
 
 connectToDb();
 app.use(cookieParser());
@@ -40,7 +41,6 @@ app.get('/',(req,res)=>{
 })
 
 app.use('/rider', riderRoutes);
-app.use('/ride', rideRequestRoutes);
 
 // Error handling middleware - suppress "request aborted" errors
 app.use((err, req, res, next) => {
