@@ -224,3 +224,34 @@ module.exports.me = async (req, res) => {
     createdAt: user.createdAt,
   });
 };
+
+
+module.exports.updateOnboarding = async (req, res) => {
+  const { userId } = req.params;
+  const { rider, driver, enableDriverRole } = req.body;
+
+  const user = await userModel.findById(userId);
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  // ✅ update onboarding flags
+  if (typeof rider === "boolean") user.onboarding.rider = rider;
+  if (typeof driver === "boolean") user.onboarding.driver = driver;
+
+  // ✅ optional but recommended: enable driver role only when driver service confirms approval
+  if (enableDriverRole === true) {
+    user.roles.driver = true;
+  }
+
+  await user.save();
+
+  return res.status(200).json({
+    message: "Onboarding updated",
+    user: {
+      id: user._id,
+      mobileNumber: user.mobileNumber,
+      roles: user.roles,
+      activeRole: user.activeRole,
+      onboarding: user.onboarding,
+    },
+  });
+};

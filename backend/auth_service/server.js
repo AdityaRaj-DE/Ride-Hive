@@ -14,7 +14,7 @@ const cookieParser = require('cookie-parser');
 const app = express();
 const connectToDb = require('./db/db');
 const userRoutes = require('./routes/user.route');
-
+const internalRoutes = require("./routes/internal.routes");
 connectToDb();
 app.use(cookieParser());
 
@@ -45,7 +45,7 @@ app.get('/',(req,res)=>{
     res.send('working');
 })
 app.use('/auth', userRoutes);
-
+app.use("/internal", internalRoutes);
 // Error handling middleware - suppress "request aborted" errors
 app.use((err, req, res, next) => {
   // Suppress "request aborted" errors - these are harmless when clients disconnect

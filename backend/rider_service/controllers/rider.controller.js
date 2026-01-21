@@ -1,5 +1,5 @@
 const Rider = require("../models/riderModel");
-
+const authClient = require("../clients/authClient");
 
 module.exports.onboard = async (req, res) => {
   const userId = req.user.id;
@@ -32,6 +32,17 @@ module.exports.onboard = async (req, res) => {
    */
   // TODO: Call Auth service to set onboarding flag:
   // await authClient.patch(`/auth/users/${userId}/onboarding`, { riderOnboarded: true });
+  try {
+    await authClient.patch(
+      `/internal/users/${userId}/onboarding`,
+      { rider: true },
+      { headers: { "x-internal-key": process.env.INTERNAL_SERVICE_KEY } }
+    );
+  } catch (err) {
+    console.error("❌ Failed to update auth onboarding:", err?.response?.data || err.message);
+    return res.status(500).json({ message: "Onboarding saved but auth sync failed" });
+  }
+  
 
   return res.status(200).json({ message: "Rider onboarded", rider });
 };

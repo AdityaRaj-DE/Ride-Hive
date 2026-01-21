@@ -1,17 +1,20 @@
 const Driver = require("../models/driverModel");
 const axios = require("axios");
-
+const authClient = require("../clients/authClient");
 /**
  * Auth Service update call
  */
 async function markDriverOnboardedInAuth(userId) {
-  const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL;
-  if (!AUTH_SERVICE_URL) throw new Error("AUTH_SERVICE_URL missing");
-
-  // you must implement this endpoint in auth-service
-  await axios.patch(`${AUTH_SERVICE_URL}/users/${userId}/onboarding`, {
-    driver: true,
-  });
+  try {
+    await authClient.patch(
+      `/internal/users/${userId}/onboarding`,
+      { driver: true },
+      { headers: { "x-internal-key": process.env.INTERNAL_SERVICE_KEY } }
+    );
+  } catch (err) {
+    console.error("❌ Failed to update auth onboarding:", err?.response?.data || err.message);
+    return res.status(500).json({ message: "Onboarding saved but auth sync failed" });
+  }  
 }
 
 /**
