@@ -2,75 +2,59 @@ const Ride = require("../models/ride");
 const axios = require("axios");
 const { getRoute, calculateFare } = require("./fare.service");
 
-const DRIVER_SERVICE_URL =
-  process.env.DRIVER_SERVICE_URL || "http://localhost:3003";
+const DRIVER_SERVICE_URL = process.env.DRIVER_SERVICE_URL || "http://localhost:3003";
 
 function setupSockets(io) {
-  const rideRooms = new Map(); // rideId -> { riderId, driverId }
-
   io.on("connection", (socket) => {
-    console.log("✅ Socket connected:", socket.id);
+    console.log("✅ Socket connected:", socket.id, socket.user);
 
-    // 🔹 Join global or user-specific rooms
-    socket.on("join", (data = {}) => {
-      console.log("JOIN RECEIVED:", data);
-    
-      if (!data.type) return;
-    
-      if (data.type === "driver") {
-        socket.join("drivers");
-        socket.join(`driver_${data.id}`);
-        console.log(`🚗 Driver ${data.id} joined`);
-      }
-      else if (data.type === "rider") {
-        socket.join(`rider_${data.id}`);
-        console.log(`🧍 Rider ${data.id} joined`);
-      }
-      else if (data.type === "driver-ride" && data.rideId) {
-        socket.join(`ride_${data.rideId}`);
-        console.log("🚕 driver joined ride room:", data.rideId);
-      }
-    });
-    
+    // Auto join user room
+    socket.join(`user_${socket.user.id}`);
 
-    // 🔹 Rider creates ride request
-    socket.on("rider_request_ride", async (payload) => {
+    // Join role rooms
+    if (socket.user.activeRole === "rider") socket.join("riders");
+    if (socket.user.roles?.driver) socket.join("drivers");
+
+    // Rider creates ride request
+    socket.on("rider_request_ride", async (payload, ack) => {
       try {
-        
-        const { riderId, pickup, destination } = payload;
-        if (!riderId || !pickup || !destination)
-          return socket.emit("error", { message: "Invalid payload" });
+        if (socket.user.activeRole !== "rider") {
+          return ack?.({ ok: false, message: "Only riders can request ride" });
+        }
+
+        const riderId = socket.user.id;
+        const { pickup, destination } = payload;
+        if (!pickup || !destination) {
+          return ack?.({ ok: false, message: "pickup and destination required" });
+        }
 
         const { distanceKm, durationMin } = await getRoute(pickup, destination);
-
         const fare = calculateFare(distanceKm, durationMin);
 
         const ride = await Ride.create({
           riderId,
           pickup: { type: "Point", coordinates: [pickup.lng, pickup.lat] },
-          destination: {
-            type: "Point",
-            coordinates: [destination.lng, destination.lat],
-          },
+          destination: { type: "Point", coordinates: [destination.lng, destination.lat] },
           distanceKm,
           durationMin,
           fare,
           status: "REQUESTED",
         });
 
+        // find nearby drivers
         let nearbyDrivers = [];
         try {
           const { data } = await axios.get(
             `${DRIVER_SERVICE_URL}/drivers/nearby?lat=${pickup.lat}&lng=${pickup.lng}`
           );
-          nearbyDrivers = data;
+          nearbyDrivers = data || [];
         } catch (err) {
           console.warn("Nearby driver lookup failed:", err.message);
         }
 
+        // Broadcast only to drivers room (MVP), later filter by nearby driver rooms
         io.to("drivers").emit("ride_broadcast", {
           rideId: ride._id,
-          riderId,
           pickup,
           destination,
           distanceKm,
@@ -79,7 +63,8 @@ function setupSockets(io) {
           nearbyDrivers,
         });
 
-        socket.emit("ride_created", {
+        ack?.({
+          ok: true,
           rideId: ride._id,
           fare,
           distanceKm,
@@ -87,225 +72,30 @@ function setupSockets(io) {
         });
       } catch (err) {
         console.error("rider_request_ride error:", err);
-        socket.emit("error", { message: "Could not create ride" });
+        ack?.({ ok: false, message: "Could not create ride" });
       }
     });
 
-    // 🔹 Driver accepts ride
-    // 🔹 Driver accepts ride
-// 🔹 Driver accepts ride
-// socket.on("driver_accept_ride", async ({ driverId, rideId }) => {
-//   try {
-//     console.log("DRIVER_SERVICE_URL =", DRIVER_SERVICE_URL);
-//     console.log("Requesting profile for driverId", driverId);
-//     const ride = await Ride.findById(rideId);
-//     console.log("ride.status:", ride?.status);
+    // Driver joins ride room after accept (client emits this after HTTP accept)
+    socket.on("join_ride_room", ({ rideId }, ack) => {
+      if (!rideId) return ack?.({ ok: false, message: "rideId required" });
+      socket.join(`ride_${rideId}`);
+      ack?.({ ok: true });
+    });
 
-//     if (!ride || ride.status !== "REQUESTED") {
-//       console.log("i am here");
-//       return socket.emit("error", { message: "Ride unavailable" });
-//     }
-    
-
-//     ride.driverId = driverId;
-//     ride.status = "ACCEPTED";
-//     await ride.save();
-
-//     // attach mapping for this ride
-//     rideRooms.set(rideId, {
-//       riderId: ride.riderId.toString(),
-//       driverId: driverId.toString(),
-//     });
-//     socket.join(`ride_${rideId}`);
-//     // 🔹 fetch full driver profile from DRIVER SERVICE
-//     let driverProfile = null;
-//     console.log(driverProfile);
-//     try {
-//       const { data } = await axios.get(
-//         `${DRIVER_SERVICE_URL}/drivers/by-user/${driverId}`
-//       );
-      
-//       driverProfile = data;
-     
-//     } catch (e) {
-//       console.warn("Driver profile fetch failed:", e.message);
-//     }
-//     console.log(driverProfile);
-//     // 🔹 mark driver unavailable in driver service
-//     try {
-//       if (driverProfile?.userId) {
-//         await axios.patch(
-//           `${DRIVER_SERVICE_URL}/drivers/${driverProfile.userId}/status`,
-//           { isAvailable: false }
-//         );
-//       }
-//     } catch (err) {
-//       console.warn("Driver status update failed:", err.message);
-//     }
-
-//     const driverSafe = driverProfile
-//       ? {
-//           id: driverProfile._id,
-//           userId: driverProfile.userId,
-//           name: `${driverProfile.fullname?.firstname || ""} ${
-//             driverProfile.fullname?.lastname || ""
-//           }`.trim(),
-//           mobileNumber: driverProfile.mobileNumber,
-//           vehicle: {
-//             model: driverProfile.vehicleInfo?.model || "",
-//             plate: driverProfile.vehicleInfo?.plateNumber || "",
-//             color: driverProfile.vehicleInfo?.color || "",
-//           },
-//           rating: driverProfile.rating,
-//         }
-//       : null;
-
-//     const payload = {
-//       rideId: ride._id,
-//       status: ride.status,
-//       driverId,
-//       driver: driverSafe,
-//       pickup: ride.pickup,
-//       destination: ride.destination,
-//       fare: ride.fare,
-//       distanceKm: ride.distanceKm,
-//       durationMin: ride.durationMin,
-//     };
-
-//     console.log(
-//       "Emitting ride_accepted to rider_",
-//       ride.riderId.toString(),
-//       payload
-//     );
-
-//     // 🔹 Rider gets driver profile + ride data
-//     io.to(`rider_${ride.riderId.toString()}`).emit("ride_accepted", payload);
-
-//     // 🔹 Driver also gets the SAME event name and data
-//     socket.emit("ride_accepted", payload);   // ✅ FIX: matches driver frontend
-//   } catch (err) {
-//     console.error("driver_accept_ride:", err);
-//     socket.emit("error", { message: "Accept failed" });
-//   }
-// });
-
-
-    // 🔹 Driver accepts ride (socket side – only joins ride room now)
-socket.on("driver_accept_ride", ({ driverId, rideId }) => {
-  console.log("driver_accept_ride (socket) - join ride room only", {
-    driverId,
-    rideId,
-  });
-  if (rideId) {
-    socket.join(`ride_${rideId}`);
-  }
-});
-
-    
-
-    // 🔹 Real-time driver location updates
-    socket.on("driver_location_update", ({ rideId, driverId, lat, lng }) => {
+    socket.on("driver_location_update", ({ rideId, lat, lng }) => {
       if (!rideId) return;
-
-      // broadcast to rider in this ride
       io.to(`ride_${rideId}`).emit("driver_location_update", {
-        driverId,
+        driverId: socket.user.id,
         lat,
         lng,
       });
     });
 
-    // 🔹 Simulate movement (for testing)
-    socket.on("simulate_driver_movement", ({ rideId, path }) => {
-      console.log(`🧭 Simulating movement for ride ${rideId}`);
-      let index = 0;
-      const interval = setInterval(() => {
-        if (index >= path.length) {
-          clearInterval(interval);
-          io.to(`ride_${rideId}`).emit("driver_reached_destination", {
-            rideId,
-          });
-          return;
-        }
-        const loc = path[index++];
-        io.to(`ride_${rideId}`).emit("driver_location_update", loc);
-      }, 2000);
+    socket.on("disconnect", () => {
+      console.log("❌ Socket disconnected:", socket.id);
     });
-
-    // 🔹 Ride started
-    socket.on("ride_start", async ({ rideId, driverId }) => {
-      const ride = await Ride.findById(rideId);
-      if (!ride) return socket.emit("error", { message: "Ride not found" });
-      ride.status = "STARTED";
-      await ride.save();
-      io.to(`ride_${rideId}`).emit("ride_started", { rideId });
-    });
-
-    // 🔹 Ride completed
-    socket.on(
-      "ride_complete",
-      async ({ rideId, driverId, distanceMeters, durationSec }) => {
-        try {
-          const ride = await Ride.findById(rideId);
-          if (!ride) return socket.emit("error", { message: "Ride not found" });
-
-          const distanceKm = distanceMeters
-            ? distanceMeters / 1000
-            : ride.distanceKm;
-          const durationMin = durationSec ? durationSec / 60 : ride.durationMin;
-
-          const fare = calculateFare(distanceKm, durationMin);
-
-          ride.distanceKm = distanceKm;
-          ride.durationMin = durationMin;
-          ride.fare = fare;
-          ride.status = "COMPLETED";
-          ride.completedAt = new Date();
-          await ride.save();
-
-          await axios.patch(
-            `${DRIVER_SERVICE_URL}/drivers/${driverId}/status`,
-            { isAvailable: true }
-          );
-
-          io.to(`ride_${rideId}`).emit("ride_completed", {
-            rideId,
-            fare,
-            distanceKm,
-            durationMin,
-          });
-        } catch (err) {
-          console.error("ride_complete socket error:", err);
-          socket.emit("error", { message: "Could not complete ride" });
-        }
-      }
-    );
-    socket.on("call_offer", ({ rideId, offer }) => {
-      io.to(`ride_${rideId}`).emit("call_offer", { offer });
-    });
-    
-    // driver sending answer
-    socket.on("call_answer", ({ rideId, answer }) => {
-      io.to(`ride_${rideId}`).emit("call_answer", { answer });
-    });
-    
-    // ICE exchange both ways
-    socket.on("call_ice_candidate", ({ rideId, candidate }) => {
-      io.to(`ride_${rideId}`).emit("call_ice_candidate", { candidate });
-    });
-    // inside io.on("connection", socket) { ... }
-    socket.on("call_hangup", ({ rideId, from }) => {
-      io.to(`ride_${rideId}`).emit("call_hangup", { from });
-    });
-
-    socket.on("disconnect", () =>
-      console.log("❌ Socket disconnected:", socket.id)
-    );
   });
-
-  // rider sending offer
-
-
 
   return io;
 }
