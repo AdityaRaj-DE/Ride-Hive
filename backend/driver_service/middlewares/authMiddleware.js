@@ -116,3 +116,83 @@ module.exports = {
   requireActiveRole,
   requireOnboarded,
 };
+
+
+// use if above is not running:
+
+
+// const axios = require("axios");
+
+// function extractToken(req) {
+//   const authHeader = req.headers.authorization;
+//   if (authHeader && authHeader.startsWith("Bearer ")) {
+//     return authHeader.split(" ")[1];
+//   }
+//   if (req.cookies?.token) return req.cookies.token;
+//   return null;
+// }
+
+// async function protectWithAuthService(req, res, next) {
+//   try {
+//     const token = extractToken(req);
+
+//     if (!token) {
+//       return res.status(401).json({ message: "Unauthorized: token missing" });
+//     }
+
+//     const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL;
+//     if (!AUTH_SERVICE_URL) {
+//       return res.status(500).json({ message: "Server misconfigured: AUTH_SERVICE_URL missing" });
+//     }
+
+//     const { data } = await axios.get(`${AUTH_SERVICE_URL}/auth/me`, {
+//       headers: { Authorization: `Bearer ${token}` },
+//       timeout: 5000,
+//     });
+
+//     req.user = {
+//       id: data.id,
+//       mobileNumber: data.mobileNumber,
+//       roles: data.roles,
+//       activeRole: data.activeRole,
+//       onboarding: data.onboarding,
+//       isVerified: data.isVerified,
+//     };
+
+//     return next();
+//   } catch (err) {
+//     const status = err?.response?.status;
+//     if (status === 401 || status === 403) {
+//       return res.status(401).json({ message: "Unauthorized: invalid/expired token" });
+//     }
+
+//     console.error("❌ Auth service validate error:", err.message);
+//     return res.status(503).json({ message: "Auth service unavailable" });
+//   }
+// }
+
+// function requireActiveRole(role) {
+//   return (req, res, next) => {
+//     if (!req.user?.activeRole) return res.status(403).json({ message: "Forbidden: activeRole missing" });
+//     if (req.user.activeRole !== role) {
+//       return res.status(403).json({ message: `Forbidden: activeRole must be ${role}` });
+//     }
+//     next();
+//   };
+// }
+
+// function requireRole(role) {
+//   return (req, res, next) => {
+//     if (!req.user?.roles) return res.status(403).json({ message: "Forbidden: roles missing" });
+//     if (!req.user.roles[role]) {
+//       return res.status(403).json({ message: `Forbidden: requires ${role} role` });
+//     }
+//     next();
+//   };
+// }
+
+// module.exports = {
+//   protectWithAuthService,
+//   requireActiveRole,
+//   requireRole,
+// };

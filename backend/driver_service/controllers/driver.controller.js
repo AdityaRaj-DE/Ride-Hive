@@ -133,63 +133,7 @@ function isSubscriptionActive(driver) {
   return driver.subscription.expiresAt > new Date();
 }
 
-// Create or update driver profile (called from Auth or manually)
-exports.createOrUpdateDriver = async (req, res) => {
-  try {
-    const {
-      _id,
-      firstname,
-      lastname,
-      mobileNumber,
-      licenseNumber,
-      model,
-      plateNumber,
-      color
-    } = req.body;
 
-    if (!_id) {
-      return res.status(400).json({ message: "Driver ID (_id) is required" });
-    }
-
-    if (!licenseNumber) {
-      return res.status(400).json({ message: "License number is required" });
-    }
-
-    let driver = await Driver.findOne({ userId: _id });
-
-    const vehicleInfo = {
-      model,
-      plateNumber,
-      color,
-    };
-
-    if (driver) {
-      driver.fullname.firstname = firstname ?? driver.fullname.firstname;
-      driver.fullname.lastname = lastname ?? driver.fullname.lastname;
-      driver.mobileNumber = mobileNumber ?? driver.mobileNumber;
-      driver.licenseNumber = licenseNumber ?? driver.licenseNumber;
-      driver.vehicleInfo = vehicleInfo ?? driver.vehicleInfo;
-      await driver.save();
-    } else {
-      driver = await Driver.create({
-        userId: _id,
-        fullname: { firstname, lastname },
-        mobileNumber,
-        licenseNumber,
-        vehicleInfo,
-      });
-    }
-
-    res.status(200).json({
-      message: "Driver profile synced successfully",
-      driver,
-    });
-
-  } catch (error) {
-    console.error("❌ Error in createOrUpdateDriver:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
 
 
 // Get driver profile
@@ -257,12 +201,12 @@ exports.getDriverByUserId = async (req, res) => {
       _id: driver._id,
       userId: driver.userId,
       fullname: driver.fullname,
-      mobileNumber: driver.mobileNumber,
       vehicle: driver.vehicleInfo,
       rating: driver.rating,
       totalRides: driver.totalRides,
       isAvailable: driver.isAvailable,
       location: driver.location,
+      status: driver.status,
     });
   } catch (err) {
     console.error("getDriverByUserId error:", err.message);
@@ -327,15 +271,11 @@ exports.updateLocation = async (req, res) => {
       return res.status(400).json({ error: "lat and lng must be numbers" });
     }
 
-    console.log("Decoded user in updateLocation:", req.user);
-
     const driver = await Driver.findOne({ userId: req.user.id });
     if (!driver) return res.status(404).json({ error: "Driver not found" });
 
-    await Driver.updateOne(
-      { userId: req.user.id },
-      { $set: { location: { lat, lng }, isAvailable: true } }
-    );
+    driver.location = { lat, lng };
+    await driver.save();
 
     res.json({ success: true, message: "Location updated" });
   } catch (err) {
@@ -343,6 +283,7 @@ exports.updateLocation = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
 
 
 // controllers/driver.controller.js
@@ -648,41 +589,47 @@ exports.getSubscriptionStatusForService = async (req, res) => {
 
 
 module.exports.approveDriver = async (req, res) => {
-  const { driverId } = req.params;
+  try {
+    const { driverId } = req.params;
 
-  const driver = await Driver.findById(driverId);
-  if (!driver) return res.status(404).json({ message: "Driver not found" });
+    const driver = await Driver.findById(driverId);
+    if (!driver) return res.status(404).json({ message: "Driver not found" });
 
-  // HARD validation checks
-  const docs = driver.documents;
-  const docsOk =
-    docs.drivingLicense.url &&
-    docs.rcBook.url &&
-    docs.insurance.url &&
-    docs.profilePhoto.url;
+    const docs = driver.documents;
+    const docsOk =
+      docs?.drivingLicense?.url &&
+      docs?.rcBook?.url &&
+      docs?.insurance?.url &&
+      docs?.profilePhoto?.url;
 
-  if (!docsOk) {
-    return res.status(400).json({ message: "Driver documents incomplete" });
+    if (!docsOk) {
+      return res.status(400).json({ message: "Driver documents incomplete" });
+    }
+
+    driver.status = "approved";
+    driver.isAvailable = false;
+
+    driver.verification.licenseVerified = true;
+    driver.verification.vehicleVerified = true;
+    driver.verification.backgroundCheckPassed = true;
+    driver.verification.verifiedAt = new Date();
+
+    driver.onboarding.completed = true;
+    driver.onboarding.completedAt = new Date();
+    driver.onboarding.step = "done";
+
+    await driver.save();
+
+    // ✅ Auth becomes truth: onboarding + enable driver role
+    await markDriverOnboardedInAuth(driver.userId);
+
+    return res.status(200).json({ message: "Driver approved", driver });
+  } catch (err) {
+    console.error("approveDriver error:", err.message);
+    return res.status(500).json({ message: "Server error" });
   }
-
-  driver.status = "approved";
-  driver.isAvailable = false; // driver still must turn on availability manually
-  driver.verification.licenseVerified = true;
-  driver.verification.vehicleVerified = true;
-  driver.verification.backgroundCheckPassed = true;
-  driver.verification.verifiedAt = new Date();
-
-  driver.onboarding.completed = true;
-  driver.onboarding.completedAt = new Date();
-  driver.onboarding.step = "done";
-
-  await driver.save();
-
-  // update auth-service onboarding flag
-  await markDriverOnboardedInAuth(driver.userId);
-
-  return res.status(200).json({ message: "Driver approved", driver });
 };
+
 
 
 module.exports.rejectDriver = async (req, res) => {
