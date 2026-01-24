@@ -21,6 +21,55 @@ const corsOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
   : ["https://localhost:5173", "https://localhost:5174"];
 
+  const axios = require("axios");
+
+/**
+ * Validate token + fetch user from Auth service
+ */
+async function authenticate(req, res, next) {
+  try {
+    const token = req.headers.authorization;
+    if (!token) {
+      return res.status(401).json({ message: "Missing Authorization header" });
+    }
+
+    const { data } = await axios.get(`${urls.auth}/me`, {
+      headers: { Authorization: token },
+    });
+
+    req.user = data.user; // Auth is source of truth
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+}
+
+/**
+ * Rider onboarding guard
+ */
+function requireRider(req, res, next) {
+  if (!req.user?.onboarding?.rider) {
+    return res.status(403).json({ message: "Rider onboarding incomplete" });
+  }
+  next();
+}
+
+/**
+ * Driver role + onboarding guard
+ */
+function requireDriver(req, res, next) {
+  if (!req.user?.onboarding?.driver) {
+    return res.status(403).json({ message: "Driver onboarding incomplete" });
+  }
+
+  if (!req.user?.roles?.driver) {
+    return res.status(403).json({ message: "Driver role not enabled" });
+  }
+
+  next();
+}
+
+
 app.use(
   cors({
     origin: ["https://localhost:5173", "https://localhost:5174"],  // your React dev server
@@ -46,51 +95,18 @@ app.use(
     target: urls.auth,
     changeOrigin: true,
     logLevel: "debug",
-    pathRewrite: (path, req) => {
-      console.log("🧩 Incoming path before rewrite:", path);
-
-      // Handle User routes
-      if (path.startsWith("/auth/users")) {
-        return path.replace("/auth/users", "/users");
-      }
-      
-      // Handle User routes (singular for backward compatibility)
-      if (path.startsWith("/auth/user")) {
-        return path.replace("/auth/user", "/users");
-      }
-
-      // Handle Driver routes
-      if (path.startsWith("/auth/drivers")) {
-        return path.replace("/auth/drivers", "/drivers");
-      }
-      
-      // Handle Captain routes (for backward compatibility)
-      if (path.startsWith("/auth/captain")) {
-        return path.replace("/auth/captain", "/drivers");
-      }
-
-      // Default fallback (no change)
-      return path;
-    },
-    onProxyReq: (proxyReq, req) => {
-      console.log(`🔁 [Auth] ${req.method} ${req.originalUrl} → ${proxyReq.path}`);
+    onProxyReq(proxyReq, req) {
       if (req.headers.authorization) {
         proxyReq.setHeader("authorization", req.headers.authorization);
       }
     },
-    onProxyRes: function (proxyRes, req, res) {   // 🔥 REQUIRED FIX
-      const cookies = proxyRes.headers['set-cookie'];
+    onProxyRes(proxyRes) {
+      const cookies = proxyRes.headers["set-cookie"];
       if (cookies) {
-        proxyRes.headers['set-cookie'] = cookies.map((cookie) =>
-          cookie
-            .replace(/; Secure/gi, '') // remove Secure for HTTP dev
-            .replace(/SameSite=Lax/gi, 'SameSite=None') // ensures cross-site cookie
+        proxyRes.headers["set-cookie"] = cookies.map(c =>
+          c.replace(/; Secure/gi, "").replace(/SameSite=Lax/gi, "SameSite=None")
         );
       }
-    },
-    onError: (err, req, res) => {
-      console.error("❌ [Auth Proxy Error]:", err.message);
-      res.status(500).json({ message: "Proxy error", error: err.message });
     },
   })
 );
@@ -102,42 +118,31 @@ app.use(
 // ============================
 app.use(
   "/rider",
+  authenticate,
+  requireRider,
   createProxyMiddleware({
     target: urls.rider,
     changeOrigin: true,
-    logLevel: "debug",
-    onProxyReq: (proxyReq, req) => {
-      console.log(`🔁 [Rider] ${req.method} ${req.originalUrl} → ${proxyReq.path}`);
-      if (req.headers.authorization) {
-        proxyReq.setHeader("authorization", req.headers.authorization);
-      }
+    onProxyReq(proxyReq, req) {
+      proxyReq.setHeader("authorization", req.headers.authorization);
     },
-    onError: (err, req, res) => {
-      console.error("❌ [Rider Proxy Error]:", err.message);
-      res.status(500).json({ message: "Rider proxy error", error: err.message });
-    }
   })
 );
+
 
 // ============================
 // 🔹 DRIVER SERVICE
 // ============================
 app.use(
   "/driver",
+  authenticate,
+  requireDriver,
   createProxyMiddleware({
     target: urls.driver,
     changeOrigin: true,
-    logLevel: "debug",
-    onProxyReq: (proxyReq, req) => {
-      console.log(`🔁 [Driver] ${req.method} ${req.originalUrl} → ${proxyReq.path}`);
-      if (req.headers.authorization) {
-        proxyReq.setHeader("authorization", req.headers.authorization);
-      }
+    onProxyReq(proxyReq, req) {
+      proxyReq.setHeader("authorization", req.headers.authorization);
     },
-    onError: (err, req, res) => {
-      console.error("❌ [Driver Proxy Error]:", err.message);
-      res.status(500).json({ message: "Driver proxy error", error: err.message });
-    }
   })
 );
 
@@ -146,24 +151,17 @@ app.use(
 // ============================
 app.use(
   "/ride",
+  authenticate,
   createProxyMiddleware({
     target: urls.ride,
     changeOrigin: true,
-    logLevel: "debug",
     ws: true,
-    // pathRewrite: { "^/ride": "" }, // ✅ remove /ride prefix
-    onProxyReq: (proxyReq, req) => {
-      console.log(`🔁 [Ride] ${req.method} ${req.originalUrl} → ${proxyReq.path}`);
-      if (req.headers.authorization) {
-        proxyReq.setHeader("authorization", req.headers.authorization);
-      }
+    onProxyReq(proxyReq, req) {
+      proxyReq.setHeader("authorization", req.headers.authorization);
     },
-    onError: (err, req, res) => {
-      console.error("❌ [Ride Proxy Error]:", err.message);
-      res.status(500).json({ message: "Ride proxy error", error: err.message });
-    }
   })
 );
+
 
 
 // ============================
