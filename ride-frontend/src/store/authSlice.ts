@@ -2,12 +2,15 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../api/axios";
 
 interface User {
-  _id: string;
-  fullname: {
-    firstname: string;
-    lastname?: string;
+  id: string;
+  mobile: string;
+  onboarding: {
+    rider: boolean;
+    driver?: boolean;
   };
-  email: string;
+  roles: {
+    driver?: boolean;
+  };
 }
 
 interface AuthState {
@@ -15,6 +18,7 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   error: string | null;
+  otpSent: boolean;
 }
 
 const initialState: AuthState = {
@@ -22,49 +26,49 @@ const initialState: AuthState = {
   token: localStorage.getItem("token"),
   loading: false,
   error: null,
+  otpSent: false,
 };
 
-// Register
-export const registerUser = createAsyncThunk(
-  "auth/registerUser",
-  async (formData: any, { rejectWithValue }) => {
+// 1️⃣ Send OTP
+export const sendOtp = createAsyncThunk(
+  "auth/sendOtp",
+  async (mobile: string, { rejectWithValue }) => {
     try {
-      const res = await api.post("/auth/users/register", formData);
-      return res.data;
+      await api.post("/auth/otp/send", { mobile });
     } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || "Registration failed");
+      return rejectWithValue(err.response?.data?.message || "OTP send failed");
     }
   }
 );
 
-// Login
-export const loginUser = createAsyncThunk(
-  "auth/loginUser",
-  async (formData: any, { rejectWithValue }) => {
+// 2️⃣ Verify OTP
+export const verifyOtp = createAsyncThunk(
+  "auth/verifyOtp",
+  async (
+    { mobile, otp }: { mobile: string; otp: string },
+    { rejectWithValue }
+  ) => {
     try {
-      const res = await api.post("/auth/users/login", formData);
+      const res = await api.post("/auth/otp/verify", { mobile, otp });
       return res.data;
     } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || "Login failed");
+      return rejectWithValue(err.response?.data?.message || "OTP verification failed");
     }
   }
 );
 
-// Profile Fetch
-export const fetchProfile = createAsyncThunk(
-  "auth/fetchProfile",
+// 3️⃣ Fetch current user
+export const fetchMe = createAsyncThunk(
+  "auth/fetchMe",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await api.get("/auth/users/profile");
-      console.log("PROFILE RESPONSE:", res.data);
-      return res.data;
-    } catch (err: any) {
-      console.error("PROFILE ERROR:", err.response?.data || err.message);
-      return rejectWithValue("Profile fetch failed");
+      const res = await api.get("/auth/me");
+      return res.data.user;
+    } catch {
+      return rejectWithValue("Session expired");
     }
   }
 );
-
 
 const authSlice = createSlice({
   name: "auth",
@@ -73,50 +77,45 @@ const authSlice = createSlice({
     logout(state) {
       state.user = null;
       state.token = null;
+      state.otpSent = false;
       localStorage.removeItem("token");
     },
   },
   extraReducers: (builder) => {
     builder
-      // Register
-      .addCase(registerUser.fulfilled, (state, action) => {
+      // Send OTP
+      .addCase(sendOtp.pending, (state) => {
+        state.loading = true;
         state.error = null;
       })
-      .addCase(registerUser.rejected, (state, action: any) => {
+      .addCase(sendOtp.fulfilled, (state) => {
+        state.loading = false;
+        state.otpSent = true;
+      })
+      .addCase(sendOtp.rejected, (state, action: any) => {
+        state.loading = false;
         state.error = action.payload;
       })
-      // Login
-      .addCase(loginUser.pending, (state) => {
+
+      // Verify OTP
+      .addCase(verifyOtp.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
-      .addCase(loginUser.fulfilled, (state, action) => {
+      .addCase(verifyOtp.fulfilled, (state, action) => {
         state.loading = false;
-        state.token = action.payload.token;
-        localStorage.setItem("token", action.payload.token);
-        
+        state.token = action.payload.accessToken;
+        localStorage.setItem("token", action.payload.accessToken);
       })
-      .addCase(loginUser.rejected, (state, action: any) => {
+      .addCase(verifyOtp.rejected, (state, action: any) => {
         state.loading = false;
-        state.token = null;
         state.error = action.payload;
       })
-      // Profile
-      .addCase(fetchProfile.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(fetchProfile.fulfilled, (state, action) => {
-        state.loading = false;
+
+      // Fetch Me
+      .addCase(fetchMe.fulfilled, (state, action) => {
         state.user = action.payload;
-      })
-      .addCase(fetchProfile.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      
-        // Auto logout if token invalid or expired
-        // localStorage.removeItem("token");
-        // state.token = null;
-        // state.user = null;
-      })      
+      });
   },
 });
 

@@ -4,6 +4,7 @@ const driverController = require("../controllers/driver.controller");
 const {
   protectWithAuthService,
   requireActiveRole,
+  requireRole
 } = require("../middlewares/authMiddleware");
 const Driver = require("../models/driverModel");
 
