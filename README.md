@@ -109,7 +109,7 @@ note that this service is not using most of things as it now none of it features
 
 ## 2. Key API Routes in Each Service
 
-### **Auth Service** (`/auth` via gateway)
+### **Auth Service** (`/auth` via api gateway)
 
 #### User Routes (`/auth/users` or `/auth/user`)
 - `POST /register` - Register new user
