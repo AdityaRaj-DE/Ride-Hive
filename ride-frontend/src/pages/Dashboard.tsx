@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "../store";
-import { logout, fetchProfile } from "../store/authSlice";
+import { logout, fetchMe } from "../store/authSlice";
 
 import {
   fetchActiveRide,

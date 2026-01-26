@@ -34,7 +34,7 @@ export const sendOtp = createAsyncThunk(
   "auth/sendOtp",
   async (mobile: string, { rejectWithValue }) => {
     try {
-      await api.post("/auth/otp/send", { mobile });
+      await api.post("/auth/otp/send", { mobileNumber: mobile });
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || "OTP send failed");
     }
@@ -49,10 +49,17 @@ export const verifyOtp = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const res = await api.post("/auth/otp/verify", { mobile, otp });
+      const res = await api.post("/auth/otp/verify", {
+        mobileNumber: mobile,
+        otp,
+        deviceId: "web"
+      });
+
       return res.data;
     } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || "OTP verification failed");
+      return rejectWithValue(
+        err.response?.data?.message || "OTP verification failed"
+      );
     }
   }
 );
@@ -63,12 +70,14 @@ export const fetchMe = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const res = await api.get("/auth/me");
-      return res.data.user;
-    } catch {
+      console.log(res.data)
+      return res.data; // 🔥 NOT res.data.user
+    } catch (err) {
       return rejectWithValue("Session expired");
     }
   }
 );
+
 
 const authSlice = createSlice({
   name: "auth",
@@ -111,7 +120,10 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-
+      .addCase(fetchMe.pending, (state) => {
+        state.loading = true;
+      })
+      
       // Fetch Me
       .addCase(fetchMe.fulfilled, (state, action) => {
         state.user = action.payload;

@@ -20,6 +20,7 @@ function extractToken(req) {
 async function protectWithAuthService(req, res, next) {
   try {
     const token = extractToken(req);
+    console.log("TOKEN SENT TO AUTH:", token);
 
     if (!token) {
       return res.status(401).json({ message: "Unauthorized: token missing" });

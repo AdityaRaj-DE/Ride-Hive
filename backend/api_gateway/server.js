@@ -117,6 +117,19 @@ app.use(
 // 🔹 RIDER SERVICE
 // ============================
 app.use(
+  "/rider/onboard",
+  authenticate,
+  createProxyMiddleware({
+    target: urls.rider,
+    changeOrigin: true,
+    onProxyReq(proxyReq, req) {
+      const auth = req.headers.authorization || req.headers.Authorization;
+      if (auth) proxyReq.setHeader("Authorization", auth);
+    },
+  })
+);
+
+app.use(
   "/rider",
   authenticate,
   requireRider,
@@ -124,7 +137,8 @@ app.use(
     target: urls.rider,
     changeOrigin: true,
     onProxyReq(proxyReq, req) {
-      proxyReq.setHeader("authorization", req.headers.authorization);
+      const auth = req.headers.authorization || req.headers.Authorization;
+      if (auth) proxyReq.setHeader("Authorization", auth);
     },
   })
 );

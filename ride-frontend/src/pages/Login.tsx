@@ -20,20 +20,34 @@ export default function Login() {
     dispatch(sendOtp(mobile));
   };
 
-  const submitOtp = (e: React.FormEvent) => {
+  const submitOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    dispatch(verifyOtp({ mobile, otp }));
-  };
-
-  useEffect(() => {
-    if (token) {
+  
+    const result = await dispatch(verifyOtp({ mobile, otp }));
+  
+    if (verifyOtp.fulfilled.match(result)) {
       dispatch(fetchMe());
     }
-  }, [token]);
+  };
+  // useEffect(() => {
+  //   console.log("LOGIN USER:", user);
+  
+  //   if (user) {
+  //     if (!user.onboarding?.rider) {
+  //       console.log("GOING TO ONBOARDING");
+  //       navigate("/onboarding");
+  //     } else {
+  //       console.log("GOING TO DASHBOARD");
+  //       navigate("/dashboard");
+  //     }
+  //   }
+  // }, [user]);
+  
+  
 
   useEffect(() => {
     if (user) {
-      if (!user.onboarding.rider) {
+      if (!user.onboarding?.rider) {
         navigate("/onboarding");
       } else {
         navigate("/dashboard");

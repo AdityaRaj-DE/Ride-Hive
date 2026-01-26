@@ -41,10 +41,10 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 
-app.get('/',(req,res)=>{
-    res.send('working');
-})
-app.use('/auth', userRoutes);
+// app.get('/',(req,res)=>{
+//     res.send('working');
+// })
+app.use('/', userRoutes);
 app.use("/internal", internalRoutes);
 // Error handling middleware - suppress "request aborted" errors
 app.use((err, req, res, next) => {

@@ -1,36 +1,86 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
-import Register from "./pages/RiderOnboarding";
+import RiderOnboarding from "./pages/RiderOnboarding";
 import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
 import { useSelector } from "react-redux";
 import type { RootState } from "./store";
-import Profile from "./pages/Profile";
+
+function RequireAuth({ children }: { children: JSX.Element }) {
+  const { token } = useSelector((s: RootState) => s.auth);
+  if (!token) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function RequireOnboarding({ children }: { children: JSX.Element }) {
+  const { user } = useSelector((s: RootState) => s.auth);
+
+  // while /auth/me still loading
+  if (!user) return null;
+
+  if (!user.onboarding?.rider) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  return children;
+}
+
+function RequireNotOnboarded({ children }: { children: JSX.Element }) {
+  const { user } = useSelector((s: RootState) => s.auth);
+
+  if (!user) return null;
+
+  if (user.onboarding?.rider) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+}
 
 export default function App() {
-  const { token, user } = useSelector((state: RootState) => state.auth);
-
   return (
     <BrowserRouter>
       <Routes>
-        {/* If not logged in → public routes only */}
-        {!token && (
-          <>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </>
-        )}
+        {/* Public */}
+        <Route path="/login" element={<Login />} />
 
-        {/* Logged in → show dashboard, but allow loading */}
-        {token && (
-          <>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<Profile />} />
+        {/* Onboarding */}
+        <Route
+          path="/onboarding"
+          element={
+            <RequireAuth>
+              <RequireNotOnboarded>
+                <RiderOnboarding />
+              </RequireNotOnboarded>
+            </RequireAuth>
+          }
+        />
 
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </>
-        )}
+        {/* App */}
+        <Route
+          path="/dashboard"
+          element={
+            <RequireAuth>
+              <RequireOnboarding>
+                <Dashboard />
+              </RequireOnboarding>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <RequireOnboarding>
+                <Profile />
+              </RequireOnboarding>
+            </RequireAuth>
+          }
+        />
+
+        {/* Default */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

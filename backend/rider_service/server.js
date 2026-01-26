@@ -36,11 +36,11 @@ app.use(
 );
 
 
-app.get('/',(req,res)=>{
-    res.send('working');
-})
+// app.get('/',(req,res)=>{
+//     res.send('working');
+// })
 
-app.use('/rider', riderRoutes);
+app.use('/', riderRoutes);
 
 // Error handling middleware - suppress "request aborted" errors
 app.use((err, req, res, next) => {

@@ -2,101 +2,106 @@ const Rider = require("../models/riderModel");
 const authClient = require("../clients/authClient");
 
 module.exports.onboard = async (req, res) => {
-  const userId = req.user.id;
-  const { name, email, emergencyContact, savedLocations, preferences } = req.body;
-
-  if (!name?.first) {
-    return res.status(400).json({ message: "First name required" });
-  }
-
-  const rider = await Rider.findOneAndUpdate(
-    { userId },
-    {
-      $set: {
-        name: { first: name.first, last: name.last || "" },
-        email: email || "",
-        emergencyContact: emergencyContact || {},
-        savedLocations: savedLocations || undefined,
-        preferences: preferences || undefined,
-        onboardingCompleted: true,
-        onboardingCompletedAt: new Date(),
-      },
-    },
-    { upsert: true, new: true }
-  );
-
-  /**
-   * Microservices problem:
-   * Auth service doesn't know rider onboarding is complete.
-   * So we must update auth service flag.
-   */
-  // TODO: Call Auth service to set onboarding flag:
-  // await authClient.patch(`/auth/users/${userId}/onboarding`, { riderOnboarded: true });
   try {
+    const userId = req.user.id;
+    const { name, email } = req.body;
+
+    if (!name?.first) {
+      return res.status(400).json({ message: "First name required" });
+    }
+
+    const rider = await Rider.findOneAndUpdate(
+      { userId },
+      {
+        $set: {
+          userId,
+          name: {
+            first: name.first,
+            last: name.last || "",
+          },
+          email: email || "",
+          onboardingCompleted: true,
+          onboardingCompletedAt: new Date(),
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    // Sync auth onboarding flag
     await authClient.patch(
       `/internal/users/${userId}/onboarding`,
       { rider: true },
       { headers: { "x-internal-key": process.env.INTERNAL_SERVICE_KEY } }
     );
-  } catch (err) {
-    console.error("❌ Failed to update auth onboarding:", err?.response?.data || err.message);
-    return res.status(500).json({ message: "Onboarding saved but auth sync failed" });
-  }
-  
 
-  return res.status(200).json({ message: "Rider onboarded", rider });
+    res.status(200).json({ rider });
+  } catch (err) {
+    console.error("❌ Rider onboard failed:", err?.response?.data || err.message);
+    res.status(500).json({ message: "Rider onboarding failed" });
+  }
 };
+
 
 
 // Create or update rider profile (called from Auth Service)
-exports.createOrUpdateRider = async (req, res) => {
-  try {
-    const userId = req.user?.id; // ✅ take userId from token payload
-
-    if (!userId) {
-      return res.status(400).json({ message: "User ID missing from token" });
-    }
-
-    const { preferredPayment, savedLocations } = req.body || {};
-
-    let rider = await Rider.findOne({ userId });
-
-    if (rider) {
-      rider.preferredPayment = preferredPayment || rider.preferredPayment;
-      rider.savedLocations = savedLocations || rider.savedLocations;
-      await rider.save();
-    } else {
-      rider = await Rider.create({ userId, preferredPayment, savedLocations });
-    }
-
-    res.status(200).json({
-      message: "Rider profile created/updated successfully",
-      rider,
-    });
-  } catch (error) {
-    console.error("❌ Error in createOrUpdateRider:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-
-// Get rider profile
 exports.getRiderProfile = async (req, res) => {
   try {
-    const userId = req.user?.id;
-
-    if (!userId) {
-      return res.status(400).json({ message: "User ID is missing" });
-    }
+    const userId = req.user.id;
 
     const rider = await Rider.findOne({ userId });
 
     if (!rider) {
-      return res.status(404).json({ message: "Rider not found" });
+      return res.status(404).json({ message: "Rider profile not found" });
     }
 
-    res.status(200).json(rider);
-  } catch (error) {
-    console.error("❌ Error in getRiderProfile:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(200).json({ rider });
+  } catch (err) {
+    console.error("❌ getRiderProfile:", err);
+    res.status(500).json({ message: "Failed to fetch rider profile" });
+  }
+};
+
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const allowedFields = [
+      "gender",
+      "dob",
+      "emergencyContact",
+      "savedLocations",
+      "preferences",
+      "profileImageUrl",
+      "name",
+      "email",
+    ];
+
+    const updates = {};
+
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) {
+        updates[key] = req.body[key];
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields to update" });
+    }
+
+    const rider = await Rider.findOneAndUpdate(
+      { userId },
+      { $set: updates },
+      { new: true }
+    );
+
+    if (!rider) {
+      return res.status(404).json({ message: "Rider profile not found" });
+    }
+
+    res.status(200).json({ rider });
+  } catch (err) {
+    console.error("❌ updateProfile:", err);
+    res.status(500).json({ message: "Failed to update rider profile" });
   }
 };
