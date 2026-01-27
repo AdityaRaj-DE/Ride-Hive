@@ -117,17 +117,21 @@ app.use(
 // 🔹 RIDER SERVICE
 // ============================
 app.use(
-  "/rider/onboard",
+  "/rider",
   authenticate,
   createProxyMiddleware({
     target: urls.rider,
     changeOrigin: true,
+    pathRewrite: {
+      "^/rider": "",
+    },
     onProxyReq(proxyReq, req) {
       const auth = req.headers.authorization || req.headers.Authorization;
       if (auth) proxyReq.setHeader("Authorization", auth);
     },
   })
 );
+
 
 app.use(
   "/rider",

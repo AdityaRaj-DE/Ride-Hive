@@ -26,6 +26,7 @@ module.exports.onboard = async (req, res) => {
       },
       { upsert: true, new: true }
     );
+    console.log("RIDER INTERNAL KEY:", process.env.INTERNAL_SERVICE_KEY);
 
     // Sync auth onboarding flag
     await authClient.patch(

@@ -25,7 +25,7 @@ const corsOrigins = process.env.CORS_ORIGINS
 
 app.use(
   cors({
-    origin: ["https://localhost:5173", "https://localhost:5174"],
+    origin: ["https://localhost:5173", "https://localhost:5174","http://localhost:3002","http://localhost:3003"],
     credentials: true,                // allow cookies / JWT headers
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],

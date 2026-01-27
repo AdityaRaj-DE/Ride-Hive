@@ -32,7 +32,7 @@ async function protectWithAuthService(req, res, next) {
     }
 
     // Call auth service to validate token
-    const { data } = await axios.get(`${AUTH_SERVICE_URL}/auth/me`, {
+    const { data } = await axios.get(`${AUTH_SERVICE_URL}/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

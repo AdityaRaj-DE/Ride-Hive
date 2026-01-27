@@ -15,7 +15,7 @@ export const completeRiderOnboarding = createAsyncThunk(
   "rider/onboard",
   async (payload: any, { rejectWithValue }) => {
     try {
-      await api.post("/rider/onboard/onboard", payload);
+      await api.post("/rider/onboard", payload);
     } catch (err: any) {
       return rejectWithValue(
         err.response?.data?.message || "Onboarding failed"
