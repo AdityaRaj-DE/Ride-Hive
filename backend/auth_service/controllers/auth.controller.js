@@ -179,10 +179,15 @@ module.exports.logout = async (req, res) => {
  * This is for switching UI between rider and driver (same account).
  */
 module.exports.activateRole = async (req, res) => {
-  const { userId, role } = req.body;
+  console.log("ACTIVATE BODY:", req.body);
+console.log("REQ.USER:", req.user);
 
-  if (!userId || !role) {
-    return res.status(400).json({ message: "userId and role required" });
+  const { role } = req.body;
+
+  const userId = req.user.id; // 👈 from JWT
+
+  if (!role) {
+    return res.status(400).json({ message: "role required" });
   }
 
   if (!["rider", "driver"].includes(role)) {
@@ -193,12 +198,10 @@ module.exports.activateRole = async (req, res) => {
 
   if (!user) return res.status(404).json({ message: "User not found" });
 
-  // cannot activate a role user doesn't have
   if (!user.roles[role]) {
-    return res.status(403).json({
-      message: `User is not registered as ${role}`,
-    });
+    user.roles[role] = true;
   }
+  
 
   user.activeRole = role;
   await user.save();

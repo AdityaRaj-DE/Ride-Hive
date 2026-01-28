@@ -96,8 +96,12 @@ app.use(
     changeOrigin: true,
     logLevel: "debug",
     onProxyReq(proxyReq, req) {
-      if (req.headers.authorization) {
-        proxyReq.setHeader("authorization", req.headers.authorization);
+      const auth =
+        req.headers["authorization"] ||
+        req.headers["Authorization"];
+        
+      if (auth) {
+        proxyReq.setHeader("Authorization", auth);
       }
     },
     onProxyRes(proxyRes) {
@@ -154,12 +158,23 @@ app.use(
 app.use(
   "/driver",
   authenticate,
-  requireDriver,
+  (req, res, next) => {
+    // allow onboarding routes without role
+    if (req.path.startsWith("/onboard")) return next();
+
+    // allow admin approve
+    if (req.path.startsWith("/admin")) return next();
+
+    // everything else requires driver role
+    return requireDriver(req, res, next);
+  },
   createProxyMiddleware({
     target: urls.driver,
     changeOrigin: true,
+    pathRewrite: { "^/driver": "" },
     onProxyReq(proxyReq, req) {
-      proxyReq.setHeader("authorization", req.headers.authorization);
+      const auth = req.headers.authorization || req.headers.Authorization;
+      if (auth) proxyReq.setHeader("Authorization", auth);
     },
   })
 );

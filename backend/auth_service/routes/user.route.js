@@ -10,6 +10,6 @@ router.post("/logout", authController.logout);
 router.get("/me", protect, authController.me);
 
 // switch between rider/driver
-router.post("/role/activate", authController.activateRole);
+router.post("/role/activate", protect,authController.activateRole);
 
 module.exports = router;

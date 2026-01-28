@@ -23,12 +23,14 @@ function extractToken(req) {
  */
 function protect(req, res, next) {
   try {
+    
     const JWT_SECRET = process.env.JWT_SECRET;
     if (!JWT_SECRET) {
       console.error("❌ JWT_SECRET missing in env");
       return res.status(500).json({ message: "Server misconfigured" });
     }
-
+    
+  
     const token = extractToken(req);
 
     if (!token) {

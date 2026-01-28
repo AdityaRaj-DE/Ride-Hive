@@ -36,7 +36,7 @@ app.use(express.json());
 app.get('/',(req,res)=>{
     res.send('working');
 })
-app.use("/drivers", driverRoutes);
+app.use("/", driverRoutes);
 
 // Error handling middleware - suppress "request aborted" errors
 app.use((err, req, res, next) => {

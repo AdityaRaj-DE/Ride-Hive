@@ -1,144 +1,101 @@
-// pages/driver/Login.tsx
-import { useState, type FormEvent } from "react";
-import { useDispatch } from "react-redux";
-import { useNavigate, Link } from "react-router-dom";
-import { axiosInstance } from "../services/axiosInstance";
-import {
-  driverLoginSuccess,
-  fetchDriverProfile,
-} from "../store/slices/driverAuthSlice";
-import type { AppDispatch } from "../store";
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { sendOtp, verifyOtp, activateRole, fetchMe } from "../store/slices/authSlice";
+import type { RootState } from "../store";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useDispatch<any>();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { loading, error, otpSent, token, user } = useSelector(
+    (state: RootState) => state.auth
+  );
 
-  const handleLogin = async (e: FormEvent) => {
+  const [mobile, setMobile] = useState("");
+  const [otp, setOtp] = useState("");
+
+  const submitMobile = (e: React.FormEvent) => {
+    e.preventDefault();
+    dispatch(sendOtp(mobile));
+  };
+
+  const submitOtp = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
-      setErrorMsg("Email and password required");
-      return;
-    }
+    const res = await dispatch(verifyOtp({ mobile, otp }));
 
-    try {
-      setLoading(true);
-      setErrorMsg("");
+    if (verifyOtp.fulfilled.match(res)) {
+      // switch UI role to driver
+      await dispatch(activateRole("driver"));
 
-      const res = await axiosInstance.post("/auth/drivers/login", {
-        email,
-        password,
-      });
-
-      const token: string = res.data.token;
-      const driver = res.data.driver;
-
-      dispatch(driverLoginSuccess({ token, driver }));
-      dispatch(fetchDriverProfile());
-      navigate("/driver/dashboard");
-    } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message || "Login failed");
-    } finally {
-      setLoading(false);
+      // fetch updated user
+      await dispatch(fetchMe());
     }
   };
 
+  useEffect(() => {
+    if (user) {
+      if (!user.onboarding?.driver) {
+        navigate("/driver/onboarding");
+      } else {
+        navigate("/driver/dashboard");
+      }
+    }
+  }, [user]);
+
   return (
     <div className="min-h-screen flex flex-col bg-black text-white">
-      {/* Main content */}
-      <div className="flex-1 flex flex-col px-5 pt-12 pb-4">
+      <div className="flex-1 flex flex-col px-5 pt-10 pb-4">
         <header className="mb-10">
           <p className="text-[0.7rem] uppercase tracking-[0.25em] text-neutral-500">
             Driver
           </p>
           <h1 className="mt-2 text-3xl font-semibold">Welcome back</h1>
-          <p className="mt-2 text-sm text-neutral-400 max-w-md">
-            Log in to start receiving ride requests and track your earnings.
+          <p className="mt-2 text-sm text-neutral-400">
+            Login with your mobile number.
           </p>
         </header>
 
         <main className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-md">
-            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_18px_45px_rgba(0,0,0,0.85)] p-6 md:p-8 space-y-6">
-              <div className="space-y-1">
-                <h2 className="text-xl font-semibold">Driver Login</h2>
-                <p className="text-xs text-neutral-400">
-                  Use your registered driver credentials.
-                </p>
-              </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-6">
 
-              {errorMsg && (
-                <p className="text-xs text-red-400 bg-red-950/40 border border-red-700/40 rounded-lg px-3 py-2">
-                  {errorMsg}
-                </p>
+              {!otpSent ? (
+                <form onSubmit={submitMobile} className="space-y-4">
+                  <input
+                    type="tel"
+                    placeholder="9876543210"
+                    className="w-full rounded-xl border border-white/15 bg-black/60 px-4 py-3"
+                    onChange={(e) => setMobile(e.target.value)}
+                  />
+
+                  {error && <p className="text-red-400 text-xs">{error}</p>}
+
+                  <button className="w-full rounded-full bg-neutral-900 py-3">
+                    {loading ? "Sending OTP..." : "Send OTP"}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={submitOtp} className="space-y-4">
+                  <input
+                    type="text"
+                    placeholder="123456"
+                    className="w-full rounded-xl border border-white/15 bg-black/60 px-4 py-3"
+                    onChange={(e) => setOtp(e.target.value)}
+                  />
+
+                  {error && <p className="text-red-400 text-xs">{error}</p>}
+
+                  <button className="w-full rounded-full bg-neutral-900 py-3">
+                    {loading ? "Verifying..." : "Verify OTP"}
+                  </button>
+                </form>
               )}
 
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-neutral-300">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="you@example.com"
-                    className="w-full rounded-xl border border-white/15 bg-black/60 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-white/60 focus:ring-2 focus:ring-white/10 transition"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-neutral-300">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    className="w-full rounded-xl border border-white/15 bg-black/60 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-white/60 focus:ring-2 focus:ring-white/10 transition"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="mt-2 w-full rounded-full bg-neutral-900 px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(0,0,0,0.9)] hover:bg-neutral-800 active:bg-neutral-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {loading ? "Logging in..." : "Login"}
-                </button>
-              </form>
-
-              <p className="text-[0.7rem] text-neutral-500">
-                Make sure you&apos;re using your driver account credentials.
-              </p>
             </div>
           </div>
         </main>
-      </div>
-
-      {/* Bottom switch bar */}
-      <div className="border-t border-white/10 bg-black/95 backdrop-blur px-5 py-3">
-        <div className="mx-auto flex w-full max-w-md items-center gap-3">
-          <button
-            type="button"
-            className="flex-1 rounded-full border border-white/20 bg-white/5 px-4 py-2 text-xs font-medium text-neutral-300"
-            disabled
-          >
-            Login
-          </button>
-          <Link
-            to="/driver/register"
-            className="flex-1 rounded-full border border-white/30 bg-transparent px-4 py-2 text-xs font-semibold text-white text-center hover:bg-white/10 transition"
-          >
-            Register
-          </Link>
-        </div>
       </div>
     </div>
   );
