@@ -1,59 +1,89 @@
-// models/ride.js
+// models/Ride.js
 const mongoose = require("mongoose");
 
-// ✅ Define GeoPoint as a sub-schema
 const GeoPointSchema = new mongoose.Schema(
   {
-    type: { type: String, enum: ["Point"], default: "Point" },
+    type: {
+      type: String,
+      enum: ["Point"],
+      default: "Point",
+    },
     coordinates: {
       type: [Number], // [lng, lat]
-      index: "2dsphere",
       required: true,
     },
   },
-  { _id: false } // prevents creation of _id for sub-documents
+  { _id: false }
 );
 
-// ✅ Main Ride Schema
 const RideSchema = new mongoose.Schema(
   {
-    riderId: { type: String, required: true },
-    driverId: { type: String, default: null },
-    driverServiceId: { type: String, default: null },
-    pickup: { type: GeoPointSchema, required: true },
-    destination: { type: GeoPointSchema, required: true },
-    distanceKm: { type: Number, default: 0 },
-    durationMin: { type: Number, default: 0 },
-    fare: { type: Number, default: 0 },
-    fareBreakdown: { type: Object, default: {} },
+    // ---- Ownership ----
+    riderId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
+    driverId: {
+      type: String,
+      default: null,
+      index: true,
+    },
+
+    // ---- Locations ----
+    pickup: {
+      type: GeoPointSchema,
+      required: true,
+    },
+
+    drop: {
+      type: GeoPointSchema,
+      required: true,
+    },
+
+    // ---- Ride FSM ----
     status: {
       type: String,
-      enum: ["REQUESTED", "ACCEPTED", "STARTED", "COMPLETED", "CANCELLED"],
+      enum: [
+        "REQUESTED",
+        "SEARCHING",
+        "DRIVER_ASSIGNED",
+        "DRIVER_ARRIVING",
+        "IN_PROGRESS",
+        "COMPLETED",
+        "CANCELLED_BY_RIDER",
+        "CANCELLED_BY_DRIVER",
+        "EXPIRED",
+      ],
       default: "REQUESTED",
+      index: true,
     },
-    otp: { type: String },
-    otpVerified: { type: Boolean, default: false },
 
-    driverRating: {
-      rating: Number,
-      review: String
+    // ---- Pricing (snapshot only) ----
+    priceEstimate: {
+      type: Number,
+      default: 0,
     },
-    riderRating: {
-      rating: Number,
-      review: String
+
+    finalPrice: {
+      type: Number,
+      default: null,
     },
-    
+
+    // ---- Lifecycle timestamps ----
+    requestedAt: Date,
+    assignedAt: Date,
     startedAt: Date,
     completedAt: Date,
     cancelledAt: Date,
-    cancellationReason: String,
-    paymentStatus: {
-      type: String,
-      enum: ["PENDING", "PAID", "REFUNDED"],
-      default: "PENDING",
-    },
+
+    cancelReason: String,
   },
   { timestamps: true }
 );
+
+// Geo index for future matching
+RideSchema.index({ pickup: "2dsphere" });
 
 module.exports = mongoose.model("Ride", RideSchema);

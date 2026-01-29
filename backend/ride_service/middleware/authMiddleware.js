@@ -57,3 +57,10 @@ exports.requireRole = (role) => (req, res, next) => {
   if (!req.user?.roles?.[role]) return res.status(403).json({ message: `Requires role=${role}` });
   next();
 };
+
+exports.requireOnboarded = (role) => (req, res, next) => {
+  if (!req.user?.onboarding?.[role]) {
+    return res.status(403).json({ message: `${role} not onboarded` });
+  }
+  next();
+};
