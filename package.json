@@ -10,10 +10,12 @@
     "start:Riderfrontend": "cd ride-frontend && npm run dev",
     "start:Driverfrontend": "cd driver-frontend && npm run dev",
     "start:frontend": "concurrently \"npm run start:Riderfrontend\" \"npm run start:Driverfrontend\" ",
-
     "start:all": "concurrently \"npm run start:auth\" \"npm run start:rider\" \"npm run start:driver\" \"npm run start:ride\" \"npm run start:payment\" \"npm run start:notification\" \"npm run start:gateway\" "
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.8.3"
   }
 }
