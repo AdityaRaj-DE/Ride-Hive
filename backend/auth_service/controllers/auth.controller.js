@@ -28,7 +28,7 @@ module.exports.sendOtp = async (req, res) => {
   const otp = generateOtp();
   const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
 
-  const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 min expiry
+  const expiresAt = new Date(Date.now() + 3 * 60 * 1000); // 3 min expiry
 
   await Otp.create({ mobileNumber, otpHash, expiresAt });
 

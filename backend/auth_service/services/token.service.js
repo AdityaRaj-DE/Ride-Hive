@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 
-const ACCESS_EXPIRES = "15m";
+const ACCESS_EXPIRES = "180m";
 const REFRESH_DAYS = 60;
 
 function signAccessToken(user) {
