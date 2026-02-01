@@ -6,7 +6,7 @@ async function authenticate(req, res, next) {
     const token = req.headers.authorization;
     if (!token) return res.status(401).json({ message: "Missing token" });
 
-    const { data } = await axios.get(`${urls.auth}/auth/me`, {
+    const { data } = await axios.get(`${urls.auth}/me`, {
       headers: { Authorization: token },
     });
 

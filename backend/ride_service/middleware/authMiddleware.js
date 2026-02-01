@@ -20,7 +20,7 @@ exports.protectWithAuthService = async (req, res, next) => {
       return res.status(500).json({ message: "AUTH_SERVICE_URL missing" });
     }
 
-    const { data } = await axios.get(`${AUTH_SERVICE_URL}/auth/me`, {
+    const { data } = await axios.get(`${AUTH_SERVICE_URL}/me`, {
       headers: { Authorization: `Bearer ${token}` },
       timeout: 5000,
     });

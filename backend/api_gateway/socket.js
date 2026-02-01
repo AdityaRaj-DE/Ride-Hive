@@ -13,11 +13,12 @@ module.exports = function setupSocket(httpServer) {
 
   // socket auth
   io.use(async (socket, next) => {
+    console.log("Auth handshake received");
     try {
       const token = socket.handshake.auth.token;
       if (!token) return next(new Error("No token"));
 
-      const { data } = await axios.get(`${urls.auth}/auth/me`, {
+      const { data } = await axios.get(`${urls.auth}/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -31,7 +32,7 @@ module.exports = function setupSocket(httpServer) {
   });
 
   io.on("connection", async socket => {
-
+    console.log("🔥 Incoming socket connection");
     socket.join(`user_${socket.user.id}`);
 
     if (socket.user.activeRole === "rider") socket.join("riders");
@@ -51,13 +52,24 @@ module.exports = function setupSocket(httpServer) {
 
     // rider creates ride
     socket.on("createRide", async (payload, ack) => {
-      const res = await axios.post(`${urls.ride}/rides`, payload, {
-        headers: { Authorization: `Bearer ${socket.token}` },
-      });
-
-      io.to("drivers").emit("ride.created", res.data);
-      ack?.(res.data);
+      try {
+        console.log("🔥 createRide received:", payload);
+    
+        const res = await axios.post(`${urls.ride}/rides`, payload, {
+          headers: { Authorization: `Bearer ${socket.token}` },
+        });
+    
+        console.log("Ride service response:", res.data);
+    
+        io.to("drivers").emit("ride.created", res.data);
+    
+        ack?.(res.data);
+      } catch (e) {
+        console.error("❌ createRide error:", e.response?.data || e.message);
+        ack?.({ error: true });
+      }
     });
+    
 
     socket.on("acceptRide", async ({ rideId }, ack) => {
       const res = await axios.post(`${urls.ride}/rides/${rideId}/accept`, {}, {
