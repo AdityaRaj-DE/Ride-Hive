@@ -63,4 +63,10 @@ router.post(
   controller.completeRide
 );
 
+router.get(
+  "/active",
+  protectWithAuthService,
+  controller.getActiveRide
+);
+
 module.exports = router;

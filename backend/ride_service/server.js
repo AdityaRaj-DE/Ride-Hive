@@ -49,7 +49,7 @@ app.use((req, res, next) => {
 app.set('io', io);
 setupSocket(io);
 
-app.use('/rides', rideRoutes);
+app.use('/', rideRoutes);
 app.use('/local', localRoutes);
 
 const PORT = process.env.PORT || 3004;

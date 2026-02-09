@@ -3,6 +3,7 @@ const axios = require("axios");
 const urls = require("./utils/serviceUrls");
 
 module.exports = function setupSocket(httpServer) {
+  console.log(">>> socket.js loaded");
 
   const io = new Server(httpServer, {
     cors: {
@@ -22,7 +23,13 @@ module.exports = function setupSocket(httpServer) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      socket.user = data;
+      socket.user = {
+        id: data.id,
+        roles: data.roles,
+        activeRole: data.activeRole,
+        onboarding: data.onboarding
+      };
+      
       socket.token = token;
 
       next();
@@ -31,31 +38,20 @@ module.exports = function setupSocket(httpServer) {
     }
   });
 
-  io.on("connection", async socket => {
+  io.on("connection",socket => {
     console.log("🔥 Incoming socket connection");
     socket.join(`user_${socket.user.id}`);
 
     if (socket.user.activeRole === "rider") socket.join("riders");
     if (socket.user.activeRole === "driver") socket.join("drivers");
 
-    // reconnect restore
-    try {
-      const { data } = await axios.get(`${urls.ride}/rides/active`, {
-        headers: { Authorization: `Bearer ${socket.token}` },
-      });
-
-      if (data) {
-        socket.join(`ride_${data._id}`);
-        socket.emit("ride.restore", data);
-      }
-    } catch {}
 
     // rider creates ride
     socket.on("createRide", async (payload, ack) => {
       try {
         console.log("🔥 createRide received:", payload);
     
-        const res = await axios.post(`${urls.ride}/rides`, payload, {
+        const res = await axios.post(`${urls.ride}`, payload, {
           headers: { Authorization: `Bearer ${socket.token}` },
         });
     
@@ -65,21 +61,57 @@ module.exports = function setupSocket(httpServer) {
     
         ack?.(res.data);
       } catch (e) {
-        console.error("❌ createRide error:", e.response?.data || e.message);
+        console.error("createRide error:", e.response?.status, e.response?.data);
         ack?.({ error: true });
       }
     });
     
 
     socket.on("acceptRide", async ({ rideId }, ack) => {
-      const res = await axios.post(`${urls.ride}/rides/${rideId}/accept`, {}, {
-        headers: { Authorization: `Bearer ${socket.token}` },
-      });
-
-      ack?.(res.data);
+      try {
+        const { data } = await axios.post(
+          `${urls.ride}/${rideId}/accept`,
+          {},
+          { headers: { Authorization: `Bearer ${socket.token}` } }
+        );
+    
+        // Join driver to ride room
+        socket.join(`ride_${rideId}`);
+    
+        // Notify rider
+        io.to(`user_${data.riderId}`).emit("ride.assigned", data);
+    
+        // Notify driver (optional but consistent)
+        io.to(`user_${data.driverId}`).emit("ride.assigned", data);
+    
+        ack?.(data);
+      } catch (e) {
+        console.error("acceptRide error:", e.response?.data);
+        ack?.({ error: true });
+      }
     });
+    
+    
+    
 
     socket.on("joinRide", ({ rideId }) => socket.join(`ride_${rideId}`));
+
+    socket.onAny((event, data) => {
+      console.log("GATEWAY EVENT:", event, data);
+    });
+
+    (async () => {
+      try {
+        const { data } = await axios.get(`${urls.ride}/active`, {
+          headers: { Authorization: `Bearer ${socket.token}` },
+        });
+    
+        if (data) {
+          socket.join(`ride_${data._id}`);
+          socket.emit("ride.restore", data);
+        }
+      } catch {}
+    })();
 
   });
 
