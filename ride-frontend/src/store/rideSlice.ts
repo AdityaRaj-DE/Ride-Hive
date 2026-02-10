@@ -1,126 +1,107 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import api from "../api/axios";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-export const fetchActiveRide = createAsyncThunk(
-  "ride/fetchActiveRide",
-  async (_, { rejectWithValue }) => {
-    try {
-      const res = await api.get("/ride/rides/active");
-      return res.data;
-    } catch {
-      return rejectWithValue("Failed to fetch ride");
-    }
-  }
-);
+type LatLng = { lat: number; lng: number };
 
-interface RideState {
-  currentRide: any | null;
-  otp: string | null;
-  status: "IDLE" | "REQUESTED" | "ACCEPTED" | "STARTED" | "COMPLETED" | "CANCELLED";
-  pickup: { lat: number; lng: number } | null;
-  destination: { lat: number; lng: number } | null;
-  driver: any | null;
+export interface RideState {
+  rideId: string | null;
+  status: string | null;
+  pickup: LatLng | null;
+  drop: LatLng | null;
+  driverId: string | null;
+  loading: boolean;
+  error: string | null;
 }
 
 const initialState: RideState = {
-  currentRide: null,
-  otp: null,
-  status: "IDLE",
+  rideId: null,
+  status: null,
   pickup: null,
-  destination: null,
-  driver: null,
+  drop: null,
+  driverId: null,
+  loading: false,
+  error: null,
 };
+
+// Payload can be either:
+// 1) Full ride (from ride.restore / ride.assigned)
+// 2) Partial ack { rideId, status }
+type RideServerPayload = any;
+
+function normalizeRide(payload: RideServerPayload) {
+  const rideId = payload._id || payload.rideId || null;
+  const status = payload.status || null;
+
+  let pickup: LatLng | null = null;
+  let drop: LatLng | null = null;
+
+  if (payload.pickup?.coordinates) {
+    pickup = {
+      lng: payload.pickup.coordinates[0],
+      lat: payload.pickup.coordinates[1],
+    };
+  } else if (payload.pickup?.lat && payload.pickup?.lng) {
+    pickup = payload.pickup;
+  }
+
+  if (payload.drop?.coordinates) {
+    drop = {
+      lng: payload.drop.coordinates[0],
+      lat: payload.drop.coordinates[1],
+    };
+  } else if (payload.drop?.lat && payload.drop?.lng) {
+    drop = payload.drop;
+  }
+
+  const driverId = payload.driverId || null;
+
+  return { rideId, status, pickup, drop, driverId };
+}
 
 const rideSlice = createSlice({
   name: "ride",
   initialState,
   reducers: {
-    setPickup(state, action) {
-      state.pickup = action.payload;
-    },
-    setDestination(state, action) {
-      state.destination = action.payload;
-    },
-
-    rideRequested(state, action) {
-      state.status = "REQUESTED";
-      state.currentRide = action.payload;
-      state.otp = action.payload?.otp;
+    setRideFromServer(state, action: PayloadAction<RideServerPayload>) {
+      const normalized = normalizeRide(action.payload);
+      state.rideId = normalized.rideId;
+      state.status = normalized.status;
+      state.pickup = normalized.pickup ?? state.pickup;
+      state.drop = normalized.drop ?? state.drop;
+      state.driverId = normalized.driverId;
+      state.loading = false;
+      state.error = null;
     },
 
-    rideAccepted(state, action) {
-      state.status = "ACCEPTED";
-      state.driver = action.payload.driver;
-      state.currentRide = action.payload;
-      state.otp = action.payload?.otp || state.otp;
-    },
-
-    rideStarted(state) {
-      state.status = "STARTED";
-      state.otp = null;
-    },
-
-    rideCompleted(state) {
-      console.log("REDUCER rideCompleted: BEFORE", state.status, state.currentRide);
-      if (state.currentRide) {
-        state.currentRide.status = "COMPLETED";
-      }
-      state.status = "COMPLETED";
-      console.log("REDUCER rideCompleted: AFTER", state.status, state.currentRide);
-    },
-    
-
-    rideCancelled(state) {
-      console.log("REDUCER rideCancelled CALLED");
-      state.status = "CANCELLED";
+    updateRideStatus(state, action: PayloadAction<string>) {
+      state.status = action.payload;
     },
 
     clearRide(state) {
-      console.log("REDUCER clearRide CALLED");
-      state.currentRide = null;
-      state.otp = null;
-      state.status = "IDLE";
+      state.rideId = null;
+      state.status = null;
       state.pickup = null;
-      state.destination = null;
-      state.driver = null;
+      state.drop = null;
+      state.driverId = null;
+      state.loading = false;
+      state.error = null;
+    },
+
+    setRideLoading(state, action: PayloadAction<boolean>) {
+      state.loading = action.payload;
+    },
+
+    setRideError(state, action: PayloadAction<string | null>) {
+      state.error = action.payload;
     },
   },
-
-  extraReducers: (builder) => {
-    builder.addCase(fetchActiveRide.fulfilled, (state, action) => {
-      // If already completed, DO NOT overwrite anything
-      console.log(
-        "fetchActiveRide.fulfilled >>>",
-        action.payload,
-        "current status=",
-        state.status
-      );
-      if (state.status === "COMPLETED") return;
-  
-      if (!action.payload) {
-        state.currentRide = null;
-        state.status = "IDLE";
-        return;
-      }
-  
-      state.currentRide = action.payload;
-      state.status = action.payload?.status || "IDLE";
-      state.driver = action.payload?.driver || null;
-      state.otp = action.payload?.otp || null;
-    });
-  },
-  
 });
 
 export const {
-  setPickup,
-  setDestination,
-  rideRequested,
-  rideAccepted,
-  rideStarted,
-  rideCompleted,
-  rideCancelled,
+  setRideFromServer,
+  updateRideStatus,
   clearRide,
+  setRideLoading,
+  setRideError,
 } = rideSlice.actions;
 
 export default rideSlice.reducer;

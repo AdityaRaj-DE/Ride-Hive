@@ -4,7 +4,12 @@ import RiderOnboarding from "./pages/RiderOnboarding";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import { useSelector } from "react-redux";
-import type { RootState } from "./store";
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
+import type { RootState, AppDispatch } from "./store";
+import { fetchMe } from "./store/authSlice";
+import { connectSocket } from "./sockets/socketClient";
+import { initRideSocketListeners } from "./sockets/rideSocket";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { token } = useSelector((s: RootState) => s.auth);
@@ -16,7 +21,7 @@ function RequireOnboarding({ children }: { children: JSX.Element }) {
   const { user } = useSelector((s: RootState) => s.auth);
 
   // while /auth/me still loading
-  if (!user) return null;
+  if (!user) return <div>Loading...</div>;
 
   if (!user.onboarding?.rider) {
     return <Navigate to="/onboarding" replace />;
@@ -38,6 +43,23 @@ function RequireNotOnboarded({ children }: { children: JSX.Element }) {
 }
 
 export default function App() {
+  const dispatch = useDispatch<AppDispatch>();
+  const { token, user } = useSelector((s: RootState) => s.auth);
+
+  // 1) Restore session
+  useEffect(() => {
+    if (token && !user) {
+      dispatch(fetchMe());
+    }
+  }, [token, user, dispatch]);
+
+  // 2) After user is known, bring up realtime layer
+  useEffect(() => {
+    if (token && user) {
+      const socket = connectSocket(token);
+      initRideSocketListeners(socket);
+    }
+  }, [token, user]);
   return (
     <BrowserRouter>
       <Routes>
