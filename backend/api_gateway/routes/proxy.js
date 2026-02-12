@@ -103,7 +103,6 @@ module.exports = function setupProxies(app) {
         createProxyMiddleware({
           target: urls.ride,
           changeOrigin: true,
-          ws: true,
           onProxyReq(proxyReq, req) {
             proxyReq.setHeader("authorization", req.headers.authorization);
           },

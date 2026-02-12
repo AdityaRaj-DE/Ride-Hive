@@ -3,8 +3,12 @@ import Login from "./pages/Login";
 import DriverOnboarding from "./pages/DriverOnboarding";
 import Dashboard from "./pages/Dashboard";
 import WalletPage from "./pages/WalletPage";
-import { useSelector } from "react-redux";
 import type { RootState } from "./store";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { connectDriverSocket } from "./sockets/socketClient";
+import { initDriverRideListeners } from "./sockets/driverRideSocket";
+import { fetchMe } from "./store/slices/authSlice";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { token } = useSelector((s: RootState) => s.auth);
@@ -37,6 +41,22 @@ function RequireNotDriverOnboarded({ children }: { children: JSX.Element }) {
 }
 
 export default function App() {
+  const dispatch = useDispatch();
+const { token, user } = useSelector((s: RootState) => s.auth);
+
+useEffect(() => {
+  if (token && !user) {
+    dispatch(fetchMe());
+  }
+}, [token]);
+
+useEffect(() => {
+  if (token && user) {
+    const socket = connectDriverSocket(token);
+    initDriverRideListeners(socket);
+  }
+}, [token, user]);
+
   return (
     <Routes>
       {/* Login */}
