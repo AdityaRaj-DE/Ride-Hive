@@ -31,6 +31,13 @@ export const initRideSocketListeners = (socket: Socket) => {
     store.dispatch(setRideFromServer(data));
   });
 
+  socket.on("ride.updated", (ride) => {
+    console.log("ride.updated:", ride);
+    console.log("RIDER RECEIVED ride.updated", ride.status);
+    store.dispatch(setRideFromServer(ride));
+  });
+  
+
   socket.on("ride.error", (err) => {
     console.error("ride.error:", err);
     store.dispatch(setRideError("Ride socket error"));
@@ -61,6 +68,8 @@ export const emitCreateRide = (payload: {
     }
   });
 };
+
+
 
 // Helper to safely get socket from client singleton
 import { getSocket } from "./socketClient";

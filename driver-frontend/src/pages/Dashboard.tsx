@@ -1,31 +1,22 @@
 import { useSelector } from "react-redux";
 import type { RootState } from "../store";
-import { emitAcceptRide } from "../sockets/driverRideSocket";
+
 import api from "../api/axios";
+import {
+  emitAcceptRide,
+  emitDriverArriving,
+  emitStartRide,
+  emitCompleteRide,
+} from "../sockets/driverRideSocket";
+
 
 export default function Dashboard() {
   const { availableRides, activeRide } = useSelector(
     (s: RootState) => s.driverRide
   );
 
-  const markArriving = async () => {
-    if (!activeRide?._id) return;
-    await api.post(`/ride/${activeRide._id}/arriving`);
-  };
-
-  const startRide = async () => {
-    if (!activeRide?._id) return;
-    await api.post(`/ride/${activeRide._id}/start`);
-  };
-
-  const completeRide = async () => {
-    if (!activeRide?._id) return;
-    await api.post(`/ride/${activeRide._id}/complete`, {
-      finalPrice: 200,
-    });
-  };
-
   return (
+    
     <div style={{ padding: 20 }}>
       <h1>Driver Debug Dashboard</h1>
 
@@ -43,9 +34,18 @@ export default function Dashboard() {
       {activeRide && (
         <>
           <pre>{JSON.stringify(activeRide, null, 2)}</pre>
-          <button onClick={markArriving}>Mark Arriving</button>
-          <button onClick={startRide}>Start Ride</button>
-          <button onClick={completeRide}>Complete Ride</button>
+
+          <button onClick={() => emitDriverArriving(activeRide._id || activeRide.rideId)}>
+            Mark Arriving
+          </button>
+
+          <button onClick={() => emitStartRide(activeRide._id || activeRide.rideId)}>
+            Start Ride
+          </button>
+
+          <button onClick={() => emitCompleteRide(activeRide._id || activeRide.rideId)}>
+            Complete Ride
+          </button>
         </>
       )}
     </div>

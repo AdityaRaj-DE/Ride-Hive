@@ -97,6 +97,8 @@ exports.acceptRide = async (req, res) => {
     io.to(`rider_${ride.riderId}`).emit("ride.assigned", ride);
     io.to(`driver_${req.user.id}`).emit("ride.assigned", ride);
   }
+  console.log("EMITTING ride.updated", ride.status);
+
 
   res.json({
     rideId: ride._id,
@@ -121,7 +123,16 @@ exports.driverArriving = async (req, res) => {
 
   if (!ride) return res.status(400).json({ error: "Invalid transition" });
 
-  res.json({ success: true });
+  const io = req.app.get("io");
+  if (io) {
+    io.to(`user_${ride.riderId}`).emit("ride.updated", ride);
+    io.to(`user_${ride.driverId}`).emit("ride.updated", ride);
+  }
+  console.log("EMITTING ride.updated", ride.status);
+
+
+  res.json(ride);
+
 };
 
 
@@ -143,7 +154,16 @@ exports.startRide = async (req, res) => {
 
   if (!ride) return res.status(400).json({ error: "Invalid transition" });
 
-  res.json({ success: true });
+  const io = req.app.get("io");
+  if (io) {
+    io.to(`user_${ride.riderId}`).emit("ride.updated", ride);
+    io.to(`user_${ride.driverId}`).emit("ride.updated", ride);
+  }
+  console.log("EMITTING ride.updated", ride.status);
+
+
+  res.json(ride);
+
 };
 
 
@@ -166,7 +186,16 @@ exports.completeRide = async (req, res) => {
 
   if (!ride) return res.status(400).json({ error: "Invalid transition" });
 
-  res.json({ success: true });
+  const io = req.app.get("io");
+  if (io) {
+    io.to(`user_${ride.riderId}`).emit("ride.updated", ride);
+    io.to(`user_${ride.driverId}`).emit("ride.updated", ride);
+  }
+  console.log("EMITTING ride.updated", ride.status);
+
+
+  res.json(ride);
+
 };
 
 
@@ -188,7 +217,8 @@ exports.cancelByRider = async (req, res) => {
 
   if (!ride) return res.status(400).json({ error: "Cannot cancel" });
 
-  res.json({ success: true });
+  res.json(ride);
+
 };
 
 exports.getActiveRide = async (req, res) => {

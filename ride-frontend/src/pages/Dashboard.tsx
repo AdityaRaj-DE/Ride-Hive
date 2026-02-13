@@ -6,8 +6,10 @@ import { getSocket } from "../sockets/socketClient";
 import api from "../api/axios";
 
 export default function Dashboard() {
+
   const ride = useSelector((s: RootState) => s.ride);
   const [events, setEvents] = useState<string[]>([]);
+  console.log("RIDER STATE:", ride);
 
   // Attach temporary debug listeners
   useEffect(() => {
@@ -28,6 +30,19 @@ export default function Dashboard() {
       socket.off("ride.restore");
       socket.off("ride.assigned");
       socket.off("ride.created");
+    };
+  }, []);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+  
+    socket.on("ride.updated", (data) => {
+      console.log("🔥 RIDER RECEIVED ride.updated:", data);
+    });
+  
+    return () => {
+      socket.off("ride.updated");
     };
   }, []);
 
@@ -68,33 +83,21 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <h2>Redux Ride State</h2>
-      <pre
-        style={{
-          background: "#111",
-          color: "#0f0",
-          padding: 10,
-          maxHeight: 200,
-          overflow: "auto",
-        }}
-      >
-        {JSON.stringify(ride, null, 2)}
-      </pre>
+      <div>
+    <h1>Rider Dashboard</h1>
 
-      <h2>Socket Event Log</h2>
-      <div
-        style={{
-          background: "#000",
-          color: "#fff",
-          padding: 10,
-          maxHeight: 300,
-          overflow: "auto",
-        }}
-      >
-        {events.map((e, i) => (
-          <div key={i}>{e}</div>
-        ))}
-      </div>
+    <h2>Status: {ride.status}</h2>
+
+    {ride.status === "SEARCHING" && <p>🔍 Searching for driver...</p>}
+
+    {ride.status === "DRIVER_ASSIGNED" && <p>🚗 Driver assigned</p>}
+
+    {ride.status === "DRIVER_ARRIVING" && <p>📍 Driver arriving...</p>}
+
+    {ride.status === "IN_PROGRESS" && <p>🛣 Ride in progress</p>}
+
+    {ride.status === "COMPLETED" && <p>✅ Ride completed</p>}
+  </div>
     </div>
   );
 }

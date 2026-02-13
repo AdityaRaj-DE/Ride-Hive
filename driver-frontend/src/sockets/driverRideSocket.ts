@@ -38,3 +38,29 @@ export const emitAcceptRide = (rideId: string) => {
   });
 };
 
+export const emitDriverArriving = (rideId: string) => {
+  const socket = getDriverSocket();
+  if (!socket) return;
+
+  socket.emit("driverArriving", { rideId }, (ack: any) => {
+    console.log("driverArriving ack:", ack);
+  });
+};
+
+export const emitStartRide = (rideId: string) => {
+  const socket = getDriverSocket();
+  if (!socket) return;
+
+  socket.emit("driverStartRide", { rideId }, (ack: any) => {
+    console.log("startRide ack:", ack);
+  });
+};
+
+export const emitCompleteRide = (rideId: string) => {
+  const socket = getDriverSocket();
+  if (!socket) return;
+
+  socket.emit("driverCompleteRide", { rideId }, (ack: any) => {
+    console.log("completeRide ack:", ack);
+  });
+};

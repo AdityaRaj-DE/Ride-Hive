@@ -61,16 +61,23 @@ const rideSlice = createSlice({
   name: "ride",
   initialState,
   reducers: {
-    setRideFromServer(state, action: PayloadAction<RideServerPayload>) {
+    setRideFromServer(state, action) {
+      console.log("REDUCER HIT:", action.payload);
+    
       const normalized = normalizeRide(action.payload);
+    
+      console.log("NORMALIZED:", normalized);
+    
       state.rideId = normalized.rideId;
-      state.status = normalized.status;
+      if (normalized.status) {
+        state.status = normalized.status;
+      }
+      
       state.pickup = normalized.pickup ?? state.pickup;
       state.drop = normalized.drop ?? state.drop;
       state.driverId = normalized.driverId;
-      state.loading = false;
-      state.error = null;
-    },
+    }
+    ,
 
     updateRideStatus(state, action: PayloadAction<string>) {
       state.status = action.payload;
