@@ -83,9 +83,17 @@ const driverSchema = new mongoose.Schema(
     isAvailable: { type: Boolean, default: false },
 
     location: {
-      lat: Number,
-      lng: Number,
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number], // [lng, lat]
+        default: [0, 0],
+      },
     },
+    
 
     walletBalance: { type: Number, default: 0 },
 
@@ -102,5 +110,6 @@ const driverSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+driverSchema.index({ location: "2dsphere" });
 
 module.exports = mongoose.model("Driver", driverSchema);

@@ -1,7 +1,9 @@
 // controllers/ride.controller.js
 
 const Ride = require("../models/ride");
-
+const { getRoute } = require("../services/route.service");
+const { calculatePrice } = require("../services/pricing.service");
+const { findNearbyDrivers } = require("../services/driver.service");
 
 exports.createRide = async (req, res) => {
   try {
@@ -34,10 +36,25 @@ exports.createRide = async (req, res) => {
     }
 
     // 2) Create new ride
+    const route = await getRoute(pickup, drop);
+
+    const priceEstimate = calculatePrice({
+      distance: route.distance,
+      duration: route.duration,
+    });
+
     const ride = await Ride.create({
       riderId: req.user.id,
+
       pickup: { type: "Point", coordinates: [pickup.lng, pickup.lat] },
       drop: { type: "Point", coordinates: [drop.lng, drop.lat] },
+
+      distance: route.distance,
+      duration: route.duration,
+      routeGeometry: route.geometry,
+
+      priceEstimate,
+
       status: "SEARCHING",
       requestedAt: new Date(),
     });
@@ -45,10 +62,16 @@ exports.createRide = async (req, res) => {
     // 3) Broadcast to drivers
     const io = req.app.get("io");
     if (io) {
-      io.to("drivers").emit("ride.created", {
-        rideId: ride._id,
-        pickup,
-        drop,
+      const nearbyDrivers = await findNearbyDrivers(pickup);
+
+      console.log("Nearby drivers:", nearbyDrivers.length);
+
+      nearbyDrivers.forEach((driver) => {
+        io.to(`user_${driver._id}`).emit("ride.created", {
+          rideId: ride._id,
+          pickup,
+          drop,
+        });
       });
     }
 
@@ -56,13 +79,11 @@ exports.createRide = async (req, res) => {
       rideId: ride._id,
       status: ride.status,
     });
-
   } catch (err) {
     console.error("createRide error:", err.message);
     return res.status(500).json({ error: "Server error" });
   }
 };
-
 
 exports.availableRides = async (req, res) => {
   const rides = await Ride.find({ status: "SEARCHING" })
@@ -72,7 +93,6 @@ exports.availableRides = async (req, res) => {
 
   res.json(rides);
 };
-
 
 exports.acceptRide = async (req, res) => {
   const ride = await Ride.findOneAndUpdate(
@@ -99,16 +119,13 @@ exports.acceptRide = async (req, res) => {
   }
   console.log("EMITTING ride.updated", ride.status);
 
-
   res.json({
     rideId: ride._id,
     riderId: ride.riderId,
     driverId: ride.driverId,
-    status: ride.status
+    status: ride.status,
   });
-  
 };
-
 
 exports.driverArriving = async (req, res) => {
   const ride = await Ride.findOneAndUpdate(
@@ -130,11 +147,8 @@ exports.driverArriving = async (req, res) => {
   }
   console.log("EMITTING ride.updated", ride.status);
 
-
   res.json(ride);
-
 };
-
 
 exports.startRide = async (req, res) => {
   const ride = await Ride.findOneAndUpdate(
@@ -161,11 +175,8 @@ exports.startRide = async (req, res) => {
   }
   console.log("EMITTING ride.updated", ride.status);
 
-
   res.json(ride);
-
 };
-
 
 exports.completeRide = async (req, res) => {
   const ride = await Ride.findOneAndUpdate(
@@ -193,11 +204,8 @@ exports.completeRide = async (req, res) => {
   }
   console.log("EMITTING ride.updated", ride.status);
 
-
   res.json(ride);
-
 };
-
 
 exports.cancelByRider = async (req, res) => {
   const ride = await Ride.findOneAndUpdate(
@@ -218,7 +226,6 @@ exports.cancelByRider = async (req, res) => {
   if (!ride) return res.status(400).json({ error: "Cannot cancel" });
 
   res.json(ride);
-
 };
 
 exports.getActiveRide = async (req, res) => {
@@ -230,7 +237,7 @@ exports.getActiveRide = async (req, res) => {
       "SEARCHING",
       "DRIVER_ASSIGNED",
       "DRIVER_ARRIVING",
-      "IN_PROGRESS"
+      "IN_PROGRESS",
     ];
 
     let query = { status: { $in: activeStatuses } };
@@ -246,9 +253,37 @@ exports.getActiveRide = async (req, res) => {
     const ride = await Ride.findOne(query).lean();
 
     return res.json(ride || null);
-
   } catch (err) {
     console.error("getActiveRide error:", err.message);
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+exports.estimateRide = async (req, res) => {
+  try {
+    const { pickup, drop } = req.body;
+
+    if (!pickup || !drop) {
+      return res.status(400).json({ error: "pickup/drop required" });
+    }
+
+    // 1. Get route from OSRM
+    const route = await getRoute(pickup, drop);
+
+    // 2. Calculate price
+    const price = calculatePrice({
+      distance: route.distance,
+      duration: route.duration,
+    });
+
+    return res.json({
+      distance: route.distance,
+      duration: route.duration,
+      price,
+      geometry: route.geometry,
+    });
+  } catch (err) {
+    console.error("estimateRide error:", err.message);
+    return res.status(500).json({ error: "Failed to estimate ride" });
   }
 };

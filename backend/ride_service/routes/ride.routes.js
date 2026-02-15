@@ -69,4 +69,12 @@ router.get(
   controller.getActiveRide
 );
 
+router.post(
+  "/estimate",
+  protectWithAuthService,
+  requireActiveRole("rider"),
+  controller.estimateRide
+);
+
+
 module.exports = router;

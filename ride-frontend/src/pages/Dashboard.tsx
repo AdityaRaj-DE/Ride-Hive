@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "../store";
+import { setEstimate } from "../store/rideSlice";
 import { emitCreateRide } from "../sockets/rideSocket";
 import { getSocket } from "../sockets/socketClient";
 import api from "../api/axios";
 
 export default function Dashboard() {
-
+  const dispatch = useDispatch();
   const ride = useSelector((s: RootState) => s.ride);
   const [events, setEvents] = useState<string[]>([]);
   console.log("RIDER STATE:", ride);
@@ -36,15 +37,24 @@ export default function Dashboard() {
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
-  
+
     socket.on("ride.updated", (data) => {
       console.log("🔥 RIDER RECEIVED ride.updated:", data);
     });
-  
+
     return () => {
       socket.off("ride.updated");
     };
   }, []);
+
+  const getEstimate = async () => {
+    const res = await api.post("/ride/estimate", {
+      pickup: { lat: 28.61, lng: 77.20 },
+      drop: { lat: 28.70, lng: 77.10 }
+    });
+
+    dispatch(setEstimate(res.data));
+  };
 
   const handleCreateRide = () => {
     emitCreateRide({
@@ -84,20 +94,24 @@ export default function Dashboard() {
       </div>
 
       <div>
-    <h1>Rider Dashboard</h1>
+        <h1>Rider Dashboard</h1>
 
-    <h2>Status: {ride.status}</h2>
+        <h2>Status: {ride.status}</h2>
 
-    {ride.status === "SEARCHING" && <p>🔍 Searching for driver...</p>}
+        {ride.status === "SEARCHING" && <p>🔍 Searching for driver...</p>}
 
-    {ride.status === "DRIVER_ASSIGNED" && <p>🚗 Driver assigned</p>}
+        {ride.status === "DRIVER_ASSIGNED" && <p>🚗 Driver assigned</p>}
 
-    {ride.status === "DRIVER_ARRIVING" && <p>📍 Driver arriving...</p>}
+        {ride.status === "DRIVER_ARRIVING" && <p>📍 Driver arriving...</p>}
 
-    {ride.status === "IN_PROGRESS" && <p>🛣 Ride in progress</p>}
+        {ride.status === "IN_PROGRESS" && <p>🛣 Ride in progress</p>}
 
-    {ride.status === "COMPLETED" && <p>✅ Ride completed</p>}
-  </div>
+        {ride.status === "COMPLETED" && <p>✅ Ride completed</p>}
+      </div>
+      <button onClick={getEstimate}>Test Estimate</button>
+      <h2>Price: ₹{ride.price}</h2>
+      <p>Distance: {(ride.distance / 1000).toFixed(2)} km</p>
+      <p>ETA: {(ride.duration / 60).toFixed(0)} mins</p>
     </div>
   );
 }

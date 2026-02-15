@@ -7,6 +7,10 @@ export interface RideState {
   status: string | null;
   pickup: LatLng | null;
   drop: LatLng | null;
+  distance: number | null;
+  duration: number | null;
+  price: number | null;
+  geometry: any;
   driverId: string | null;
   loading: boolean;
   error: string | null;
@@ -100,6 +104,14 @@ const rideSlice = createSlice({
     setRideError(state, action: PayloadAction<string | null>) {
       state.error = action.payload;
     },
+    setEstimate(state, action) {
+      const { distance, duration, price, geometry } = action.payload;
+    
+      state.distance = distance;
+      state.duration = duration;
+      state.price = price;
+      state.geometry = geometry;
+    },    
   },
 });
 
@@ -109,6 +121,7 @@ export const {
   clearRide,
   setRideLoading,
   setRideError,
+  setEstimate,
 } = rideSlice.actions;
 
 export default rideSlice.reducer;

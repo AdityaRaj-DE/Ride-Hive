@@ -240,20 +240,27 @@ exports.updateDriverStatusByUserId = async (req, res) => {
 // ✅ Get nearby available drivers (used by Ride Service)
 exports.getNearbyDrivers = async (req, res) => {
   try {
-    const { lat, lng } = req.query;
-    if (!lat || !lng) return res.status(400).json({ error: "lat and lng required" });
+    const { lng, lat, radius = 3000 } = req.query;
 
-    // Calculate approximate distance using a bounding box (simpler than 2dsphere)
-    const latNum = parseFloat(lat);
-    const lngNum = parseFloat(lng);
+    if (!lng || !lat) {
+      return res.status(400).json({ error: "lng/lat required" });
+    }
 
     const drivers = await Driver.find({
       isAvailable: true,
-      "location.lat": { $gt: latNum - 0.05, $lt: latNum + 0.05 },
-      "location.lng": { $gt: lngNum - 0.05, $lt: lngNum + 0.05 },
+      status: "approved", // IMPORTANT
+      location: {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [Number(lng), Number(lat)],
+          },
+          $maxDistance: Number(radius),
+        },
+      },
     })
       .limit(10)
-      .select("vehicleInfo rating location");
+      .lean();
 
     res.json(drivers);
   } catch (err) {

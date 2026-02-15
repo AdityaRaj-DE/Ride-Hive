@@ -71,6 +71,22 @@ const RideSchema = new mongoose.Schema(
       default: null,
     },
 
+    distance: {
+      type: Number, // meters
+      default: 0,
+    },
+    
+    duration: {
+      type: Number, // seconds
+      default: 0,
+    },
+    
+    // ---- Route Geometry (for map rendering later) ----
+    routeGeometry: {
+      type: Object,
+      default: null,
+    },
+
     // ---- Lifecycle timestamps ----
     requestedAt: Date,
     assignedAt: Date,

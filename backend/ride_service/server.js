@@ -5,7 +5,6 @@ const cors = require('cors');
 const cookieParser = require("cookie-parser");
 
 const rideRoutes = require('./routes/ride.routes');
-const localRoutes = require('./routes/local.routes');
 const setupSocket = require('./services/socket.service');
 const connectToDb = require('./db/db');
 
@@ -50,7 +49,6 @@ app.set('io', io);
 setupSocket(io);
 
 app.use('/', rideRoutes);
-app.use('/local', localRoutes);
 
 const PORT = process.env.PORT || 3004;
 server.listen(PORT, () => console.log(`🚕 Ride service running on port ${PORT}`));
