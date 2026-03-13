@@ -13,7 +13,7 @@ const GeoPointSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const RideSchema = new mongoose.Schema(
@@ -75,17 +75,26 @@ const RideSchema = new mongoose.Schema(
       type: Number, // meters
       default: 0,
     },
-    
+
     duration: {
       type: Number, // seconds
       default: 0,
     },
-    
+
     // ---- Route Geometry (for map rendering later) ----
     routeGeometry: {
       type: Object,
       default: null,
     },
+
+    rideStartOtp: {
+  code: String,
+  expiresAt: Date,
+  verified: {
+    type: Boolean,
+    default: false,
+  },
+},
 
     // ---- Lifecycle timestamps ----
     requestedAt: Date,
@@ -96,7 +105,7 @@ const RideSchema = new mongoose.Schema(
 
     cancelReason: String,
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Geo index for future matching

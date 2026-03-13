@@ -4,6 +4,7 @@ const Ride = require("../models/ride");
 const { getRoute } = require("../services/route.service");
 const { calculatePrice } = require("../services/pricing.service");
 const { findNearbyDrivers } = require("../services/driver.service");
+const { generateOtp } = require("../services/otp.service");
 
 exports.createRide = async (req, res) => {
   try {
@@ -95,6 +96,8 @@ exports.availableRides = async (req, res) => {
 };
 
 exports.acceptRide = async (req, res) => {
+  const otp = generateOtp();
+
   const ride = await Ride.findOneAndUpdate(
     {
       _id: req.params.id,
@@ -105,9 +108,14 @@ exports.acceptRide = async (req, res) => {
         driverId: req.user.id,
         status: "DRIVER_ASSIGNED",
         assignedAt: new Date(),
+        rideStartOtp: {
+          code: otp,
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+          verified: false,
+        },
       },
     },
-    { new: true }
+    { new: true },
   );
 
   if (!ride) return res.status(409).json({ error: "Ride already taken" });
@@ -116,6 +124,10 @@ exports.acceptRide = async (req, res) => {
   if (io) {
     io.to(`rider_${ride.riderId}`).emit("ride.assigned", ride);
     io.to(`driver_${req.user.id}`).emit("ride.assigned", ride);
+    io.to(`user_${ride.riderId}`).emit("ride.otp", {
+      rideId: ride._id,
+      otp: ride.rideStartOtp.code,
+    });
   }
   console.log("EMITTING ride.updated", ride.status);
 
@@ -135,7 +147,7 @@ exports.driverArriving = async (req, res) => {
       status: "DRIVER_ASSIGNED",
     },
     { $set: { status: "DRIVER_ARRIVING" } },
-    { new: true }
+    { new: true },
   );
 
   if (!ride) return res.status(400).json({ error: "Invalid transition" });
@@ -151,29 +163,40 @@ exports.driverArriving = async (req, res) => {
 };
 
 exports.startRide = async (req, res) => {
-  const ride = await Ride.findOneAndUpdate(
-    {
-      _id: req.params.id,
-      driverId: req.user.id,
-      status: "DRIVER_ARRIVING",
-    },
-    {
-      $set: {
-        status: "IN_PROGRESS",
-        startedAt: new Date(),
-      },
-    },
-    { new: true }
-  );
+  const { otp } = req.body;
 
-  if (!ride) return res.status(400).json({ error: "Invalid transition" });
+  const ride = await Ride.findOne({
+    _id: req.params.id,
+    driverId: req.user.id,
+    status: "DRIVER_ARRIVING",
+  });
+
+  if (!ride) return res.status(400).json({ error: "Invalid ride state" });
+
+  if (!ride.rideStartOtp) {
+    return res.status(400).json({ error: "OTP not generated" });
+  }
+
+  if (ride.rideStartOtp.code !== otp) {
+    return res.status(400).json({ error: "Invalid OTP" });
+  }
+
+  if (ride.rideStartOtp.expiresAt < new Date()) {
+    return res.status(400).json({ error: "OTP expired" });
+  }
+
+  ride.status = "IN_PROGRESS";
+  ride.startedAt = new Date();
+  ride.rideStartOtp.verified = true;
+
+  await ride.save();
 
   const io = req.app.get("io");
+
   if (io) {
     io.to(`user_${ride.riderId}`).emit("ride.updated", ride);
     io.to(`user_${ride.driverId}`).emit("ride.updated", ride);
   }
-  console.log("EMITTING ride.updated", ride.status);
 
   res.json(ride);
 };
@@ -192,7 +215,7 @@ exports.completeRide = async (req, res) => {
         finalPrice: req.body.finalPrice || 0,
       },
     },
-    { new: true }
+    { new: true },
   );
 
   if (!ride) return res.status(400).json({ error: "Invalid transition" });
@@ -220,7 +243,7 @@ exports.cancelByRider = async (req, res) => {
         cancelledAt: new Date(),
       },
     },
-    { new: true }
+    { new: true },
   );
 
   if (!ride) return res.status(400).json({ error: "Cannot cancel" });
@@ -285,5 +308,26 @@ exports.estimateRide = async (req, res) => {
   } catch (err) {
     console.error("estimateRide error:", err.message);
     return res.status(500).json({ error: "Failed to estimate ride" });
+  }
+};
+
+exports.getRoutePolyline = async (req, res) => {
+  try {
+    const { pickup, drop } = req.body;
+
+    if (!pickup || !drop) {
+      return res.status(400).json({ error: "pickup/drop required" });
+    }
+
+    const route = await getRoute(pickup, drop);
+
+    res.json({
+      distance: route.distance,
+      duration: route.duration,
+      geometry: route.geometry, // geojson line for leaflet
+    });
+  } catch (err) {
+    console.error("getRoutePolyline error:", err.message);
+    res.status(500).json({ error: "Failed to fetch route" });
   }
 };

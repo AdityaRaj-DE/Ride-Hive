@@ -47,14 +47,14 @@ export const emitDriverArriving = (rideId: string) => {
   });
 };
 
-export const emitStartRide = (rideId: string) => {
+export const emitStartRide = (rideId: string, otp: string) => {
   const socket = getDriverSocket();
   if (!socket) return;
 
-  socket.emit("driverStartRide", { rideId }, (ack: any) => {
+  socket.emit("driverStartRide", { rideId, otp }, (ack: any) => {
     console.log("startRide ack:", ack);
   });
-};
+}
 
 export const emitCompleteRide = (rideId: string) => {
   const socket = getDriverSocket();

@@ -1,117 +1,66 @@
-import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import type { RootState } from "../store";
-import { setEstimate } from "../store/rideSlice";
-import { emitCreateRide } from "../sockets/rideSocket";
-import { getSocket } from "../sockets/socketClient";
-import api from "../api/axios";
+import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
-  const dispatch = useDispatch();
-  const ride = useSelector((s: RootState) => s.ride);
-  const [events, setEvents] = useState<string[]>([]);
-  console.log("RIDER STATE:", ride);
-
-  // Attach temporary debug listeners
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-
-    const log = (msg: string, data?: any) => {
-      const entry = `${msg} ${data ? JSON.stringify(data) : ""}`;
-      console.log(entry);
-      setEvents((prev) => [entry, ...prev]);
-    };
-
-    socket.on("ride.restore", (data) => log("ride.restore", data));
-    socket.on("ride.assigned", (data) => log("ride.assigned", data));
-    socket.on("ride.created", (data) => log("ride.created", data));
-
-    return () => {
-      socket.off("ride.restore");
-      socket.off("ride.assigned");
-      socket.off("ride.created");
-    };
-  }, []);
-
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-
-    socket.on("ride.updated", (data) => {
-      console.log("🔥 RIDER RECEIVED ride.updated:", data);
-    });
-
-    return () => {
-      socket.off("ride.updated");
-    };
-  }, []);
-
-  const getEstimate = async () => {
-    const res = await api.post("/ride/estimate", {
-      pickup: { lat: 28.61, lng: 77.20 },
-      drop: { lat: 28.70, lng: 77.10 }
-    });
-
-    dispatch(setEstimate(res.data));
-  };
-
-  const handleCreateRide = () => {
-    emitCreateRide({
-      pickup: { lat: 28.61, lng: 77.2 },
-      drop: { lat: 28.7, lng: 77.1 },
-    });
-  };
-
-  const handleJoinRide = () => {
-    const socket = getSocket();
-    if (!socket || !ride.rideId) return;
-    socket.emit("joinRide", { rideId: ride.rideId });
-  };
-
-  const handleCancelRide = async () => {
-    if (!ride.rideId) return;
-    try {
-      await api.post(`/ride/${ride.rideId}/cancel`);
-      alert("Cancel request sent");
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  const navigate = useNavigate();
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Rider Debug Dashboard</h1>
+    <div style={{ padding: "30px" }}>
+      <h1>Rider Dashboard</h1>
 
-      <div style={{ marginBottom: 20 }}>
-        <button onClick={handleCreateRide}>Create Dummy Ride</button>
-        <button onClick={handleJoinRide} disabled={!ride.rideId}>
-          Join Ride Room
-        </button>
-        <button onClick={handleCancelRide} disabled={!ride.rideId}>
-          Cancel Ride
-        </button>
+      <p>Choose what you want to do</p>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "20px",
+          marginTop: "30px",
+        }}
+      >
+        <FeatureCard
+          title="Book a Ride"
+          description="Request a ride instantly"
+          onClick={() => navigate("/book-ride")}
+        />
+
+        {/* <FeatureCard
+          title="Ride History"
+          description="See your past rides"
+          onClick={() => navigate("/ride-history")}
+        />
+
+        <FeatureCard
+          title="Profile"
+          description="Manage your account"
+          onClick={() => navigate("/profile")}
+        /> */}
       </div>
+    </div>
+  );
+}
 
-      <div>
-        <h1>Rider Dashboard</h1>
-
-        <h2>Status: {ride.status}</h2>
-
-        {ride.status === "SEARCHING" && <p>🔍 Searching for driver...</p>}
-
-        {ride.status === "DRIVER_ASSIGNED" && <p>🚗 Driver assigned</p>}
-
-        {ride.status === "DRIVER_ARRIVING" && <p>📍 Driver arriving...</p>}
-
-        {ride.status === "IN_PROGRESS" && <p>🛣 Ride in progress</p>}
-
-        {ride.status === "COMPLETED" && <p>✅ Ride completed</p>}
-      </div>
-      <button onClick={getEstimate}>Test Estimate</button>
-      <h2>Price: ₹{ride.price}</h2>
-      <p>Distance: {(ride.distance / 1000).toFixed(2)} km</p>
-      <p>ETA: {(ride.duration / 60).toFixed(0)} mins</p>
+function FeatureCard({
+  title,
+  description,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        padding: "20px",
+        borderRadius: "10px",
+        border: "1px solid #ddd",
+        cursor: "pointer",
+        background: "#fff",
+      }}
+    >
+      <h3>{title}</h3>
+      <p>{description}</p>
     </div>
   );
 }

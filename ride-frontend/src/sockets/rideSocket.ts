@@ -1,6 +1,7 @@
 import { Socket } from "socket.io-client";
 import { store } from "../store";
 import { setRideFromServer, setRideError } from "../store/rideSlice";
+import { setDriverLocation } from "../store/rideSlice";
 
 let initialized = false;
 
@@ -42,6 +43,30 @@ export const initRideSocketListeners = (socket: Socket) => {
     console.error("ride.error:", err);
     store.dispatch(setRideError("Ride socket error"));
   });
+
+socket.on("ride.otp", (data) => {
+  console.log("ride.otp:", data);
+
+  store.dispatch(
+    setRideFromServer({
+      rideStartOtp: {
+        code: data.otp,
+      },
+    })
+  );
+});
+
+socket.on("driver.location", (data) => {
+  console.log("driver.location:", data);
+
+  store.dispatch(
+    setDriverLocation({
+      lat: data.lat,
+      lng: data.lng,
+    })
+  );
+});
+  
 };
 
 // Emit wrapper — Rider creates ride via socket

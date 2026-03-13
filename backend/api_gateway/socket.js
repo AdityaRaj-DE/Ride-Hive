@@ -63,7 +63,7 @@ module.exports = function setupSocket(httpServer) {
         console.error(
           "createRide error:",
           e.response?.status,
-          e.response?.data
+          e.response?.data,
         );
         ack?.({ error: true });
       }
@@ -74,7 +74,7 @@ module.exports = function setupSocket(httpServer) {
         const { data } = await axios.post(
           `${urls.ride}/${rideId}/accept`,
           {},
-          { headers: { Authorization: `Bearer ${socket.token}` } }
+          { headers: { Authorization: `Bearer ${socket.token}` } },
         );
 
         // Join driver to ride room
@@ -98,7 +98,7 @@ module.exports = function setupSocket(httpServer) {
         const { data } = await axios.post(
           `${urls.ride}/${rideId}/arriving`,
           {},
-          { headers: { Authorization: `Bearer ${socket.token}` } }
+          { headers: { Authorization: `Bearer ${socket.token}` } },
         );
 
         io.to(`ride_${rideId}`).emit("ride.updated", data);
@@ -112,18 +112,17 @@ module.exports = function setupSocket(httpServer) {
       }
     });
 
-    socket.on("driverStartRide", async ({ rideId }, ack) => {
+    socket.on("driverStartRide", async ({ rideId, otp }, ack) => {
       try {
         const { data } = await axios.post(
           `${urls.ride}/${rideId}/start`,
-          {},
-          { headers: { Authorization: `Bearer ${socket.token}` } }
+          { otp },
+          { headers: { Authorization: `Bearer ${socket.token}` } },
         );
 
         io.to(`ride_${rideId}`).emit("ride.updated", data);
         io.to(`user_${data.riderId}`).emit("ride.updated", data);
         io.to(`user_${data.driverId}`).emit("ride.updated", data);
-        console.log("EMITTING ride.updated", data.status);
 
         ack?.(data);
       } catch (e) {
@@ -136,7 +135,7 @@ module.exports = function setupSocket(httpServer) {
         const { data } = await axios.post(
           `${urls.ride}/${rideId}/complete`,
           { finalPrice: 200 },
-          { headers: { Authorization: `Bearer ${socket.token}` } }
+          { headers: { Authorization: `Bearer ${socket.token}` } },
         );
 
         io.to(`ride_${rideId}`).emit("ride.updated", data);

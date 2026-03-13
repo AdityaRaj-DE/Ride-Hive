@@ -5,13 +5,22 @@ type LatLng = { lat: number; lng: number };
 export interface RideState {
   rideId: string | null;
   status: string | null;
+
   pickup: LatLng | null;
   drop: LatLng | null;
+
+  driverId: string | null;
+  driver: any | null;
+
+  driverLocation: LatLng | null;
+
+  rideStartOtp: { code: string } | null;
+
   distance: number | null;
   duration: number | null;
   price: number | null;
-  geometry: any;
-  driverId: string | null;
+  geometry: any | null;
+
   loading: boolean;
   error: string | null;
 }
@@ -19,9 +28,22 @@ export interface RideState {
 const initialState: RideState = {
   rideId: null,
   status: null,
+
   pickup: null,
   drop: null,
+
   driverId: null,
+  driver: null,
+
+  driverLocation: null,
+
+  rideStartOtp: null,
+
+  distance: null,
+  duration: null,
+  price: null,
+  geometry: null,
+
   loading: false,
   error: null,
 };
@@ -56,9 +78,15 @@ function normalizeRide(payload: RideServerPayload) {
     drop = payload.drop;
   }
 
-  const driverId = payload.driverId || null;
-
-  return { rideId, status, pickup, drop, driverId };
+  return {
+    rideId,
+    status,
+    pickup,
+    drop,
+    driverId: payload.driverId || null,
+    driver: payload.driver || null,
+    rideStartOtp: payload.rideStartOtp || null,
+  };
 }
 
 const rideSlice = createSlice({
@@ -66,23 +94,22 @@ const rideSlice = createSlice({
   initialState,
   reducers: {
     setRideFromServer(state, action) {
-      console.log("REDUCER HIT:", action.payload);
-    
       const normalized = normalizeRide(action.payload);
-    
-      console.log("NORMALIZED:", normalized);
-    
-      state.rideId = normalized.rideId;
+
+      state.rideId = normalized.rideId ?? state.rideId;
+
       if (normalized.status) {
         state.status = normalized.status;
       }
-      
+
       state.pickup = normalized.pickup ?? state.pickup;
       state.drop = normalized.drop ?? state.drop;
-      state.driverId = normalized.driverId;
-    }
-    ,
 
+      state.driverId = normalized.driverId ?? state.driverId;
+      state.driver = normalized.driver ?? state.driver;
+
+      state.rideStartOtp = normalized.rideStartOtp ?? state.rideStartOtp;
+    },
     updateRideStatus(state, action: PayloadAction<string>) {
       state.status = action.payload;
     },
@@ -106,12 +133,15 @@ const rideSlice = createSlice({
     },
     setEstimate(state, action) {
       const { distance, duration, price, geometry } = action.payload;
-    
+
       state.distance = distance;
       state.duration = duration;
       state.price = price;
       state.geometry = geometry;
-    },    
+    },
+    setDriverLocation(state, action: PayloadAction<LatLng>) {
+      state.driverLocation = action.payload;
+    },
   },
 });
 
@@ -122,6 +152,7 @@ export const {
   setRideLoading,
   setRideError,
   setEstimate,
+  setDriverLocation,
 } = rideSlice.actions;
 
 export default rideSlice.reducer;

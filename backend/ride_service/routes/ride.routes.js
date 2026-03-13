@@ -76,5 +76,10 @@ router.post(
   controller.estimateRide
 );
 
+router.post(
+  "/route",
+  protectWithAuthService,
+  controller.getRoutePolyline
+);
 
 module.exports = router;
