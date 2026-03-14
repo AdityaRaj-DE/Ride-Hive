@@ -1,22 +1,19 @@
 import { useSelector } from "react-redux";
 import type { RootState } from "../store";
-
-import api from "../api/axios";
 import {
   emitAcceptRide,
   emitDriverArriving,
   emitStartRide,
   emitCompleteRide,
 } from "../sockets/driverRideSocket";
-
+import { useState } from "react";
 
 export default function Dashboard() {
   const { availableRides, activeRide } = useSelector(
     (s: RootState) => s.driverRide
   );
-
+ const [otp, setOtp] = useState("");
   return (
-    
     <div style={{ padding: 20 }}>
       <h1>Driver Debug Dashboard</h1>
 
@@ -34,16 +31,39 @@ export default function Dashboard() {
       {activeRide && (
         <>
           <pre>{JSON.stringify(activeRide, null, 2)}</pre>
-
-          <button onClick={() => emitDriverArriving(activeRide._id || activeRide.rideId)}>
+          <button
+            onClick={() =>
+              emitDriverArriving(activeRide._id || activeRide.rideId)
+            }
+          >
             Mark Arriving
           </button>
+           <h3>Start Ride (OTP Required)</h3>
 
-          <button onClick={() => emitStartRide(activeRide._id || activeRide.rideId)}>
+          <input
+            type="text"
+            placeholder="Enter Rider OTP"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            style={{
+              padding: "8px",
+              marginRight: "10px",
+              width: "120px",
+            }}
+          />
+
+          <button
+            onClick={() =>
+              emitStartRide(activeRide._id || activeRide.rideId, otp)
+            }
+          >
             Start Ride
           </button>
-
-          <button onClick={() => emitCompleteRide(activeRide._id || activeRide.rideId)}>
+          <button
+            onClick={() =>
+              emitCompleteRide(activeRide._id || activeRide.rideId)
+            }
+          >
             Complete Ride
           </button>
         </>

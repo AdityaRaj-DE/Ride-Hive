@@ -6,6 +6,9 @@ const { calculatePrice } = require("../services/pricing.service");
 const { findNearbyDrivers } = require("../services/driver.service");
 const { generateOtp } = require("../services/otp.service");
 
+const { serializeRide } = require("../serializers/ride.serializer");
+
+
 exports.createRide = async (req, res) => {
   try {
     const { pickup, drop } = req.body;
@@ -118,25 +121,25 @@ exports.acceptRide = async (req, res) => {
     { new: true },
   );
 
+  
   if (!ride) return res.status(409).json({ error: "Ride already taken" });
+
+  const formattedRide = serializeRide(ride);
 
   const io = req.app.get("io");
   if (io) {
-    io.to(`rider_${ride.riderId}`).emit("ride.assigned", ride);
-    io.to(`driver_${req.user.id}`).emit("ride.assigned", ride);
+    io.to(`rider_${ride.riderId}`).emit("ride.assigned", formattedRide);
+    io.to(`driver_${req.user.id}`).emit("ride.assigned", formattedRide);
     io.to(`user_${ride.riderId}`).emit("ride.otp", {
       rideId: ride._id,
       otp: ride.rideStartOtp.code,
     });
   }
   console.log("EMITTING ride.updated", ride.status);
+  
+  console.log("otp: ", ride.rideStartOtp.code)
 
-  res.json({
-    rideId: ride._id,
-    riderId: ride.riderId,
-    driverId: ride.driverId,
-    status: ride.status,
-  });
+  res.json(formattedRide);
 };
 
 exports.driverArriving = async (req, res) => {

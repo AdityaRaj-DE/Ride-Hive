@@ -1,35 +1,43 @@
-import { useState } from "react";
-import api from "../api/axios";
+import { useSelector } from "react-redux";
+import type { RootState } from "../store";
 
-export default function DriverAssigned({ ride }: any) {
-
-  const [otp, setOtp] = useState("");
-
-  const verifyOtp = async () => {
-    await api.post(`/ride/${ride.rideId}/verify-otp`, {
-      otp
-    });
-  };
-
+export default function DriverAssigned() {
+  const ride = useSelector((s: RootState) => s.ride);
+  console.log(ride);
   return (
-    <div>
+    <div style={{ marginTop: 20 }}>
 
       <h2>Driver Assigned</h2>
 
-      <p>Driver: {ride.driver?.name}</p>
-      <p>Vehicle: {ride.driver?.vehicle}</p>
+      {/* Driver Info */}
+      <div style={{ marginBottom: 20 }}>
+        <p><strong>Driver:</strong> {ride.driver?.name}</p>
+        <p><strong>Vehicle:</strong> {ride.driver?.vehicle}</p>
+        <p><strong>Plate:</strong> {ride.driver?.plate}</p>
+      </div>
 
-      <p>Ride OTP: {ride.rideStartOtp?.code}</p>
+      {/* OTP Display */}
+      {ride.rideStartOtp && (
+        <div
+          style={{
+            padding: "20px",
+            background: "#f3f3f3",
+            borderRadius: "8px",
+            textAlign: "center",
+            width: "200px",
+          }}
+        >
+          <p>Give this OTP to your driver</p>
 
-      <input
-        value={otp}
-        onChange={(e) => setOtp(e.target.value)}
-        placeholder="Enter OTP"
-      />
+          <h1 style={{ fontSize: "32px", letterSpacing: "4px" }}>
+            {ride.rideStartOtp.code}
+          </h1>
+        </div>
+      )}
 
-      <button onClick={verifyOtp}>
-        Verify Driver
-      </button>
+      <p style={{ marginTop: 10 }}>
+        The driver will start the ride after verifying this OTP.
+      </p>
 
     </div>
   );
