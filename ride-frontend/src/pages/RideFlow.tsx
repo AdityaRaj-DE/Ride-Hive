@@ -4,8 +4,8 @@ import type { RootState } from "../store";
 import SearchingDriver from "../components/SearchingDriver";
 import DriverAssigned from "../components/DriverAssigned";
 import RideStarted from "../components/RideStarted";
-import RideMap from "../components/RideMap";
 import CancelRideButton from "../components/CancelRideButton";
+import RideMap from "../components/RIdeMap";
 
 export default function RideFlow() {
 
@@ -23,6 +23,7 @@ export default function RideFlow() {
         pickup={ride.pickup}
         drop={ride.drop}
         driverLocation={ride.driverLocation}
+        geometry={ride.geometry}
         status={ride.status}
       />
 

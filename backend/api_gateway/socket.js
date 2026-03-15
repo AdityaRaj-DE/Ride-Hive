@@ -81,10 +81,9 @@ module.exports = function setupSocket(httpServer) {
         socket.join(`ride_${rideId}`);
 
         // Notify rider
-        io.to(`user_${data.riderId}`).emit("ride.assigned", data);
 
         // Notify driver (optional but consistent)
-        io.to(`user_${data.driverId}`).emit("ride.assigned", data);
+        // io.to(`user_${data.driverId}`).emit("ride.assigned", data);
 
         ack?.(data);
       } catch (e) {
@@ -110,6 +109,16 @@ module.exports = function setupSocket(httpServer) {
       } catch (e) {
         ack?.({ error: true });
       }
+    });
+
+    socket.on("driver.location", ({ rideId, lat, lng }) => {
+      if (socket.user.activeRole !== "driver") return;
+
+      io.to(`ride_${rideId}`).emit("driver.location", {
+        driverId: socket.user.id,
+        lat,
+        lng,
+      });
     });
 
     socket.on("driverStartRide", async ({ rideId, otp }, ack) => {

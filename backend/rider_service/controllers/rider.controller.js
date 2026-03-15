@@ -106,3 +106,21 @@ exports.updateProfile = async (req, res) => {
     res.status(500).json({ message: "Failed to update rider profile" });
   }
 };
+
+
+exports.getRiderByUserId = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    const rider = await Rider.findOne({ userId });
+
+    if (!rider) {
+      return res.status(404).json({ message: "Rider profile not found" });
+    }
+
+    res.status(200).json({ rider });
+  } catch (err) {
+    console.error("❌ getRiderByUserId:", err);
+    res.status(500).json({ message: "Failed to fetch rider profile" });
+  }
+};

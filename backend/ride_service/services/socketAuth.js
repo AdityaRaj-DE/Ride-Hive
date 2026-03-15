@@ -14,6 +14,7 @@ module.exports = async function socketAuth(socket, next) {
       timeout: 5000,
     });
 
+    
     socket.user = {
       id: data.id,
       roles: data.roles,

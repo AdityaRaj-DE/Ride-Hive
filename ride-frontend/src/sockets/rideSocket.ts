@@ -12,17 +12,16 @@ export const initRideSocketListeners = (socket: Socket) => {
   socket.on("ride.restore", (ride) => {
     console.log("ride.restore:", ride);
     store.dispatch(setRideFromServer(ride));
-    if (ride?._id) {
-      socket.emit("joinRide", { rideId: ride._id });
+    if (ride?.rideId) {
+      socket.emit("joinRide", { rideId: ride.rideId });
     }
   });
 
   socket.on("ride.assigned", (ride) => {
     console.log("ride.assigned:", ride);
     store.dispatch(setRideFromServer(ride));
-    if (ride?._id || ride?.rideId) {
-      const rideId = ride._id || ride.rideId;
-      socket.emit("joinRide", { rideId });
+    if (ride?.rideId) {
+      socket.emit("joinRide", { rideId: ride.rideId });
     }
   });
 
@@ -37,36 +36,22 @@ export const initRideSocketListeners = (socket: Socket) => {
     console.log("RIDER RECEIVED ride.updated", ride.status);
     store.dispatch(setRideFromServer(ride));
   });
-  
 
   socket.on("ride.error", (err) => {
     console.error("ride.error:", err);
     store.dispatch(setRideError("Ride socket error"));
   });
 
-socket.on("ride.otp", (data) => {
-  console.log("ride.otp:", data);
+  socket.on("driver.location", (data) => {
+    console.log("driver.location:", data);
 
-  store.dispatch(
-    setRideFromServer({
-      rideStartOtp: {
-        code: data.otp,
-      },
-    })
-  );
-});
-
-socket.on("driver.location", (data) => {
-  console.log("driver.location:", data);
-
-  store.dispatch(
-    setDriverLocation({
-      lat: data.lat,
-      lng: data.lng,
-    })
-  );
-});
-  
+    store.dispatch(
+      setDriverLocation({
+        lat: data.lat,
+        lng: data.lng,
+      }),
+    );
+  });
 };
 
 // Emit wrapper — Rider creates ride via socket
@@ -93,8 +78,6 @@ export const emitCreateRide = (payload: {
     }
   });
 };
-
-
 
 // Helper to safely get socket from client singleton
 import { getSocket } from "./socketClient";

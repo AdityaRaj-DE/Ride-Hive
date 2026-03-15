@@ -12,7 +12,7 @@ export default function Dashboard() {
   const { availableRides, activeRide } = useSelector(
     (s: RootState) => s.driverRide
   );
- const [otp, setOtp] = useState("");
+  const [otp, setOtp] = useState("");
   return (
     <div style={{ padding: 20 }}>
       <h1>Driver Debug Dashboard</h1>
@@ -21,7 +21,7 @@ export default function Dashboard() {
       {availableRides.map((ride) => (
         <div key={ride.rideId || ride._id}>
           <pre>{JSON.stringify(ride, null, 2)}</pre>
-          <button onClick={() => emitAcceptRide(ride.rideId || ride._id)}>
+          <button onClick={() => emitAcceptRide(ride.rideId)}>
             Accept Ride
           </button>
         </div>
@@ -38,7 +38,7 @@ export default function Dashboard() {
           >
             Mark Arriving
           </button>
-           <h3>Start Ride (OTP Required)</h3>
+          <h3>Start Ride (OTP Required)</h3>
 
           <input
             type="text"
@@ -67,6 +67,14 @@ export default function Dashboard() {
             Complete Ride
           </button>
         </>
+      )}
+
+      {activeRide?.rider && (
+        <div>
+          <h3>Rider Info</h3>
+          <p>Name: {activeRide.rider.name}</p>
+          <p>Phone: {activeRide.rider.phone}</p>
+        </div>
       )}
     </div>
   );

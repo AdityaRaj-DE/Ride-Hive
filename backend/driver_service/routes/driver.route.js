@@ -76,6 +76,7 @@ router.get("/nearby", driverController.getNearbyDrivers);
 
 // ✅ Internal lookup (Ride service etc.)
 router.get("/by-user/:userId", driverController.getDriverByUserId);
+
 router.patch("/:userId/status", driverController.updateDriverStatusByUserId);
 
 // ✅ Admin routes (should be protected by internal key or admin auth)

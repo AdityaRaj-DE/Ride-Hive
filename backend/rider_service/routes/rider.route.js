@@ -38,4 +38,6 @@ router.get(
   riderController.getRiderProfile
 );
 
+router.get("/by-user/:userId", riderController.getRiderByUserId);
+
 module.exports = router;

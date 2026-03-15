@@ -7,7 +7,7 @@ const { findNearbyDrivers } = require("../services/driver.service");
 const { generateOtp } = require("../services/otp.service");
 
 const { serializeRide } = require("../serializers/ride.serializer");
-
+const axios = require("axios");
 
 exports.createRide = async (req, res) => {
   try {
@@ -64,18 +64,23 @@ exports.createRide = async (req, res) => {
     });
 
     // 3) Broadcast to drivers
+    // 3) Broadcast to drivers
     const io = req.app.get("io");
+
     if (io) {
       const nearbyDrivers = await findNearbyDrivers(pickup);
 
-      console.log("Nearby drivers:", nearbyDrivers.length);
+      const payload = {
+        rideId: ride._id,
+        pickup,
+        drop,
+        distance: ride.distance,
+        duration: ride.duration,
+        price: ride.priceEstimate,
+      };
 
       nearbyDrivers.forEach((driver) => {
-        io.to(`user_${driver._id}`).emit("ride.created", {
-          rideId: ride._id,
-          pickup,
-          drop,
-        });
+        io.to(`user_${driver._id}`).emit("ride.created", payload);
       });
     }
 
@@ -100,7 +105,7 @@ exports.availableRides = async (req, res) => {
 
 exports.acceptRide = async (req, res) => {
   const otp = generateOtp();
-
+  
   const ride = await Ride.findOneAndUpdate(
     {
       _id: req.params.id,
@@ -121,25 +126,53 @@ exports.acceptRide = async (req, res) => {
     { new: true },
   );
 
-  
   if (!ride) return res.status(409).json({ error: "Ride already taken" });
 
-  const formattedRide = serializeRide(ride);
+  console.log("ride: ", ride);
+  const { data: driver } = await axios.get(
+    `${process.env.DRIVER_SERVICE_URL}/by-user/${req.user.id}`,
+  );
+  console.log("driver: ", driver);
 
+  const { data: rider } = await axios.get(
+    `${process.env.RIDER_SERVICE_URL}/by-user/${ride.riderId}`,
+  );
+
+  console.log("rider: ", rider);
+
+  const payload = {
+    ...serializeRide(ride),
+
+    driver: {
+      id: driver.id,
+      name: driver.name,
+      phone: driver.phone,
+    },
+
+    rider: {
+      id: rider.id,
+      name: rider.name,
+      phone: rider.phone,
+    },
+
+    rideStartOtp: {
+      code: ride.rideStartOtp.code,
+    },
+  };
   const io = req.app.get("io");
   if (io) {
-    io.to(`rider_${ride.riderId}`).emit("ride.assigned", formattedRide);
-    io.to(`driver_${req.user.id}`).emit("ride.assigned", formattedRide);
+    io.to(`rider_${ride.riderId}`).emit("ride.assigned", payload);
+    io.to(`driver_${req.user.id}`).emit("ride.assigned", payload);
     io.to(`user_${ride.riderId}`).emit("ride.otp", {
       rideId: ride._id,
       otp: ride.rideStartOtp.code,
     });
   }
   console.log("EMITTING ride.updated", ride.status);
-  
-  console.log("otp: ", ride.rideStartOtp.code)
 
-  res.json(formattedRide);
+  console.log("otp: ", ride.rideStartOtp.code);
+
+  res.json(payload);
 };
 
 exports.driverArriving = async (req, res) => {
@@ -155,14 +188,16 @@ exports.driverArriving = async (req, res) => {
 
   if (!ride) return res.status(400).json({ error: "Invalid transition" });
 
+  const payload = serializeRide(ride);
+
   const io = req.app.get("io");
   if (io) {
-    io.to(`user_${ride.riderId}`).emit("ride.updated", ride);
-    io.to(`user_${ride.driverId}`).emit("ride.updated", ride);
+    io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
+    io.to(`user_${ride.driverId}`).emit("ride.updated", payload);
   }
   console.log("EMITTING ride.updated", ride.status);
 
-  res.json(ride);
+  res.json(payload);
 };
 
 exports.startRide = async (req, res) => {
@@ -194,14 +229,15 @@ exports.startRide = async (req, res) => {
 
   await ride.save();
 
+  const payload = serializeRide(ride);
   const io = req.app.get("io");
 
   if (io) {
-    io.to(`user_${ride.riderId}`).emit("ride.updated", ride);
-    io.to(`user_${ride.driverId}`).emit("ride.updated", ride);
+    io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
+    io.to(`user_${ride.driverId}`).emit("ride.updated", payload);
   }
 
-  res.json(ride);
+  res.json(payload);
 };
 
 exports.completeRide = async (req, res) => {
@@ -223,14 +259,15 @@ exports.completeRide = async (req, res) => {
 
   if (!ride) return res.status(400).json({ error: "Invalid transition" });
 
+  const payload = serializeRide(ride);
   const io = req.app.get("io");
   if (io) {
-    io.to(`user_${ride.riderId}`).emit("ride.updated", ride);
-    io.to(`user_${ride.driverId}`).emit("ride.updated", ride);
+    io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
+    io.to(`user_${ride.driverId}`).emit("ride.updated", payload);
   }
   console.log("EMITTING ride.updated", ride.status);
 
-  res.json(ride);
+  res.json(payload);
 };
 
 exports.cancelByRider = async (req, res) => {

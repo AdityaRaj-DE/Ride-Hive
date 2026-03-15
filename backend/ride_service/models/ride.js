@@ -96,6 +96,7 @@ const RideSchema = new mongoose.Schema(
   },
 },
 
+
     // ---- Lifecycle timestamps ----
     requestedAt: Date,
     assignedAt: Date,

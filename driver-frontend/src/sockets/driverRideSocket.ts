@@ -27,6 +27,17 @@ export const initDriverRideListeners = (socket: Socket) => {
     console.log("Driver ride.restore:", ride);
     store.dispatch(setActiveRide(ride));
   });
+
+  // ⭐ IMPORTANT
+  socket.on("ride.updated", (ride) => {
+    console.log("Driver ride.updated:", ride);
+    store.dispatch(setActiveRide(ride));
+  });
+
+  // ⭐ driver location updates
+  socket.on("driver.location", (data) => {
+    console.log("Driver location broadcast:", data);
+  });
 };
 
 export const emitAcceptRide = (rideId: string) => {
@@ -35,6 +46,10 @@ export const emitAcceptRide = (rideId: string) => {
 
   socket.emit("acceptRide", { rideId }, (ack: any) => {
     console.log("acceptRide ack:", ack);
+
+    if (!ack?.error) {
+      startDriverLocationTracking(rideId); // ⭐ start GPS tracking
+    }
   });
 };
 
@@ -62,5 +77,20 @@ export const emitCompleteRide = (rideId: string) => {
 
   socket.emit("driverCompleteRide", { rideId }, (ack: any) => {
     console.log("completeRide ack:", ack);
+  });
+};
+
+export const startDriverLocationTracking = (rideId: string) => {
+  const socket = getDriverSocket();
+  if (!socket) return;
+
+  navigator.geolocation.watchPosition((pos) => {
+
+    socket.emit("driver.location", {
+      rideId,
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
+    });
+
   });
 };
