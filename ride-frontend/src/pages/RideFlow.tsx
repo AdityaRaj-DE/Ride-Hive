@@ -6,6 +6,7 @@ import DriverAssigned from "../components/DriverAssigned";
 import RideStarted from "../components/RideStarted";
 import CancelRideButton from "../components/CancelRideButton";
 import RideMap from "../components/RIdeMap";
+import DriverArriving from "../components/DriverArriving";
 
 export default function RideFlow() {
 
@@ -27,10 +28,13 @@ export default function RideFlow() {
         status={ride.status}
       />
 
-      {ride.status === "SEARCHING" && <SearchingDriver />}
+      {ride.status === "SEARCHING" && (<SearchingDriver />)}
 
       {ride.status === "DRIVER_ASSIGNED" && (
-        <DriverAssigned ride={ride} />
+        <DriverAssigned/>
+      )}
+      {ride.status === "DRIVER_ARRIVING" && (
+        <DriverArriving/>
       )}
 
       {ride.status === "IN_PROGRESS" && (

@@ -81,10 +81,8 @@ module.exports = function setupSocket(httpServer) {
         socket.join(`ride_${rideId}`);
 
         // Notify rider
-
-        // Notify driver (optional but consistent)
-        // io.to(`user_${data.driverId}`).emit("ride.assigned", data);
-
+        io.to(`user_${data.riderId}`).emit("ride.assigned", data);
+        io.to(`user_${data.driverId}`).emit("ride.assigned", data);
         ack?.(data);
       } catch (e) {
         console.error("acceptRide error:", e.response?.data);

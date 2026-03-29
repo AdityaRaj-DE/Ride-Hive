@@ -128,18 +128,13 @@ exports.acceptRide = async (req, res) => {
 
   if (!ride) return res.status(409).json({ error: "Ride already taken" });
 
-  console.log("ride: ", ride);
   const { data: driver } = await axios.get(
     `${process.env.DRIVER_SERVICE_URL}/by-user/${req.user.id}`,
   );
-  console.log("driver: ", driver);
 
   const { data: rider } = await axios.get(
     `${process.env.RIDER_SERVICE_URL}/by-user/${ride.riderId}`,
   );
-
-  console.log("rider: ", rider);
-
   const payload = {
     ...serializeRide(ride),
 
