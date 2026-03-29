@@ -1,10 +1,15 @@
 import api from "../api/axios";
+import { getSocket } from "../sockets/socketClient";
 
 export default function CancelRideButton({ rideId }: any) {
 
   const cancelRide = async () => {
     try {
-      await api.post(`/ride/${rideId}/cancel`);
+      const socket = getSocket();
+
+      socket.emit("cancelRide", { rideId }, (ack: any) => {
+        console.log("cancel ack:", ack);
+      });
     } catch (err) {
       console.error(err);
     }

@@ -158,6 +158,24 @@ module.exports = function setupSocket(httpServer) {
 
     socket.on("joinRide", ({ rideId }) => socket.join(`ride_${rideId}`));
 
+    socket.on("cancelRide", async ({ rideId }, ack) => {
+      try {
+        const { data } = await axios.post(
+          `${urls.ride}/${rideId}/cancel`,
+          {},
+          { headers: { Authorization: `Bearer ${socket.token}` } },
+        );
+
+        // 🔥 THIS IS THE FIX
+        io.to(`ride_${rideId}`).emit("ride.updated", data);
+
+        ack?.(data);
+      } catch (e) {
+        console.error("cancelRide error:", e.response?.data);
+        ack?.({ error: true });
+      }
+    });
+
     socket.onAny((event, data) => {
       console.log("GATEWAY EVENT:", event, data);
     });

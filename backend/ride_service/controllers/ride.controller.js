@@ -105,7 +105,7 @@ exports.availableRides = async (req, res) => {
 
 exports.acceptRide = async (req, res) => {
   const otp = generateOtp();
-  
+
   const ride = await Ride.findOneAndUpdate(
     {
       _id: req.params.id,
@@ -139,29 +139,36 @@ exports.acceptRide = async (req, res) => {
     ...serializeRide(ride),
 
     driver: {
-      id: driver.id,
-      name: driver.name,
-      phone: driver.phone,
+      id: driver.userId,
+
+      name: `${driver.fullname.firstname} ${driver.fullname.lastname}`,
+
+      phone: null, // still missing from API
+
+      vehicle: {
+        model: driver.vehicle?.model,
+        plateNumber: driver.vehicle?.plateNumber,
+        color: driver.vehicle?.color,
+        type: driver.vehicle?.type,
+      },
     },
 
     rider: {
-      id: rider.id,
-      name: rider.name,
-      phone: rider.phone,
+      id: rider.rider.userId,
+      name: `${rider.rider.name.first} ${rider.rider.name.last}`,
+      phone: null,
     },
 
     rideStartOtp: {
       code: ride.rideStartOtp.code,
     },
   };
+  console.log("DRIVER API RAW:", driver);
+  console.log("RIDER API RAW:", rider);
   const io = req.app.get("io");
   if (io) {
-    io.to(`rider_${ride.riderId}`).emit("ride.assigned", payload);
-    io.to(`driver_${req.user.id}`).emit("ride.assigned", payload);
-    io.to(`user_${ride.riderId}`).emit("ride.otp", {
-      rideId: ride._id,
-      otp: ride.rideStartOtp.code,
-    });
+    io.to(`user_${ride.riderId}`).emit("ride.assigned", payload);
+    io.to(`user_${ride.driverId}`).emit("ride.assigned", payload);
   }
   console.log("EMITTING ride.updated", ride.status);
 
@@ -266,24 +273,36 @@ exports.completeRide = async (req, res) => {
 };
 
 exports.cancelByRider = async (req, res) => {
-  const ride = await Ride.findOneAndUpdate(
-    {
-      _id: req.params.id,
-      riderId: req.user.id,
-      status: { $in: ["SEARCHING", "DRIVER_ASSIGNED"] },
-    },
-    {
-      $set: {
-        status: "CANCELLED_BY_RIDER",
-        cancelledAt: new Date(),
-      },
-    },
-    { new: true },
-  );
+  console.log("Cancel request:", {
+    rideId: req.params.id,
+    userId: req.user.id,
+  });
 
-  if (!ride) return res.status(400).json({ error: "Cannot cancel" });
+  const existing = await Ride.findById(req.params.id);
 
-  res.json(ride);
+  if (!existing) {
+    return res.status(404).json({ error: "Ride not found" });
+  }
+
+  // ❗ already cancelled → just return success
+  if (existing.status === "CANCELLED_BY_RIDER") {
+    return res.json(existing);
+  }
+
+  // ❗ not allowed to cancel
+  if (["IN_PROGRESS", "COMPLETED"].includes(existing.status)) {
+    return res.status(400).json({
+      error: "Cannot cancel after ride started",
+    });
+  }
+
+  // ✅ perform cancel
+  existing.status = "CANCELLED_BY_RIDER";
+  existing.cancelledAt = new Date();
+
+  await existing.save();
+
+  return res.json(existing);
 };
 
 exports.getActiveRide = async (req, res) => {

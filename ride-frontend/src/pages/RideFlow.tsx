@@ -7,15 +7,21 @@ import RideStarted from "../components/RideStarted";
 import CancelRideButton from "../components/CancelRideButton";
 import RideMap from "../components/RIdeMap";
 import DriverArriving from "../components/DriverArriving";
+import { useEffect } from "react";
 
 export default function RideFlow() {
 
   const ride = useSelector((s: RootState) => s.ride);
   const navigate = useNavigate();
 
-  if (ride.status === "COMPLETED" || ride.status === "CANCELLED") {
+  useEffect(() => {
+  if (
+    ride.status === "COMPLETED" ||
+    ride.status === "CANCELLED_BY_RIDER"
+  ) {
     navigate("/book-ride");
   }
+}, [ride.status, navigate]);
 
   return (
     <div style={{ padding: 20 }}>

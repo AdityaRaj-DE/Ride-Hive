@@ -12,8 +12,8 @@ export default function DriverAssigned() {
       {/* Driver Info */}
       <div style={{ marginBottom: 20 }}>
         <p><strong>Driver:</strong> {ride.driver?.name}</p>
-        <p><strong>Vehicle:</strong> {ride.driver?.vehicle}</p>
-        <p><strong>Plate:</strong> {ride.driver?.plate}</p>
+        <p><strong>Vehicle:</strong> {ride.driver?.vehicle.model}</p>
+        <p><strong>Plate:</strong> {ride.driver?.vehicle.plateNumber}</p>
       </div>
 
       {/* OTP Display */}
