@@ -1,11 +1,27 @@
-// pages/driver/Register.tsx
-import {
+import React, {
   useState,
   type FormEvent,
   type ChangeEvent,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { axiosInstance } from "../services/axiosInstance";
+import { 
+  User, 
+  Users,
+  Mail, 
+  Phone, 
+  CreditCard, 
+  Car, 
+  ArrowRight, 
+  ArrowLeft, 
+  ShieldCheck, 
+  Lock, 
+  Activity, 
+  Globe, 
+  CheckCircle2,
+  Sparkles,
+  Fingerprint
+} from 'lucide-react';
 
 type Step = 0 | 1 | 2;
 
@@ -49,13 +65,13 @@ export default function Register() {
   const nextStep = () => {
     if (step === 0) {
       if (!form.firstname || !form.email || !form.mobileNumber) {
-        setErrorMsg("Fill name, email & mobile to continue.");
+        setErrorMsg("Please provide your name, email, and mobile number.");
         return;
       }
     }
     if (step === 1) {
       if (!form.licenseNumber || !form.vehicleColor || !form.plate) {
-        setErrorMsg("Fill license, vehicle color & plate number.");
+        setErrorMsg("Please provide license, vehicle color, and plate number.");
         return;
       }
     }
@@ -71,7 +87,7 @@ export default function Register() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.password || form.password.length < 6) {
-      setErrorMsg("Password should be at least 6 characters.");
+      setErrorMsg("Password must be at least 6 characters.");
       return;
     }
 
@@ -98,9 +114,10 @@ export default function Register() {
 
       alert("Driver registered successfully");
       navigate("/driver/login");
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err?.response?.data?.message || "Registration failed");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      console.error(error);
+      setErrorMsg(error?.response?.data?.message || "Registration Failed");
     } finally {
       setLoading(false);
     }
@@ -115,301 +132,356 @@ export default function Register() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-black text-white">
-      {/* Content */}
-      <div className="flex-1 flex flex-col px-5 pt-10 pb-4">
-        {/* Header */}
-        <header className="mb-6">
-          <p className="text-[0.7rem] uppercase tracking-[0.25em] text-neutral-500">
-            Driver
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold">Create driver account</h1>
-          <p className="mt-2 text-xs text-neutral-400 max-w-md">
-            Complete your details to start driving and earning.
-          </p>
+    <div className="min-h-screen text-primary flex flex-col items-center p-6 sm:p-10">
+      <div className="w-full max-w-6xl relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <header className="mb-16 text-center lg:text-left flex flex-col lg:flex-row items-center justify-between gap-8">
+          <div className="space-y-4">
+             <div className="flex items-center justify-center lg:justify-start gap-3">
+                <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center text-accent border border-accent/20">
+                   <Globe className="w-6 h-6" />
+                </div>
+                <div className="px-4 py-1.5 rounded-full bg-accent/5 border border-accent/10 text-accent text-[10px] font-bold uppercase tracking-widest">
+                   Partner Onboarding v2.4
+                </div>
+             </div>
+             <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-primary leading-tight">
+               Join the <span className="text-accent">Fleet</span>
+             </h1>
+             <p className="text-secondary text-base md:text-xl font-medium max-w-2xl mx-auto lg:mx-0 opacity-60 leading-relaxed">
+               Start your journey as a professional driver partner. Complete the enrollment below.
+             </p>
+          </div>
+
+          <div className="hidden lg:flex flex-col items-end gap-4 opacity-30">
+             <div className="flex items-center gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-right">Secure Verification</p>
+                <div className="w-10 h-10 rounded-xl border border-border flex items-center justify-center text-accent">
+                   <Fingerprint className="w-5 h-5" />
+                </div>
+             </div>
+             <div className="flex items-center gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-right">Instant Approval Hub</p>
+                <div className="w-10 h-10 rounded-xl border border-border flex items-center justify-center text-accent">
+                   <Activity className="w-5 h-5" />
+                </div>
+             </div>
+          </div>
         </header>
 
-        {/* Step indicator */}
-        <div className="flex items-center gap-2 mb-5 text-[11px] text-neutral-400">
-          {[0, 1, 2].map((s) => (
-            <div
-              key={s}
-              className={`flex-1 h-1 rounded-full ${
-                step >= s ? "bg-white" : "bg-white/15"
-              }`}
-            />
-          ))}
-          <span className="ml-2">
-            Step {step + 1} of 3
-          </span>
+        {/* Progress Bar */}
+        <div className="mb-16 px-4 max-w-2xl mx-auto lg:mx-0">
+           <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                 <div className="w-2 h-2 rounded-full bg-accent animate-pulse"></div>
+                 <span className="text-[10px] font-bold uppercase tracking-widest text-accent">Enrollment Progress</span>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted opacity-40">Step {step + 1} of 3</span>
+           </div>
+           <div className="flex gap-4">
+             {[0, 1, 2].map((s) => (
+                <div key={s} className="flex-1 h-2 rounded-full bg-surface border border-border overflow-hidden">
+                   <div 
+                     className={`h-full bg-accent transition-all duration-700 shadow-[0_0_10px_rgba(16,185,129,0.3)] ${step >= s ? "w-full" : "w-0"}`}
+                   />
+                </div>
+             ))}
+           </div>
         </div>
 
-        {/* Card */}
-        <main className="flex-1 flex items-center justify-center">
-          <div className="w-full max-w-lg">
-            <form
-              onSubmit={handleSubmit}
-              className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_18px_45px_rgba(0,0,0,0.85)] p-5 md:p-7 space-y-4"
-            >
-              {/* Step content */}
-              {step === 0 && (
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold">
-                    Personal details
-                  </h2>
-                  <p className="text-xs text-neutral-400">
-                    Tell us who you are. This will show to riders.
-                  </p>
+        <main className="grid grid-cols-1 gap-12">
+            <form onSubmit={handleSubmit} className="glass-card p-10 md:p-16 border-accent/10 shadow-2xl relative overflow-hidden flex flex-col justify-center min-h-[500px]">
+              <div className="absolute top-0 right-0 p-12 opacity-[0.02] pointer-events-none rotate-12">
+                 <ShieldCheck className="w-64 h-64 text-accent" />
+              </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs text-neutral-300">
-                        First name
+              {step === 0 && (
+                <div className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-700">
+                  <div className="space-y-2">
+                     <h2 className="text-3xl font-bold tracking-tight text-primary uppercase">Profile <span className="text-accent">Information</span></h2>
+                     <p className="text-sm text-secondary font-medium opacity-60">Establish your professional identity in our network.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-2 text-[10px] font-bold text-accent uppercase tracking-widest ml-1">
+                        First Name
                       </label>
                       <input
                         name="firstname"
-                        placeholder="First Name"
+                        value={form.firstname}
+                        placeholder="e.g. John"
                         onChange={handleChange}
-                        className="w-full border border-white/15 bg-black/60 px-3 py-2 rounded-xl text-sm placeholder:text-neutral-500 focus:outline-none focus:border-white/60 focus:ring-2 focus:ring-white/10"
+                        className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-semibold text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10"
+                        required
                       />
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-neutral-300">
-                        Last name (optional)
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-2 text-[10px] font-bold text-accent uppercase tracking-widest ml-1">
+                        Last Name
                       </label>
                       <input
                         name="lastname"
-                        placeholder="Last Name"
+                        value={form.lastname}
+                        placeholder="e.g. Doe"
                         onChange={handleChange}
-                        className="w-full border border-white/15 bg-black/60 px-3 py-2 rounded-xl text-sm placeholder:text-neutral-500 focus:outline-none focus:border-white/60 focus:ring-2 focus:ring-white/10"
+                        className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-semibold text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10"
+                        required
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-xs text-neutral-300">
-                      Email
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-[10px] font-bold text-accent uppercase tracking-widest ml-1">
+                      Email Address
                     </label>
                     <input
                       name="email"
                       type="email"
-                      placeholder="Email"
+                      value={form.email}
+                      placeholder="john@example.com"
                       onChange={handleChange}
-                      className="w-full border border-white/15 bg-black/60 px-3 py-2 rounded-xl text-sm placeholder:text-neutral-500 focus:outline-none focus:border-white/60 focus:ring-2 focus:ring-white/10"
+                      className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-semibold text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10"
+                      required
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-xs text-neutral-300">
-                      Mobile number
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-[10px] font-bold text-accent uppercase tracking-widest ml-1">
+                      Mobile Number
                     </label>
                     <input
                       name="mobileNumber"
-                      placeholder="Mobile Number"
+                      value={form.mobileNumber}
+                      placeholder="9876543210"
                       onChange={handleChange}
-                      className="w-full border border-white/15 bg-black/60 px-3 py-2 rounded-xl text-sm placeholder:text-neutral-500 focus:outline-none focus:border-white/60 focus:ring-2 focus:ring-white/10"
+                      className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-bold tracking-[0.1em] text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10"
+                      required
                     />
                   </div>
                 </div>
               )}
 
               {step === 1 && (
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold">
-                    Vehicle details
-                  </h2>
-                  <p className="text-xs text-neutral-400">
-                    This information is shown to riders and used for compliance.
-                  </p>
+                <div className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-700">
+                  <div className="space-y-2">
+                     <h2 className="text-3xl font-bold tracking-tight text-primary uppercase">Vehicle <span className="text-accent">Details</span></h2>
+                     <p className="text-sm text-secondary font-medium opacity-60">Register your primary vehicle for road operations.</p>
+                  </div>
 
-                  <div className="space-y-1">
-                    <label className="text-xs text-neutral-300">
-                      License number
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-[10px] font-bold text-accent uppercase tracking-widest ml-1 text-xs">
+                      Driving License Number
                     </label>
                     <input
                       name="licenseNumber"
-                      placeholder="License Number"
+                      value={form.licenseNumber}
+                      placeholder="DL-0000-0000-0000"
                       onChange={handleChange}
-                      className="w-full border border-white/15 bg-black/60 px-3 py-2 rounded-xl text-sm placeholder:text-neutral-500 focus:outline-none focus:border-white/60 focus:ring-2 focus:ring-white/10"
+                      className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-bold text-lg text-accent outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 uppercase tracking-widest"
+                      required
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs text-neutral-300">
-                      Vehicle color
+                  <div className="space-y-6">
+                    <label className="flex items-center gap-2 text-[10px] font-bold text-accent uppercase tracking-widest ml-1">
+                      Vehicle Color
                     </label>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-4">
                       {colorOptions.map((c) => (
                         <button
                           key={c.name}
                           type="button"
                           onClick={() => handleColorChoose(c.name)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs ${
+                          className={`flex items-center gap-3 px-6 py-3 rounded-xl border transition-all ${
                             form.vehicleColor === c.name
-                              ? "border-white bg-white/10"
-                              : "border-white/15 bg-black/60"
+                              ? "border-accent bg-accent/10 shadow-sm"
+                              : "border-border bg-surface hover:border-accent/40"
                           }`}
                         >
-                          <span
-                            className="w-4 h-4 rounded-full border border-black/40"
+                          <div
+                            className="w-5 h-5 rounded-md border border-border shadow-inner"
                             style={{ backgroundColor: c.sample }}
                           />
-                          <span>{c.name}</span>
+                          <span className="text-[11px] font-bold uppercase tracking-widest">{c.name}</span>
                         </button>
                       ))}
                     </div>
-                    <input
-                      name="vehicleColor"
-                      placeholder="Or type custom color"
-                      value={form.vehicleColor}
-                      onChange={handleChange}
-                      className="mt-1 w-full border border-white/15 bg-black/60 px-3 py-2 rounded-xl text-sm placeholder:text-neutral-500 focus:outline-none focus:border-white/60 focus:ring-2 focus:ring-white/10"
-                    />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-xs text-neutral-300">
-                      Plate number
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-[10px] font-bold text-accent uppercase tracking-widest ml-1 text-xs">
+                      Vehicle Plate Number
                     </label>
                     <input
                       name="plate"
-                      placeholder="Plate Number"
+                      value={form.plate}
+                      placeholder="TS-00-AA-0000"
                       onChange={handleChange}
-                      className="w-full border border-white/15 bg-black/60 px-3 py-2 rounded-xl text-sm placeholder:text-neutral-500 focus:outline-none focus:border-white/60 focus:ring-2 focus:ring-white/10"
+                      className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-bold text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 uppercase tracking-widest"
+                      required
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs text-neutral-300">
-                        Capacity
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-2 text-[10px] font-bold text-accent uppercase tracking-widest ml-1">
+                        Seating Capacity
                       </label>
                       <input
                         name="capacity"
                         type="number"
                         min={1}
-                        placeholder="Capacity"
+                        value={form.capacity}
                         onChange={handleChange}
-                        className="w-full border border-white/15 bg-black/60 px-3 py-2 rounded-xl text-sm placeholder:text-neutral-500 focus:outline-none focus:border-white/60 focus:ring-2 focus:ring-white/10"
+                        className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-bold text-lg text-primary outline-none focus:border-accent/40 transition-all"
+                        required
                       />
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-neutral-300">
-                        Vehicle type
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-2 text-[10px] font-bold text-accent uppercase tracking-widest ml-1">
+                        Vehicle Category
                       </label>
-                      <select
-                        name="vehicleType"
-                        value={form.vehicleType}
-                        onChange={handleChange}
-                        className="w-full border border-white/15 bg-black/60 px-3 py-2 rounded-xl text-sm focus:outline-none focus:border-white/60 focus:ring-2 focus:ring-white/10"
-                      >
-                        <option value="car">Car</option>
-                        <option value="motorcycle">Motorcycle</option>
-                        <option value="auto">Auto</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          name="vehicleType"
+                          value={form.vehicleType}
+                          onChange={handleChange}
+                          className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-bold text-base text-primary outline-none focus:border-accent/40 transition-all appearance-none cursor-pointer"
+                          required
+                        >
+                          <option value="car">Sedan / Hatchback</option>
+                          <option value="motorcycle">Motorcycle</option>
+                          <option value="auto">Auto Rikshaw</option>
+                        </select>
+                        <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                           <ChevronRight className="w-5 h-5 rotate-90" />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
               {step === 2 && (
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold">
-                    Account security
-                  </h2>
-                  <p className="text-xs text-neutral-400">
-                    Set a secure password for your driver account.
-                  </p>
+                <div className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-700">
+                  <div className="space-y-2">
+                     <h2 className="text-3xl font-bold tracking-tight text-primary uppercase">Security <span className="text-accent">Access</span></h2>
+                     <p className="text-sm text-secondary font-medium opacity-60">Create a secure password for your terminal access.</p>
+                  </div>
 
-                  <div className="space-y-1">
-                    <label className="text-xs text-neutral-300">
-                      Password
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-2 text-[10px] font-bold text-accent uppercase tracking-widest ml-1">
+                      Account Password
                     </label>
                     <input
                       name="password"
                       type="password"
-                      placeholder="Password"
+                      value={form.password}
+                      placeholder="••••••••"
                       onChange={handleChange}
-                      className="w-full border border-white/15 bg-black/60 px-3 py-2 rounded-xl text-sm placeholder:text-neutral-500 focus:outline-none focus:border-white/60 focus:ring-2 focus:ring-white/10"
+                      className="w-full px-8 py-5 bg-surface border border-border rounded-2xl font-bold text-2xl text-center tracking-[0.4em] outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 shadow-inner"
+                      required
                     />
                   </div>
 
-                  <p className="text-[0.7rem] text-neutral-500">
-                    Use at least 6 characters with numbers and symbols.
-                  </p>
+                  <div className="p-8 rounded-2xl bg-accent/5 border border-accent/10 flex items-center gap-6">
+                     <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20 shrink-0">
+                        <ShieldCheck className="w-6 h-6 text-accent" />
+                     </div>
+                     <p className="text-[11px] font-bold text-secondary opacity-60 uppercase tracking-widest leading-relaxed italic">
+                       Password must be secure and unique. Shared access to driver profiles is strictly prohibited as per regional node policy.
+                     </p>
+                  </div>
                 </div>
               )}
 
-              {/* Error */}
               {errorMsg && (
-                <p className="text-xs text-red-400 bg-red-950/40 border border-red-700/40 rounded-lg px-3 py-2">
-                  {errorMsg}
-                </p>
+                <div className="mt-10 p-6 rounded-2xl bg-rose-500/5 border border-rose-500/10 text-rose-500 text-[10px] font-bold uppercase tracking-widest animate-in slide-in-from-top-2 flex items-center gap-4">
+                   <div className="w-1.5 h-6 bg-rose-500 rounded-full animate-pulse"></div>
+                   Registration Error: {errorMsg}
+                </div>
               )}
 
-              {/* Controls */}
-              <div className="flex items-center justify-between pt-2">
+              {/* Navigation Hub */}
+              <div className="flex items-center justify-between mt-16 pt-10 border-t border-border gap-6 relative z-10">
                 {step > 0 ? (
                   <button
                     type="button"
-                    className="text-xs px-4 py-2 rounded-full border border-white/25 bg-black/60 hover:bg-white/5"
                     onClick={prevStep}
+                    className="h-14 px-8 rounded-xl border border-border text-[10px] font-bold uppercase tracking-widest hover:bg-surface transition-all flex items-center gap-3 active:scale-95 italic"
                   >
-                    Back
+                    <ArrowLeft className="w-4 h-4" />
+                    Previous Step
                   </button>
                 ) : (
-                  <span className="text-[0.7rem] text-neutral-500">
-                    Already registered?{" "}
-                    <Link
-                      to="/driver/login"
-                      className="underline underline-offset-2"
-                    >
-                      Login
-                    </Link>
-                  </span>
+                  <div className="hidden sm:block">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted opacity-40">
+                      Already a Partner? <Link to="/driver/login" className="text-accent underline underline-offset-4 ml-1">Sign In</Link>
+                    </p>
+                  </div>
                 )}
 
                 {step < 2 ? (
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="px-5 py-2 rounded-full bg-neutral-100 text-black text-xs font-semibold disabled:opacity-60"
+                    className="h-14 px-10 rounded-xl bg-accent text-white text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3"
                   >
-                    Next
+                    Continue to Next
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 ) : (
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-5 py-2 rounded-full bg-neutral-100 text-black text-xs font-semibold disabled:opacity-60"
+                    className="h-14 px-10 rounded-xl bg-accent text-white text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-4"
                   >
-                    {loading ? "Registering..." : "Complete signup"}
+                    {loading ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>Finalizing...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <span>Complete Registration</span>
+                        <CheckCircle2 className="w-5 h-5" />
+                      </>
+                    )}
                   </button>
                 )}
               </div>
             </form>
-          </div>
         </main>
-      </div>
-
-      {/* Bottom bar */}
-      <div className="border-top border-white/10 bg-black/95 backdrop-blur px-5 py-3">
-        <div className="mx-auto flex w-full max-w-md items-center gap-3">
-          <Link
-            to="/driver/login"
-            className="flex-1 rounded-full border border-white/20 bg-white/5 px-4 py-2 text-xs font-medium text-neutral-200 text-center hover:bg-white/10 transition"
-          >
-            Already have an account?
-          </Link>
-          <button
-            type="button"
-            disabled
-            className="flex-1 rounded-full border border-white/30 bg-transparent px-4 py-2 text-xs font-semibold text-white text-center"
-          >
-            Register
-          </button>
-        </div>
+        
+        <footer className="mt-24 text-center space-y-8 opacity-20 hover:opacity-100 transition-opacity duration-700 pb-16">
+           <div className="flex items-center justify-center gap-4">
+              <Zap className="w-4 h-4 text-accent" />
+              <p className="text-[10px] font-bold uppercase tracking-widest">Hive Professional Partner Network</p>
+              <Sparkles className="w-4 h-4 text-accent" />
+           </div>
+           <p className="text-[9px] font-bold text-muted uppercase tracking-[0.2em] max-w-2xl mx-auto leading-relaxed">
+             By joining our partner network, you agree to the regional transport service terms, background check protocols, and data protection guidelines.
+           </p>
+        </footer>
       </div>
     </div>
+  );
+}
+
+function ChevronRight({ className }: { className?: string }) {
+  return (
+    <svg 
+      className={className} 
+      width="24" 
+      height="24" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    >
+      <path d="m9 18 6-6-6-6"/>
+    </svg>
   );
 }

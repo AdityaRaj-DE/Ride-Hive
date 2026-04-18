@@ -21,9 +21,84 @@ const RideSchema = new mongoose.Schema(
     // ---- Ownership ----
     riderId: {
       type: String,
-      required: true,
+      required: function () {
+        return this.rideType === "NORMAL";
+      },
       index: true,
     },
+
+    rideType: {
+      type: String,
+      enum: ["NORMAL", "POOL"],
+      default: "NORMAL",
+      index: true,
+    },
+
+    // ---- Pool Riders ----
+    riders: [
+      {
+        riderId: {
+          type: String,
+          required: true,
+        },
+
+        pickup: {
+          type: GeoPointSchema,
+          required: true,
+        },
+
+        drop: {
+          type: GeoPointSchema,
+          required: true,
+        },
+
+        status: {
+          type: String,
+          enum: ["WAITING", "PICKED", "DROPPED", "CANCELLED"],
+          default: "WAITING",
+        },
+        otp: {
+          type: String,
+          default: null,
+        },
+      },
+    ],
+
+    maxSeats: {
+      type: Number,
+      default: function () {
+        return this.rideType === "POOL" ? 4 : 1;
+      },
+    },
+
+    availableSeats: {
+      type: Number,
+      default: function () {
+        return this.rideType === "POOL" ? 4 : 1;
+      },
+    },
+
+    route: [
+      {
+        type: {
+          type: String,
+          enum: ["PICKUP", "DROP"],
+          required: true,
+        },
+        riderId: {
+          type: String,
+          required: true,
+        },
+        location: {
+          type: GeoPointSchema,
+          required: true,
+        },
+        order: {
+          type: Number,
+          required: true,
+        },
+      },
+    ],
 
     driverId: {
       type: String,
@@ -31,15 +106,19 @@ const RideSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ---- Locations ----
+    // ---- NORMAL ride only ----
     pickup: {
       type: GeoPointSchema,
-      required: true,
+      required: function () {
+        return this.rideType === "NORMAL";
+      },
     },
 
     drop: {
       type: GeoPointSchema,
-      required: true,
+      required: function () {
+        return this.rideType === "NORMAL";
+      },
     },
 
     // ---- Ride FSM ----
@@ -60,7 +139,7 @@ const RideSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ---- Pricing (snapshot only) ----
+    // ---- Pricing ----
     priceEstimate: {
       type: Number,
       default: 0,
@@ -72,32 +151,31 @@ const RideSchema = new mongoose.Schema(
     },
 
     distance: {
-      type: Number, // meters
+      type: Number,
       default: 0,
     },
 
     duration: {
-      type: Number, // seconds
+      type: Number,
       default: 0,
     },
 
-    // ---- Route Geometry (for map rendering later) ----
     routeGeometry: {
       type: Object,
       default: null,
     },
 
+    // ---- OTP ----
     rideStartOtp: {
-  code: String,
-  expiresAt: Date,
-  verified: {
-    type: Boolean,
-    default: false,
-  },
-},
+      code: String,
+      expiresAt: Date,
+      verified: {
+        type: Boolean,
+        default: false,
+      },
+    },
 
-
-    // ---- Lifecycle timestamps ----
+    // ---- Lifecycle ----
     requestedAt: Date,
     assignedAt: Date,
     startedAt: Date,
@@ -111,5 +189,6 @@ const RideSchema = new mongoose.Schema(
 
 // Geo index for future matching
 RideSchema.index({ pickup: "2dsphere" });
+RideSchema.index({ "route.location": "2dsphere" });
 
 module.exports = mongoose.model("Ride", RideSchema);

@@ -28,15 +28,24 @@ export const initDriverRideListeners = (socket: Socket) => {
     store.dispatch(setActiveRide(ride));
   });
 
-  // ⭐ IMPORTANT
-  socket.on("ride.updated", (ride) => {
-    console.log("Driver ride.updated:", ride);
-    store.dispatch(setActiveRide(ride));
-  });
-
   // ⭐ driver location updates
   socket.on("driver.location", (data) => {
     console.log("Driver location broadcast:", data);
+  });
+
+  socket.on("pool.assigned", (ride) => {
+    console.log("Driver pool.assigned:", ride);
+    store.dispatch(setActiveRide(ride));
+  });
+
+  socket.on("pool.updated", (ride) => {
+    console.log("Driver pool.updated:", ride);
+    store.dispatch(setActiveRide(ride));
+  });
+
+  socket.on("ride.updated", (ride: any) => {
+    console.log("Driver ride.updated:", ride);
+    store.dispatch(setActiveRide(ride));
   });
 };
 
@@ -48,6 +57,7 @@ export const emitAcceptRide = (rideId: string) => {
     console.log("acceptRide ack:", ack);
 
     if (!ack?.error) {
+      store.dispatch(setActiveRide(ack));
       startDriverLocationTracking(rideId); // ⭐ start GPS tracking
     }
   });
@@ -92,5 +102,14 @@ export const startDriverLocationTracking = (rideId: string) => {
       lng: pos.coords.longitude,
     });
 
+  });
+};
+
+export const emitUpdatePoolStop = (rideId: string, order: number, otp?: string) => {
+  const socket = getDriverSocket();
+  if (!socket) return;
+
+  socket.emit("updatePoolStop", { rideId, order, otp }, (ack: any) => {
+    console.log("updatePoolStop ack:", ack);
   });
 };

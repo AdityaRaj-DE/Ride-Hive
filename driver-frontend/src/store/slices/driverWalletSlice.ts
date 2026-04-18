@@ -1,12 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { axiosInstance } from "../../services/axiosInstance";
 
-interface SubscriptionPlan {
-  name: string;
-  durationDays: number;
-  price: number;
-}
-
 interface DriverWalletState {
   walletBalance: number;
   subscription: any;
@@ -25,7 +19,7 @@ export const fetchWallet = createAsyncThunk(
   "driver/wallet/fetchWallet",
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await axiosInstance.get("/driver/drivers/wallet");
+      const { data } = await axiosInstance.get("/driver/wallet");
       return data;
     } catch {
       return rejectWithValue("Wallet fetch failed");
@@ -38,7 +32,7 @@ export const addFunds = createAsyncThunk(
   async (amount: number, { rejectWithValue }) => {
     try {
       const { data } = await axiosInstance.post(
-        "/driver/drivers/wallet/add-funds",
+        "/driver/wallet/add-funds",
         { amount }
       );
       return data;
@@ -53,7 +47,7 @@ export const subscribePlan = createAsyncThunk(
   async (planName: string, { rejectWithValue }) => {
     try {
       const { data } = await axiosInstance.post(
-        "/driver/drivers/subscription/subscribe",
+        "/driver/subscription/subscribe",
         { planName }
       );
       return data;

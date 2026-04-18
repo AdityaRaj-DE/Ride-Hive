@@ -59,6 +59,22 @@ export const fetchDriverProfile = createAsyncThunk(
   }
 );
 
+// toggle availability
+export const toggleAvailability = createAsyncThunk(
+  "driver/toggleAvailability",
+  async (isAvailable: boolean, { rejectWithValue }) => {
+    try {
+      return (await api.put("/driver/availability", { isAvailable })).data;
+    } catch (e: any) {
+      // Return both message and status code for the UI to handle
+      return rejectWithValue({
+        message: e.response?.data?.message || "Failed to update availability",
+        code: e.response?.data?.code || "ERROR",
+      });
+    }
+  }
+);
+
 const driverSlice = createSlice({
   name: "driver",
   initialState,
@@ -73,19 +89,19 @@ const driverSlice = createSlice({
         }
       )
       .addMatcher(
-        (a) => a.type.startsWith("driver/") && a.type.endsWith("/fulfilled"),
+        (a): a is any => a.type.startsWith("driver/") && a.type.endsWith("/fulfilled"),
         (s, a) => {
           s.loading = false;
-          if (a.type === "driver/fetchProfile/fulfilled") {
-            s.profile = a.payload;
+          if (a.type === "driver/fetchProfile/fulfilled" || a.type === "driver/toggleAvailability/fulfilled") {
+            s.profile = (a.payload as any).driver || a.payload;
           }
         }
       )
       .addMatcher(
-        (a) => a.type.startsWith("driver/") && a.type.endsWith("/rejected"),
-        (s, a: any) => {
+        (a): a is any => a.type.startsWith("driver/") && a.type.endsWith("/rejected"),
+        (s, a) => {
           s.loading = false;
-          s.error = a.payload;
+          s.error = (a.payload as any)?.message || a.payload;
         }
       );
   },

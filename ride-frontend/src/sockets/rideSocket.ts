@@ -9,9 +9,14 @@ export const initRideSocketListeners = (socket: Socket) => {
   if (initialized) return;
   initialized = true;
 
+  const dispatchRide = (ride: any) => {
+    const userId = store.getState().auth.user?.id;
+    store.dispatch(setRideFromServer({ ride, userId }));
+  };
+
   socket.on("ride.restore", (ride) => {
     console.log("ride.restore:", ride);
-    store.dispatch(setRideFromServer(ride));
+    dispatchRide(ride);
     if (ride?.rideId) {
       socket.emit("joinRide", { rideId: ride.rideId });
     }
@@ -19,7 +24,7 @@ export const initRideSocketListeners = (socket: Socket) => {
 
   socket.on("ride.assigned", (ride) => {
     console.log("ride.assigned:", ride);
-    store.dispatch(setRideFromServer(ride));
+    dispatchRide(ride);
     if (ride?.rideId) {
       socket.emit("joinRide", { rideId: ride.rideId });
     }
@@ -27,14 +32,12 @@ export const initRideSocketListeners = (socket: Socket) => {
 
   socket.on("ride.created", (data) => {
     console.log("ride.created event:", data);
-    // Usually drivers care, but normalize anyway if received
-    store.dispatch(setRideFromServer(data));
+    dispatchRide(data);
   });
 
   socket.on("ride.updated", (ride) => {
     console.log("ride.updated:", ride);
-    console.log("RIDER RECEIVED ride.updated", ride.status);
-    store.dispatch(setRideFromServer(ride));
+    dispatchRide(ride);
   });
 
   socket.on("ride.error", (err) => {
@@ -51,6 +54,22 @@ export const initRideSocketListeners = (socket: Socket) => {
         lng: data.lng,
       }),
     );
+  });
+
+  // Pooling events
+  socket.on("pool.rider_added", (data) => {
+    console.log("pool.rider_added:", data);
+    dispatchRide(data);
+  });
+
+  socket.on("pool.assigned", (data) => {
+    console.log("pool.assigned:", data);
+    dispatchRide(data);
+  });
+
+  socket.on("pool.updated", (data) => {
+    console.log("pool.updated:", data);
+    dispatchRide(data);
   });
 };
 
@@ -71,10 +90,36 @@ export const emitCreateRide = (payload: {
     }
 
     // Ack might be partial
-    store.dispatch(setRideFromServer(ack));
+    const userId = store.getState().auth.user?.id;
+    store.dispatch(setRideFromServer({ ride: ack, userId }));
 
     if (ack?.rideId) {
       socket.emit("joinRide", { rideId: ack.rideId });
+    }
+  });
+};
+
+export const emitCreatePoolRide = (payload: {
+  pickup: { lat: number; lng: number };
+  drop: { lat: number; lng: number };
+}) => {
+  const socket = storeSocket();
+  if (!socket) return;
+
+  socket.emit("createPoolRide", payload, (ack: any) => {
+    console.log("createPoolRide ack:", ack);
+
+    if (ack?.error) {
+      store.dispatch(setRideError("Failed to create pool ride"));
+      return;
+    }
+
+    const userId = store.getState().auth.user?.id;
+    store.dispatch(setRideFromServer({ ride: ack, userId }));
+
+    const id = ack?.rideId || ack?._id;
+    if (id) {
+      socket.emit("joinRide", { rideId: id });
     }
   });
 };

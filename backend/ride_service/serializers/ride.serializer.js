@@ -27,6 +27,9 @@ exports.serializeRide = (ride) => {
 
     price: ride.priceEstimate ?? null,
 
+    rideType: ride.rideType ?? "NORMAL",
+    riders: ride.riders ?? null,
+
     riderId: ride.riderId ?? null,
     driverId: ride.driverId ?? null,
 

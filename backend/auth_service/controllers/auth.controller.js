@@ -218,7 +218,7 @@ module.exports.me = async (req, res) => {
   if (!user) return res.status(404).json({ message: "User not found" });
   
   return res.status(200).json({
-    id: user._id,
+    id: user._id.toString(),
     mobileNumber: user.mobileNumber,
     roles: user.roles,
     activeRole: user.activeRole,

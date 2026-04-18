@@ -16,12 +16,12 @@ const server = http.createServer(app);
 // Parse CORS origins from environment variable
 const corsOrigins = process.env.CORS_ORIGINS 
   ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
-  : ["https://localhost:5173", "https://localhost:5174"];
+  : ["https://localhost:5173", "https://localhost:5174", "https://10.54.225.195:5173", "https://10.54.225.195:5174"];
 
 const { Server } = require('socket.io');
 const io = new Server(server, {
   cors: {
-    origin: ["https://localhost:5173", "https://localhost:5174"],  // ✅ same here
+    origin: corsOrigins,  // ✅ same here
     credentials: true,
   },
 });
@@ -32,7 +32,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: ["https://localhost:5173", "https://localhost:5174"],  // ✅ match the FRONTEND, not the gateway
+    origin: corsOrigins,  // ✅ match the FRONTEND, not the gateway
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],

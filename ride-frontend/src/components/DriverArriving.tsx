@@ -1,29 +1,75 @@
 import { useSelector } from "react-redux";
 import type { RootState } from "../store";
+import { getSocket } from "../sockets/socketClient";
+import useRideCall from "../hooks/useRideCall";
+import CallModal from "./CallModal";
+import { Phone, ShieldCheck, MapPin } from 'lucide-react';
 
 export default function DriverArriving() {
   const ride = useSelector((s: RootState) => s.ride);
-  return (
-    <div>
-      <h2>Driver Arrived</h2>
-      <p>Your driver is at pickup location.</p>
-       {ride.rideStartOtp && (
-        <div
-          style={{
-            padding: "20px",
-            background: "#f3f3f3",
-            borderRadius: "8px",
-            textAlign: "center",
-            width: "200px",
-          }}
-        >
-          <p>Give this OTP to your driver</p>
+  const socket = getSocket();
+  const { startCall, hangup, acceptIncoming, rejectIncoming, toggleMute, state, timer } = useRideCall(socket, ride.rideId);
 
-          <h1 style={{ fontSize: "32px", letterSpacing: "4px" }}>
-            {ride.rideStartOtp.code}
-          </h1>
+  return (
+    <>
+      <div className="glass-card flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-lg mx-auto">
+        <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-accent animate-ping"></div>
+            <h2 className="text-lg font-bold text-primary">Driver Arrived</h2>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-background bg-accent px-2 py-1 rounded">
+            <MapPin className="w-3 h-3" />
+            At Pickup
+          </div>
         </div>
-      )}
-    </div>
+
+        <p className="text-sm text-secondary font-medium">
+          Your driver has reached the pickup location and is waiting for you.
+        </p>
+
+        <div className="flex flex-col gap-6">
+          <button 
+             onClick={() => startCall({ callerName: "Rider" })}
+             className="btn-primary w-full h-16 text-lg gap-3"
+          >
+             <Phone className="w-5 h-5" />
+             Call Driver
+          </button>
+          
+          {ride.rideStartOtp && (
+            <div className="p-6 bg-accent/[0.03] border border-accent/10 rounded-xl text-center">
+              <p className="text-xs font-bold text-accent uppercase tracking-widest mb-4">Start OTP</p>
+              <div className="flex justify-center gap-4">
+                {ride.rideStartOtp.code.split('').map((digit, i) => (
+                  <div key={i} className="w-12 h-16 bg-background border border-border rounded-lg flex items-center justify-center text-3xl font-bold text-primary shadow-sm">
+                    {digit}
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted font-medium mt-4">
+                Share this code with your driver to start the ride.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-center gap-2 pt-2 text-muted-foreground opacity-50">
+          <ShieldCheck className="w-3 h-3" />
+          <p className="text-[10px] font-medium tracking-wide">Secured by Ride-Hive</p>
+        </div>
+      </div>
+
+      <CallModal 
+        open={state.incoming || state.ringing || state.inCall || state.connecting}
+        state={state}
+        timerSec={timer.timerSec}
+        onAccept={acceptIncoming}
+        onReject={rejectIncoming}
+        onHangup={hangup}
+        onToggleMute={toggleMute}
+        roleLabel="Driver"
+      />
+    </>
   );
 }

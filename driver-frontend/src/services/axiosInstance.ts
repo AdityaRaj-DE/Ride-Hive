@@ -5,7 +5,7 @@ export const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem("driverToken"); // MUST be driverToken
+  const token = localStorage.getItem("token"); // Unified with authSlice.ts
   if (token) {
     config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;

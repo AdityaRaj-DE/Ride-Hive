@@ -11,6 +11,7 @@ async function authenticate(req, res, next) {
     });
 
     // IMPORTANT: Auth returns user directly (not data.user)
+    console.log("Gateway Auth Success - User ID:", data.id);
     req.user = {
       id: data.id,
       roles: data.roles,

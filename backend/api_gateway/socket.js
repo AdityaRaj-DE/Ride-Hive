@@ -81,7 +81,14 @@ module.exports = function setupSocket(httpServer) {
         socket.join(`ride_${rideId}`);
 
         // Notify rider
-        io.to(`user_${data.riderId}`).emit("ride.assigned", data);
+        if (data.rideType === "POOL" && data.riders) {
+           data.riders.forEach(r => {
+             io.to(`user_${r.riderId}`).emit("ride.assigned", data);
+           });
+        } else {
+           io.to(`user_${data.riderId}`).emit("ride.assigned", data);
+        }
+        
         io.to(`user_${data.driverId}`).emit("ride.assigned", data);
         ack?.(data);
       } catch (e) {
@@ -158,6 +165,24 @@ module.exports = function setupSocket(httpServer) {
 
     socket.on("joinRide", ({ rideId }) => socket.join(`ride_${rideId}`));
 
+    // Call Signaling
+    socket.on("call_offer", ({ rideId, offer, meta }) => {
+      socket.to(`ride_${rideId}`).emit("call_offer", { offer, meta });
+    });
+
+    socket.on("call_answer", ({ rideId, answer }) => {
+      socket.to(`ride_${rideId}`).emit("call_answer", { answer });
+    });
+
+    socket.on("call_ice_candidate", ({ rideId, candidate }) => {
+      socket.to(`ride_${rideId}`).emit("call_ice_candidate", { candidate });
+    });
+
+    socket.on("call_hangup", ({ rideId, from }) => {
+      socket.to(`ride_${rideId}`).emit("call_hangup", { from });
+    });
+
+
     socket.on("cancelRide", async ({ rideId }, ack) => {
       try {
         const { data } = await axios.post(
@@ -172,6 +197,73 @@ module.exports = function setupSocket(httpServer) {
         ack?.(data);
       } catch (e) {
         console.error("cancelRide error:", e.response?.data);
+        ack?.({ error: true });
+      }
+    });
+
+    socket.on("createPoolRide", async (payload, ack) => {
+      try {
+        const res = await axios.post(`${urls.ride}/pool/create`, payload, {
+          headers: { Authorization: `Bearer ${socket.token}` },
+        });
+
+        const data = res.data;
+
+        socket.join(`ride_${data._id}`);
+
+        // Notify all drivers about the new pool discovery
+        io.to("drivers").emit("ride.created", {
+          ...data,
+          rideId: data._id,
+          rideType: "POOL"
+        });
+
+        io.to(`ride_${data._id}`).emit("pool.updated", data);
+
+        ack?.(data);
+      } catch (e) {
+        console.error("createPoolRide error:", e.response?.data);
+        ack?.({ error: true });
+      }
+    });
+
+    socket.on("joinPoolRide", async ({ rideId, pickup, drop }, ack) => {
+      try {
+        const { data } = await axios.post(
+          `${urls.ride}/pool/${rideId}/add`,
+          { pickup, drop },
+          {
+            headers: { Authorization: `Bearer ${socket.token}` },
+          },
+        );
+
+        // join ride room
+        socket.join(`ride_${rideId}`);
+
+        // 🔥 notify ALL users in ride room
+        io.to(`ride_${rideId}`).emit("pool.updated", data);
+
+        ack?.(data);
+      } catch (e) {
+        console.error("joinPoolRide error:", e.response?.data);
+        ack?.({ error: true });
+      }
+    });
+
+    socket.on("updatePoolStop", async ({ rideId, order, otp }, ack) => {
+      try {
+        const { data } = await axios.post(
+          `${urls.ride}/pool/update-stop`,
+          { rideId, order, otp },
+          {
+            headers: { Authorization: `Bearer ${socket.token}` },
+          },
+        );
+
+        io.to(`ride_${rideId}`).emit("pool.updated", data);
+        ack?.(data);
+      } catch (e) {
+        console.error("updatePoolStop error:", e.response?.data);
         ack?.({ error: true });
       }
     });

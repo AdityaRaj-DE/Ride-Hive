@@ -6,5 +6,7 @@ module.exports = {
   driver: process.env.DRIVER_SERVICE_URL || 'http://localhost:3003',
   ride: process.env.RIDE_SERVICE_URL || 'http://localhost:3004',
   payment: process.env.PAYMENT_SERVICE_URL || 'http://localhost:3005',
-  notification: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3007'
+  feedback: process.env.FEEDBACK_SERVICE_URL || 'http://localhost:3006',
+  notification: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3007',
+  pool: process.env.POOL_SERVICE_URL || 'http://localhost:3008'
 };

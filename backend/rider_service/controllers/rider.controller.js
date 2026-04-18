@@ -112,6 +112,10 @@ exports.getRiderByUserId = async (req, res) => {
   try {
     const userId = req.params.userId;
 
+    if (!userId || userId === "undefined") {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
     const rider = await Rider.findOne({ userId });
 
     if (!rider) {

@@ -9,6 +9,17 @@ const { generateOtp } = require("../services/otp.service");
 const { serializeRide } = require("../serializers/ride.serializer");
 const axios = require("axios");
 
+exports.getRouteGeometry = async (req, res) => {
+  try {
+    const { start, end } = req.body;
+    if (!start || !end) return res.status(400).json({ error: "start and end required" });
+    const route = await getRoute(start, end);
+    res.json(route);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.createRide = async (req, res) => {
   try {
     const { pickup, drop } = req.body;
@@ -128,23 +139,48 @@ exports.acceptRide = async (req, res) => {
 
   if (!ride) return res.status(409).json({ error: "Ride already taken" });
 
+  const { data: driverStatus } = await axios.get(
+    `${process.env.DRIVER_SERVICE_URL}/subscription-status/${req.user.id}`,
+  );
+
+  if (!driverStatus.isActive) {
+    return res.status(403).json({
+      error: "Active subscription required to accept rides",
+      code: "SUBSCRIPTION_REQUIRED",
+    });
+  }
+
   const { data: driver } = await axios.get(
     `${process.env.DRIVER_SERVICE_URL}/by-user/${req.user.id}`,
   );
 
-  const { data: rider } = await axios.get(
-    `${process.env.RIDER_SERVICE_URL}/by-user/${ride.riderId}`,
-  );
+  let riders = [];
+  if (ride.rideType === "POOL") {
+    // Fetch all rider profiles for pool
+    const riderPromises = ride.riders.map((r) =>
+      axios.get(`${process.env.RIDER_SERVICE_URL}/by-user/${r.riderId}`).then(res => res.data).catch(() => null)
+    );
+    riders = (await Promise.all(riderPromises)).filter(r => r !== null);
+  } else {
+    // Single rider for normal ride
+    const { data: singleRider } = await axios.get(
+      `${process.env.RIDER_SERVICE_URL}/by-user/${ride.riderId}`,
+    );
+    riders = [singleRider];
+  }
+
+  // Fallback for safety
+  if (riders.length === 0) {
+     return res.status(500).json({ error: "Failed to fetch rider details" });
+  }
+
   const payload = {
     ...serializeRide(ride),
 
     driver: {
       id: driver.userId,
-
       name: `${driver.fullname.firstname} ${driver.fullname.lastname}`,
-
-      phone: null, // still missing from API
-
+      phone: null,
       vehicle: {
         model: driver.vehicle?.model,
         plateNumber: driver.vehicle?.plateNumber,
@@ -153,21 +189,35 @@ exports.acceptRide = async (req, res) => {
       },
     },
 
+    // First rider for backward compatibility
     rider: {
-      id: rider.rider.userId,
-      name: `${rider.rider.name.first} ${rider.rider.name.last}`,
+      id: riders[0].rider.userId,
+      name: `${riders[0].rider.name.first} ${riders[0].rider.name.last}`,
       phone: null,
     },
+
+    // All riders for pool rides
+    allRiders: riders.map(r => ({
+      id: r.rider.userId,
+      name: `${r.rider.name.first} ${r.rider.name.last}`,
+      phone: null
+    })),
 
     rideStartOtp: {
       code: ride.rideStartOtp.code,
     },
   };
   console.log("DRIVER API RAW:", driver);
-  console.log("RIDER API RAW:", rider);
+  console.log("RIDER API RAW:", riders);
   const io = req.app.get("io");
   if (io) {
-    io.to(`user_${ride.riderId}`).emit("ride.assigned", payload);
+    if (ride.rideType === "POOL") {
+      ride.riders.forEach((r) => {
+        io.to(`user_${r.riderId}`).emit("ride.assigned", payload);
+      });
+    } else {
+      io.to(`user_${ride.riderId}`).emit("ride.assigned", payload);
+    }
     io.to(`user_${ride.driverId}`).emit("ride.assigned", payload);
   }
   console.log("EMITTING ride.updated", ride.status);
@@ -194,7 +244,13 @@ exports.driverArriving = async (req, res) => {
 
   const io = req.app.get("io");
   if (io) {
-    io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
+    if (ride.rideType === "POOL") {
+      ride.riders.forEach((r) => {
+        io.to(`user_${r.riderId}`).emit("ride.updated", payload);
+      });
+    } else {
+      io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
+    }
     io.to(`user_${ride.driverId}`).emit("ride.updated", payload);
   }
   console.log("EMITTING ride.updated", ride.status);
@@ -235,7 +291,13 @@ exports.startRide = async (req, res) => {
   const io = req.app.get("io");
 
   if (io) {
-    io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
+    if (ride.rideType === "POOL") {
+      ride.riders.forEach((r) => {
+        io.to(`user_${r.riderId}`).emit("ride.updated", payload);
+      });
+    } else {
+      io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
+    }
     io.to(`user_${ride.driverId}`).emit("ride.updated", payload);
   }
 
@@ -264,7 +326,13 @@ exports.completeRide = async (req, res) => {
   const payload = serializeRide(ride);
   const io = req.app.get("io");
   if (io) {
-    io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
+    if (ride.rideType === "POOL") {
+      ride.riders.forEach((r) => {
+        io.to(`user_${r.riderId}`).emit("ride.updated", payload);
+      });
+    } else {
+      io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
+    }
     io.to(`user_${ride.driverId}`).emit("ride.updated", payload);
   }
   console.log("EMITTING ride.updated", ride.status);
@@ -320,7 +388,7 @@ exports.getActiveRide = async (req, res) => {
     let query = { status: { $in: activeStatuses } };
 
     if (role === "rider") {
-      query.riderId = userId;
+      query.$or = [{ riderId: userId }, { "riders.riderId": userId }];
     } else if (role === "driver") {
       query.driverId = userId;
     } else {
@@ -348,7 +416,7 @@ exports.estimateRide = async (req, res) => {
     const route = await getRoute(pickup, drop);
 
     // 2. Calculate price
-    const price = calculatePrice({
+    const basePrice = calculatePrice({
       distance: route.distance,
       duration: route.duration,
     });
@@ -356,7 +424,10 @@ exports.estimateRide = async (req, res) => {
     return res.json({
       distance: route.distance,
       duration: route.duration,
-      price,
+      prices: {
+        cab: basePrice,
+        pool: Math.round(basePrice * 0.7),
+      },
       geometry: route.geometry,
     });
   } catch (err) {
@@ -384,4 +455,346 @@ exports.getRoutePolyline = async (req, res) => {
     console.error("getRoutePolyline error:", err.message);
     res.status(500).json({ error: "Failed to fetch route" });
   }
+};
+
+exports.createPoolRide = async (req, res) => {
+  try {
+    const { pickup, drop } = req.body;
+
+    if (!pickup || !drop) {
+      return res.status(400).json({ error: "pickup/drop required" });
+    }
+
+    // prevent multiple active rides
+    const activeStatuses = [
+      "SEARCHING",
+      "DRIVER_ASSIGNED",
+      "DRIVER_ARRIVING",
+      "IN_PROGRESS",
+    ];
+
+    const existing = await Ride.findOne({
+      "riders.riderId": req.user.id,
+      status: { $in: activeStatuses },
+    });
+
+    if (existing) {
+      return res.status(200).json({
+        rideId: existing._id,
+        status: existing.status,
+        restored: true,
+      });
+    }
+
+    // 🔥 SMART MATCHING: Find existing pools 
+    const matchingPool = await Ride.findOne({
+      rideType: "POOL",
+      status: { $in: ["SEARCHING", "DRIVER_ASSIGNED", "DRIVER_ARRIVING"] },
+      availableSeats: { $gt: 0 },
+      "route.location": {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [pickup.lng, pickup.lat],
+          },
+          $maxDistance: 15000, // 15km
+        },
+      },
+      // Ensure we match with pools that haven't picked anyone else yet or are still at start
+      "route.order": 0,
+    });
+
+    if (matchingPool) {
+      // Auto-join existing pool
+      return await exports.addRiderToPool(
+        {
+          params: { rideId: matchingPool._id },
+          body: { pickup, drop },
+          user: req.user,
+          app: req.app,
+        },
+        res,
+      );
+    }
+
+    const geoPickup = {
+      type: "Point",
+      coordinates: [pickup.lng, pickup.lat],
+    };
+
+    const geoDrop = {
+      type: "Point",
+      coordinates: [drop.lng, drop.lat],
+    };
+
+    const routeData = await getRoute(pickup, drop);
+    const basePrice = calculatePrice({
+      distance: routeData.distance,
+      duration: routeData.duration,
+    });
+
+    const ride = await Ride.create({
+      rideType: "POOL",
+
+      riders: [
+        {
+          riderId: req.user.id,
+          pickup: geoPickup,
+          drop: geoDrop,
+          status: "WAITING",
+          otp: generateOtp(),
+        },
+      ],
+
+      route: [
+        {
+          type: "PICKUP",
+          riderId: req.user.id,
+          location: geoPickup,
+          order: 0,
+        },
+        {
+          type: "DROP",
+          riderId: req.user.id,
+          location: geoDrop,
+          order: 1,
+        },
+      ],
+
+      maxSeats: 4,
+      availableSeats: 3,
+
+      priceEstimate: Math.round(basePrice * 0.7),
+      distance: routeData.distance,
+      duration: routeData.duration,
+      routeGeometry: routeData.geometry,
+
+      status: "SEARCHING",
+      requestedAt: new Date(),
+    });
+
+    // 🔥 NOTIFY NEARBY DRIVERS (Discovery)
+    const io = req.app.get("io");
+    if (io) {
+      const payload = {
+        _id: ride._id,
+        rideId: ride._id,
+        pickup: pickup,
+        drop: drop,
+        price: ride.priceEstimate,
+        rideType: "POOL",
+        availableSeats: ride.availableSeats,
+      };
+
+      const nearbyDrivers = await findNearbyDrivers(pickup);
+      nearbyDrivers.forEach((driver) => {
+        io.to(`user_${driver._id}`).emit("ride.created", payload);
+      });
+    }
+
+    return res.json(ride);
+  } catch (err) {
+    console.error("createPoolRide error:", err.message);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
+exports.addRiderToPool = async (req, res) => {
+  try {
+    const { rideId } = req.params;
+    const { pickup, drop } = req.body;
+
+    if (!pickup || !drop) {
+      return res.status(400).json({ error: "pickup/drop required" });
+    }
+
+    const ride = await Ride.findById(rideId);
+
+    if (!ride || ride.rideType !== "POOL") {
+      return res.status(404).json({ error: "Pool ride not found" });
+    }
+
+    if (ride.availableSeats <= 0) {
+      return res.status(400).json({ error: "Pool is full" });
+    }
+
+    // prevent duplicate join
+    const alreadyJoined = ride.riders.some((r) => r.riderId === req.user.id);
+
+    if (alreadyJoined) {
+      return res.status(400).json({ error: "Already in pool" });
+    }
+
+    const geoPickup = {
+      type: "Point",
+      coordinates: [pickup.lng, pickup.lat],
+    };
+
+    const geoDrop = {
+      type: "Point",
+      coordinates: [drop.lng, drop.lat],
+    };
+
+    const baseOrder = ride.route.length;
+
+    ride.riders.push({
+      riderId: req.user.id,
+      pickup: geoPickup,
+      drop: geoDrop,
+      otp: generateOtp(),
+    });
+
+    // append route (NO REORDERING)
+    ride.route.push({
+      type: "PICKUP",
+      riderId: req.user.id,
+      location: geoPickup,
+      order: baseOrder,
+    });
+
+    ride.route.push({
+      type: "DROP",
+      riderId: req.user.id,
+      location: geoDrop,
+      order: baseOrder + 1,
+    });
+
+    ride.availableSeats -= 1;
+    await ride.save();
+
+    // 🔥 AUTOMATIC DRIVER ASSIGNMENT
+    if (ride.riders.length >= 2 && !ride.driverId) {
+      await _internalAssignDriverToPool(ride, req.app.get("io"));
+    }
+
+    // 🔥 SOCKET BROADCAST (CRITICAL)
+    const io = req.app.get("io");
+
+    if (io) {
+      const payload = ride.toObject();
+
+      // notify all riders
+      ride.riders.forEach((r) => {
+        io.to(`user_${r.riderId}`).emit("pool.rider_added", payload);
+      });
+
+      // notify assigned driver
+      if (ride.driverId) {
+        io.to(`user_${ride.driverId}`).emit("pool.rider_added", payload);
+      }
+    }
+
+    return res.json(ride);
+  } catch (err) {
+    console.error("addRiderToPool error:", err.message);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
+exports.availablePools = async (req, res) => {
+  const rides = await Ride.find({
+    rideType: "POOL",
+    status: { $in: ["SEARCHING", "DRIVER_ASSIGNED", "DRIVER_ARRIVING"] },
+    availableSeats: { $gt: 0 },
+  })
+    .limit(20)
+    .lean();
+
+  res.json(rides);
+};
+
+const _internalAssignDriverToPool = async (ride, io) => {
+  try {
+    if (ride.driverId) return;
+
+    const firstPickup = ride.route[0].location.coordinates;
+    const pickup = { lng: firstPickup[0], lat: firstPickup[1] };
+
+    const drivers = await findNearbyDrivers(pickup);
+    if (!drivers.length) return;
+
+    const driver = drivers[0];
+    ride.driverId = driver._id;
+    ride.status = "DRIVER_ASSIGNED";
+    ride.assignedAt = new Date();
+
+    await ride.save();
+
+    if (io) {
+      const payload = ride.toObject();
+      io.to(`user_${driver._id}`).emit("pool.assigned", payload);
+      ride.riders.forEach((r) => {
+        io.to(`user_${r.riderId}`).emit("pool.assigned", payload);
+      });
+    }
+  } catch (err) {
+    console.error("_internalAssignDriverToPool error:", err.message);
+  }
+};
+
+exports.assignDriverToPool = async (req, res) => {
+  try {
+    const { rideId } = req.params;
+    const ride = await Ride.findById(rideId);
+
+    if (!ride || ride.rideType !== "POOL") {
+      return res.status(404).json({ error: "Pool not found" });
+    }
+
+    await _internalAssignDriverToPool(ride, req.app.get("io"));
+    res.json(ride);
+  } catch (err) {
+    console.error("assignDriverToPool error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+
+exports.updateStop = async (req, res) => {
+  const { rideId, order, otp } = req.body;
+
+  const ride = await Ride.findById(rideId);
+  if (!ride) return res.status(404).json({ error: "Ride not found" });
+
+  if (ride.rideType !== "POOL") {
+    return res.status(400).json({ error: "Standard rides cannot use pool stop updates" });
+  }
+
+  const stop = ride.route.find((s) => s.order === order);
+  if (!stop) return res.status(404).json({ error: "Stop not found" });
+
+  // Find the specific rider for this stop
+  const riderInPool = ride.riders.find((r) => r.riderId === stop.riderId);
+  if (!riderInPool) return res.status(404).json({ error: "Rider not found in pool" });
+
+  // OTP Validation for Pickups
+  if (stop.type === "PICKUP") {
+    if (!otp || riderInPool.otp !== otp) {
+      return res.status(400).json({ error: "Invalid or missing OTP for pickup" });
+    }
+    riderInPool.status = "PICKED";
+
+    // Global transition to IN_PROGRESS on the FIRST pickup
+    if (ride.status !== "IN_PROGRESS") {
+      ride.status = "IN_PROGRESS";
+      ride.startedAt = new Date();
+    }
+  } else if (stop.type === "DROP") {
+    riderInPool.status = "DROPPED";
+    
+    // Check if all riders are dropped
+    const allDropped = ride.riders.every((r) => r.status === "DROPPED");
+    if (allDropped) {
+      ride.status = "COMPLETED";
+      ride.completedAt = new Date();
+    }
+  }
+
+  await ride.save();
+
+  // Populate driver and rider details for the frontend
+  // (In a real app, you'd use a more robust way to populate these)
+  // For now, we'll return the ride and the gateway will broadcast it.
+
+  res.json(ride);
 };

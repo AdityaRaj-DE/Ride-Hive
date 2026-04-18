@@ -13,7 +13,7 @@ async function markDriverOnboardedInAuth(userId) {
     );
   } catch (err) {
     console.error("❌ Failed to update auth onboarding:", err?.response?.data || err.message);
-    return res.status(500).json({ message: "Onboarding saved but auth sync failed" });
+    // Note: res is not available in this scope, so we just log and move on.
   }  
 }
 
@@ -121,9 +121,45 @@ module.exports.onboardDocuments = async (req, res) => {
 };
 
 const PLANS = {
-  Weekly: { name: "Weekly", durationDays: 7, price: 199 },
-  Monthly: { name: "Monthly", durationDays: 30, price: 499 },
+  Monthly: { name: "Monthly", durationDays: 30, price: 500 },
 };
+
+async function ensureActiveSubscription(driver) {
+  if (!driver.subscription) return false;
+  
+  const now = new Date();
+  
+  // If already active and not expired, fine.
+  if (driver.subscription.isActive && driver.subscription.expiresAt > now) {
+    return true;
+  }
+
+  // If expired or inactive, try AUTO-RENEW if they have enough balance
+  const plan = PLANS["Monthly"]; // Default to monthly
+  if (driver.walletBalance >= plan.price) {
+    console.log(`🔄 Auto-renewing subscription for driver ${driver._id}`);
+    
+    driver.walletBalance -= plan.price;
+    const expiresAt = new Date(now.getTime() + plan.durationDays * 24 * 60 * 60 * 1000);
+    
+    driver.subscription = {
+      isActive: true,
+      plan,
+      startedAt: now,
+      expiresAt,
+    };
+    
+    await driver.save();
+    return true;
+  }
+
+  // Otherwise, definitely inactive
+  if (driver.subscription.isActive) {
+    driver.subscription.isActive = false;
+    await driver.save();
+  }
+  return false;
+}
 
 function isSubscriptionActive(driver) {
   if (!driver.subscription) return false;
@@ -169,12 +205,15 @@ exports.updateAvailability = async (req, res) => {
       return res.status(404).json({ message: "Driver not found" });
     }
 
-    // 🧱 If trying to go ONLINE -> check subscription
-    if (isAvailable === true && !isSubscriptionActive(driver)) {
-      return res.status(403).json({
-        message: "Active subscription required to go online",
-        code: "SUBSCRIPTION_REQUIRED",
-      });
+    // 🧱 If trying to go ONLINE -> check/renew subscription
+    if (isAvailable === true) {
+      const hasActiveSub = await ensureActiveSubscription(driver);
+      if (!hasActiveSub) {
+        return res.status(403).json({
+          message: "Active subscription required to go online",
+          code: "SUBSCRIPTION_REQUIRED",
+        });
+      }
     }
 
     driver.isAvailable = isAvailable;
@@ -564,9 +603,12 @@ exports.getOwnSubscriptionStatus = async (req, res) => {
 
     if (!driver) return res.status(404).json({ message: "Driver not found" });
 
+    const isActive = await ensureActiveSubscription(driver);
+
     return res.json({
-      isActive: isSubscriptionActive(driver),
+      isActive,
       subscription: driver.subscription || null,
+      walletBalance: driver.walletBalance,
     });
   } catch (err) {
     console.error("getOwnSubscriptionStatus error:", err.message);
@@ -584,8 +626,10 @@ exports.getSubscriptionStatusForService = async (req, res) => {
       return res.json({ isActive: false, subscription: null });
     }
 
+    const isActive = await ensureActiveSubscription(driver);
+
     return res.json({
-      isActive: isSubscriptionActive(driver),
+      isActive,
       subscription: driver.subscription || null,
     });
   } catch (err) {

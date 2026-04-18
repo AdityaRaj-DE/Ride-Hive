@@ -79,7 +79,14 @@ router.post(
 router.post(
   "/route",
   protectWithAuthService,
-  controller.getRoutePolyline
+  controller.getRouteGeometry
 );
+
+
+router.post("/pool/create", protectWithAuthService, controller.createPoolRide);
+router.post("/pool/:rideId/add", protectWithAuthService, controller.addRiderToPool);
+router.post("/pool/update-stop", protectWithAuthService, controller.updateStop);
+
+router.get("/pool/available", protectWithAuthService, controller.availablePools);
 
 module.exports = router;

@@ -3,32 +3,49 @@ import Login from "./pages/Login";
 import DriverOnboarding from "./pages/DriverOnboarding";
 import Dashboard from "./pages/Dashboard";
 import WalletPage from "./pages/WalletPage";
+import RidePool from "./pages/RidePool";
 import type { RootState } from "./store";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { connectDriverSocket } from "./sockets/socketClient";
 import { initDriverRideListeners } from "./sockets/driverRideSocket";
 import { fetchMe } from "./store/slices/authSlice";
+import { ThemeProvider } from "./context/ThemeContext";
+import MainLayout from "./components/MainLayout";
 
-function RequireAuth({ children }: { children: JSX.Element }) {
+function RequireAuth({ children }: { children: React.ReactNode }) {
   const { token } = useSelector((s: RootState) => s.auth);
   if (!token) return <Navigate to="/driver/login" replace />;
-  return children;
+  return <>{children}</>;
 }
 
-function RequireDriverOnboarded({ children }: { children: JSX.Element }) {
+import Profile from "./pages/Profile";
+import ProfileEdit from "./pages/ProfileEdit";
+import Services from "./pages/Services";
+
+function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <RequireAuth>
+      <MainLayout>{children}</MainLayout>
+    </RequireAuth>
+  );
+}
+
+function RequireDriverOnboarded({ children }: { children: React.ReactNode }) {
   const { user } = useSelector((s: RootState) => s.auth);
 
-  if (!user) return null;
+  if (!user) return <div className="flex items-center justify-center min-h-screen">
+    <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+  </div>;
 
   if (!user.onboarding?.driver) {
     return <Navigate to="/driver/onboarding" replace />;
   }
 
-  return children;
+  return <>{children}</>;
 }
 
-function RequireNotDriverOnboarded({ children }: { children: JSX.Element }) {
+function RequireNotDriverOnboarded({ children }: { children: React.ReactNode }) {
   const { user } = useSelector((s: RootState) => s.auth);
 
   if (!user) return null;
@@ -37,78 +54,116 @@ function RequireNotDriverOnboarded({ children }: { children: JSX.Element }) {
     return <Navigate to="/driver/dashboard" replace />;
   }
 
-  return children;
+  return <>{children}</>;
 }
 
 export default function App() {
-  const dispatch = useDispatch();
-const { token, user } = useSelector((s: RootState) => s.auth);
+  const dispatch = useDispatch<any>();
+  const { token, user } = useSelector((s: RootState) => s.auth);
 
-useEffect(() => {
-  if (token && !user) {
-    dispatch(fetchMe());
-  }
-}, [token]);
+  useEffect(() => {
+    if (token && !user) {
+      dispatch(fetchMe());
+    }
+  }, [token, user, dispatch]);
 
-useEffect(() => {
-  if (token && user) {
-    const socket = connectDriverSocket(token);
-    initDriverRideListeners(socket);
-  }
-}, [token, user]);
+  useEffect(() => {
+    if (token && user) {
+      const socket = connectDriverSocket(token);
+      initDriverRideListeners(socket);
+    }
+  }, [token, user]);
 
   return (
-    <Routes>
-      {/* Login */}
-      <Route path="/driver/login" element={<Login />} />
+    <ThemeProvider>
+      <Routes>
+        {/* Login */}
+        <Route path="/driver/login" element={<Login />} />
 
-      {/* Onboarding */}
-      <Route
-        path="/driver/onboarding/*"
-        element={
-          <RequireAuth>
-            <RequireNotDriverOnboarded>
-              <DriverOnboarding />
-            </RequireNotDriverOnboarded>
-          </RequireAuth>
-        }
-      />
+        {/* Onboarding */}
+        <Route
+          path="/driver/onboarding/*"
+          element={
+            <RequireAuth>
+              <RequireNotDriverOnboarded>
+                <DriverOnboarding />
+              </RequireNotDriverOnboarded>
+            </RequireAuth>
+          }
+        />
 
-      {/* Dashboard */}
-      <Route
-        path="/driver/dashboard"
-        element={
-          <RequireAuth>
-            <RequireDriverOnboarded>
-              <Dashboard />
-            </RequireDriverOnboarded>
-          </RequireAuth>
-        }
-      />
+        {/* Authenticated Routes wrapped in MainLayout */}
+        <Route
+          path="/driver/dashboard"
+          element={
+            <AuthenticatedLayout>
+              <RequireDriverOnboarded>
+                <Dashboard />
+              </RequireDriverOnboarded>
+            </AuthenticatedLayout>
+          }
+        />
 
-      <Route
-        path="/driver/wallet"
-        element={
-          <RequireAuth>
-            <RequireDriverOnboarded>
-              <WalletPage />
-            </RequireDriverOnboarded>
-          </RequireAuth>
-        }
-      />
+        <Route
+          path="/driver/wallet"
+          element={
+            <AuthenticatedLayout>
+              <RequireDriverOnboarded>
+                <WalletPage />
+              </RequireDriverOnboarded>
+            </AuthenticatedLayout>
+          }
+        />
 
-      <Route
-        path="/driver/profile"
-        element={
-          <RequireAuth>
-            <RequireDriverOnboarded>
-             
-            </RequireDriverOnboarded>
-          </RequireAuth>
-        }
-      />
+        <Route
+          path="/driver/profile"
+          element={
+            <AuthenticatedLayout>
+              <RequireDriverOnboarded>
+                <Profile />
+              </RequireDriverOnboarded>
+            </AuthenticatedLayout>
+          }
+        />
 
-      <Route path="*" element={<Navigate to="/driver/login" />} />
-    </Routes>
+        <Route
+          path="/driver/profile/edit"
+          element={
+            <AuthenticatedLayout>
+              <RequireDriverOnboarded>
+                <ProfileEdit />
+              </RequireDriverOnboarded>
+            </AuthenticatedLayout>
+          }
+        />
+
+        <Route
+          path="/driver/services"
+          element={
+            <AuthenticatedLayout>
+              <RequireDriverOnboarded>
+                <Services />
+              </RequireDriverOnboarded>
+            </AuthenticatedLayout>
+          }
+        />
+
+        {/* Ride Pool */}
+        <Route
+          path="/driver/ride-pool"
+          element={
+            <AuthenticatedLayout>
+              <RequireDriverOnboarded>
+                <RidePool />
+              </RequireDriverOnboarded>
+            </AuthenticatedLayout>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/driver/login" />} />
+      </Routes>
+    </ThemeProvider>
   );
 }
+
+
