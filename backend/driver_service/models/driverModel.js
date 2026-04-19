@@ -79,6 +79,10 @@ const driverSchema = new mongoose.Schema(
     totalRides: { type: Number, default: 0 },
     totalEarnings: { type: Number, default: 0 },
 
+    // Acceptance Rate tracking
+    totalOffers: { type: Number, default: 0 },
+    totalAccepted: { type: Number, default: 0 },
+
     // IMPORTANT: must be false until approved
     isAvailable: { type: Boolean, default: false },
 

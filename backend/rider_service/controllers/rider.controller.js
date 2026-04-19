@@ -55,7 +55,30 @@ exports.getRiderProfile = async (req, res) => {
       return res.status(404).json({ message: "Rider profile not found" });
     }
 
-    res.status(200).json({ rider });
+    // Fetch mobile from auth service
+    let mobile = "N/A";
+    try {
+      const url = `/internal/users/${userId}`;
+      console.log(`🔗 [Rider] Fetching mobile from Auth: ${url}`);
+      const { data: authUser } = await authClient.get(url, {
+        headers: { "x-internal-key": process.env.INTERNAL_SERVICE_KEY }
+      });
+      mobile = authUser.mobileNumber;
+      console.log(`✅ [Rider] Fetched mobile: ${mobile}`);
+    } catch (err) {
+      console.warn("❌ [Rider] Failed to fetch mobile from auth:", {
+        message: err.message,
+        status: err?.response?.status,
+        data: err?.response?.data
+      });
+    }
+
+    res.status(200).json({
+      rider: {
+        ...rider.toObject(),
+        mobile
+      }
+    });
   } catch (err) {
     console.error("❌ getRiderProfile:", err);
     res.status(500).json({ message: "Failed to fetch rider profile" });

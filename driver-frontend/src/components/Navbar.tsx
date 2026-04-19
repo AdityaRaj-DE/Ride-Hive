@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Wallet, User } from 'lucide-react';
+import { Home, Wallet, User, History } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
@@ -11,6 +11,7 @@ const Navbar: React.FC = () => {
   const navItems = [
     { to: '/driver/dashboard', icon: Home, label: 'Dashboard' },
     { to: '/driver/wallet', icon: Wallet, label: 'Wallet' },
+    { to: '/driver/history', icon: History, label: 'History' },
     { to: '/driver/profile', icon: User, label: 'Profile' },
   ];
 

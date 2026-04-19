@@ -10,4 +10,10 @@ router.patch(
   userController.updateOnboarding
 );
 
+router.get(
+  "/users/:userId",
+  internalOnly,
+  userController.getUserByIdInternal
+);
+
 module.exports = router;

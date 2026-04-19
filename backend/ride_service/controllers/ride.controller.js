@@ -75,11 +75,22 @@ exports.createRide = async (req, res) => {
     });
 
     // 3) Broadcast to drivers
-    // 3) Broadcast to drivers
     const io = req.app.get("io");
 
     if (io) {
       const nearbyDrivers = await findNearbyDrivers(pickup);
+
+      let riderName = "Incoming Passenger";
+      try {
+        const { data: riderInfo } = await axios.get(
+          `${process.env.RIDER_SERVICE_URL}/by-user/${req.user.id}`
+        );
+        if (riderInfo && riderInfo.rider) {
+          riderName = `${riderInfo.rider.name.first} ${riderInfo.rider.name.last}`;
+        }
+      } catch (err) {
+        console.warn("Failed to fetch rider name for broadcast:", err.message);
+      }
 
       const payload = {
         rideId: ride._id,
@@ -88,11 +99,19 @@ exports.createRide = async (req, res) => {
         distance: ride.distance,
         duration: ride.duration,
         price: ride.priceEstimate,
+        riderName,
       };
 
       nearbyDrivers.forEach((driver) => {
         io.to(`user_${driver._id}`).emit("ride.created", payload);
       });
+
+      // 🆙 Increment offers in driver service
+      const driverUserIds = nearbyDrivers.map(d => d._id);
+      if (driverUserIds.length > 0) {
+        axios.post(`${process.env.DRIVER_SERVICE_URL}/internal/increment-offers`, { userIds: driverUserIds })
+          .catch(err => console.error("Failed to increment driver offers:", err.message));
+      }
     }
 
     return res.status(201).json({
@@ -138,6 +157,10 @@ exports.acceptRide = async (req, res) => {
   );
 
   if (!ride) return res.status(409).json({ error: "Ride already taken" });
+
+  // 🆙 Increment accepted count in driver service
+  axios.post(`${process.env.DRIVER_SERVICE_URL}/internal/increment-accepted`, { userId: req.user.id })
+    .catch(err => console.error("Failed to increment driver accepted count:", err.message));
 
   const { data: driverStatus } = await axios.get(
     `${process.env.DRIVER_SERVICE_URL}/subscription-status/${req.user.id}`,
@@ -576,6 +599,18 @@ exports.createPoolRide = async (req, res) => {
     // 🔥 NOTIFY NEARBY DRIVERS (Discovery)
     const io = req.app.get("io");
     if (io) {
+      let riderName = "Incoming Passenger";
+      try {
+        const { data: riderInfo } = await axios.get(
+          `${process.env.RIDER_SERVICE_URL}/by-user/${req.user.id}`
+        );
+        if (riderInfo && riderInfo.rider) {
+          riderName = `${riderInfo.rider.name.first} ${riderInfo.rider.name.last}`;
+        }
+      } catch (err) {
+        console.warn("Failed to fetch rider name for pool broadcast:", err.message);
+      }
+
       const payload = {
         _id: ride._id,
         rideId: ride._id,
@@ -584,12 +619,20 @@ exports.createPoolRide = async (req, res) => {
         price: ride.priceEstimate,
         rideType: "POOL",
         availableSeats: ride.availableSeats,
+        riderName,
       };
 
       const nearbyDrivers = await findNearbyDrivers(pickup);
       nearbyDrivers.forEach((driver) => {
         io.to(`user_${driver._id}`).emit("ride.created", payload);
       });
+
+      // 🆙 Increment offers in driver service
+      const driverUserIds = nearbyDrivers.map(d => d._id);
+      if (driverUserIds.length > 0) {
+        axios.post(`${process.env.DRIVER_SERVICE_URL}/internal/increment-offers`, { userIds: driverUserIds })
+          .catch(err => console.error("Failed to increment driver offers (pool):", err.message));
+      }
     }
 
     return res.json(ride);
@@ -797,4 +840,34 @@ exports.updateStop = async (req, res) => {
   // For now, we'll return the ride and the gateway will broadcast it.
 
   res.json(ride);
+};
+
+exports.getRideHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const role = req.user.activeRole;
+    
+    // Statuses that represent "finished" or "ended" journeys
+    const historyStatuses = ["COMPLETED", "CANCELLED_BY_RIDER", "CANCELLED_BY_DRIVER"];
+    
+    let query = { status: { $in: historyStatuses } };
+    
+    if (role === "rider") {
+      query.$or = [{ riderId: userId }, { "riders.riderId": userId }];
+    } else if (role === "driver") {
+      query.driverId = userId;
+    } else {
+      return res.json([]);
+    }
+
+    const rides = await Ride.find(query)
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    res.json(rides);
+  } catch (err) {
+    console.error("getRideHistory error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
 };

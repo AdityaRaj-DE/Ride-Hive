@@ -20,7 +20,7 @@ export default function IncomingRequestCard({ ride }: { ride: any }) {
             </div>
             <div>
                <p className="text-[10px] font-bold uppercase tracking-widest text-accent">New Request</p>
-               <h3 className="text-xl font-bold tracking-tight text-primary">Incoming Passenger</h3>
+               <h3 className="text-xl font-bold tracking-tight text-primary">{ride.riderName || "Incoming Passenger"}</h3>
             </div>
          </div>
          

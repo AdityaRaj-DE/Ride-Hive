@@ -24,6 +24,13 @@ router.get(
   driverController.getDriverProfile
 );
 
+router.patch(
+  "/me",
+  protectWithAuthService,
+  requireActiveRole("driver"),
+  driverController.updateProfile
+);
+
 // ✅ Driver working features (ONLY after admin approval)
 router.put(
   "/availability",
@@ -109,5 +116,9 @@ router.patch("/:id/rating", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+// Internal endpoints (called by Ride Service)
+router.post("/internal/increment-offers", driverController.incrementOffers);
+router.post("/internal/increment-accepted", driverController.incrementAccepted);
 
 module.exports = router;

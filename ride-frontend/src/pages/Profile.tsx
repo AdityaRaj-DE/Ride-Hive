@@ -1,13 +1,50 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
+import axios from 'axios';
 import type { RootState } from '../store';
 import { Mail, Phone, Calendar, Edit2, LogOut, ShieldCheck, Award, Star, ArrowRight, User, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Profile: React.FC = () => {
-  const { user } = useSelector((s: RootState) => s.auth);
+  const { user, token } = useSelector((s: RootState) => s.auth);
+  const [profile, setProfile] = useState<any>(null);
+  const [rideCount, setRideCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  if (!user) return null;
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        const [profileRes, historyRes] = await Promise.all([
+          axios.get("http://localhost:3000/rider/profile", {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get("http://localhost:3000/ride/history", {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+        
+        setProfile(profileRes.data.rider);
+        setRideCount(historyRes.data.filter((r: any) => r.status === 'COMPLETED').length);
+      } catch (err) {
+        console.error("Failed to fetch profile data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (token) fetchProfileData();
+  }, [token]);
+
+  if (!user || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  const displayName = profile?.name ? `${profile.name.first} ${profile.name.last}` : (user as any).name;
+
 
   return (
     <div className="min-h-screen text-primary pb-24">
@@ -38,7 +75,7 @@ const Profile: React.FC = () => {
               <div className="relative mb-8">
                 <div className="w-32 h-32 bg-surface rounded-[2.5rem] mx-auto flex items-center justify-center border border-border shadow-inner transition-all hover:scale-105 overflow-hidden group">
                    <span className="text-accent text-5xl font-bold transition-transform group-hover:scale-110">
-                     {(user as any).name?.charAt(0) || 'U'}
+                     {displayName?.charAt(0) || 'U'}
                    </span>
                 </div>
                 <div className="absolute -bottom-1 right-1/4 translate-x-1/2 bg-white p-1.5 rounded-xl shadow-lg border border-border">
@@ -49,8 +86,8 @@ const Profile: React.FC = () => {
               </div>
               
               <div className="space-y-1 mb-8">
-                 <h2 className="text-3xl font-bold tracking-tight text-primary uppercase">{(user as any).name}</h2>
-                 <p className="text-[10px] font-bold text-accent uppercase tracking-widest">Member Since {new Date((user as any).createdAt || Date.now()).getFullYear()}</p>
+                 <h2 className="text-3xl font-bold tracking-tight text-primary uppercase">{displayName}</h2>
+                 <p className="text-[10px] font-bold text-accent uppercase tracking-widest">Member Since {new Date(profile?.createdAt || (user as any).createdAt || Date.now()).getFullYear()}</p>
               </div>
               
               <div className="flex items-center justify-center gap-2 text-accent mb-8 bg-accent/5 py-3 rounded-2xl border border-accent/10 mx-4">
@@ -60,7 +97,7 @@ const Profile: React.FC = () => {
 
               <div className="pt-8 border-t border-border space-y-1 opacity-60">
                  <p className="text-[9px] font-bold uppercase tracking-widest">Account Created</p>
-                 <p className="text-sm font-semibold">{new Date((user as any).createdAt || Date.now()).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                 <p className="text-sm font-semibold">{new Date(profile?.createdAt || (user as any).createdAt || Date.now()).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
               </div>
             </div>
 
@@ -97,7 +134,7 @@ const Profile: React.FC = () => {
                     </div>
                     <div className="min-w-0">
                       <p className="text-[9px] font-bold text-muted uppercase tracking-widest mb-0.5">Email Address</p>
-                      <p className="text-base font-semibold text-primary truncate leading-none">{(user as any).email || 'Not specified'}</p>
+                      <p className="text-base font-semibold text-primary truncate leading-none">{profile?.email || (user as any).email || 'Not specified'}</p>
                     </div>
                  </div>
 
@@ -107,7 +144,7 @@ const Profile: React.FC = () => {
                     </div>
                     <div className="min-w-0">
                       <p className="text-[9px] font-bold text-muted uppercase tracking-widest mb-0.5">Mobile Number</p>
-                      <p className="text-base font-semibold text-primary truncate leading-none">{(user as any).phone || (user as any).mobile || 'Not specified'}</p>
+                      <p className="text-base font-semibold text-primary truncate leading-none">{profile?.mobile || (user as any).phone || (user as any).mobile || 'Not specified'}</p>
                     </div>
                  </div>
                </div>
@@ -129,7 +166,7 @@ const Profile: React.FC = () => {
                         <Calendar className="w-8 h-8" />
                      </div>
                      <div>
-                        <p className="text-5xl font-bold tracking-tighter text-primary leading-none">48</p>
+                        <p className="text-5xl font-bold tracking-tighter text-primary leading-none">{rideCount}</p>
                         <p className="text-[10px] font-bold text-accent uppercase tracking-widest mt-2">Total Rides Completed</p>
                      </div>
                   </div>

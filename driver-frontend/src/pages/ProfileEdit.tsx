@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import { User, Mail, Phone, ArrowLeft, Check, Camera, Briefcase, ShieldCheck, Activity, Zap } from 'lucide-react';
@@ -6,18 +7,52 @@ import { useNavigate } from 'react-router-dom';
 
 const ProfileEdit: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useSelector((s: RootState) => s.auth);
+  const { user, token } = useSelector((s: RootState) => s.auth);
   
   const [formData, setFormData] = useState({
-    name: (user as any)?.name || '',
-    email: (user as any)?.email || '',
-    experience: '3.2 Years',
+    firstName: '',
+    lastName: '',
+    email: '',
   });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const { data } = await axios.get("http://localhost:3000/driver/me", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (data.fullname) {
+          setFormData({
+            firstName: data.fullname.firstname || '',
+            lastName: data.fullname.lastname || '',
+            email: data.email || (user as any)?.email || '',
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch driver profile for editing:", err);
+      }
+    };
+    if (token) fetchProfile();
+  }, [token, user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Updating driver profile:", formData);
-    navigate('/driver/profile');
+    setLoading(true);
+    try {
+      await axios.patch("http://localhost:3000/driver/me", {
+        fullname: { firstname: formData.firstName, lastname: formData.lastName },
+        email: formData.email
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      navigate('/driver/profile');
+    } catch (err) {
+      console.error("Failed to update driver profile:", err);
+      alert("Failed to update profile. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!user) return null;
@@ -50,7 +85,7 @@ const ProfileEdit: React.FC = () => {
                 <div className="w-64 h-64 bg-accent/5 rounded-[3.5rem] flex items-center justify-center border-2 border-accent/10 shadow-inner overflow-hidden relative backdrop-blur-xl">
                    <div className="absolute inset-0 bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                    <span className="text-accent text-9xl font-bold uppercase tracking-tighter relative z-10">
-                     {(formData.name.charAt(0)) || 'D'}
+                     {(formData.firstName.charAt(0)) || 'D'}
                    </span>
                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-sm cursor-pointer z-20">
                       <div className="flex flex-col items-center gap-3 group-hover:scale-100 scale-90 transition-transform">
@@ -81,20 +116,35 @@ const ProfileEdit: React.FC = () => {
            <div className="lg:col-span-8">
               <form onSubmit={handleSubmit} className="space-y-12">
                 <div className="glass-card p-10 md:p-12 border-accent/10 shadow-xl rounded-[2.5rem] space-y-10 relative overflow-hidden backdrop-blur-xl">
-                   <div className="space-y-3 group">
-                     <label className="text-[10px] font-bold uppercase tracking-widest text-accent ml-1 flex items-center gap-2">
-                       <User className="w-3.5 h-3.5" />
-                       Full Name
-                     </label>
-                     <div className="relative">
-                       <input 
-                         type="text"
-                         value={formData.name}
-                         onChange={(e) => setFormData({...formData, name: e.target.value})}
-                         className="w-full px-8 py-4 bg-surface border border-border rounded-xl font-bold text-xl text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 uppercase"
-                         placeholder="e.g. John Doe"
-                       />
-                     </div>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="space-y-3 group">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-accent ml-1 flex items-center gap-2">
+                           <User className="w-3.5 h-3.5" />
+                           First Name
+                        </label>
+                        <input 
+                           type="text"
+                           value={formData.firstName}
+                           onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                           className="w-full px-8 py-4 bg-surface border border-border rounded-xl font-bold text-xl text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 uppercase"
+                           placeholder="e.g. John"
+                           required
+                        />
+                      </div>
+
+                      <div className="space-y-3 group">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-accent ml-1 flex items-center gap-2">
+                           <User className="w-3.5 h-3.5" />
+                           Last Name
+                        </label>
+                        <input 
+                           type="text"
+                           value={formData.lastName}
+                           onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                           className="w-full px-8 py-4 bg-surface border border-border rounded-xl font-bold text-xl text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 uppercase"
+                           placeholder="e.g. Doe"
+                        />
+                      </div>
                    </div>
 
                    <div className="space-y-3 group">
@@ -107,24 +157,9 @@ const ProfileEdit: React.FC = () => {
                          type="email"
                          value={formData.email}
                          onChange={(e) => setFormData({...formData, email: e.target.value})}
-                         className="w-full px-8 py-4 bg-surface border border-border rounded-xl font-bold text-xl text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10"
+                         className="w-full px-8 py-4 bg-surface border border-border rounded-xl font-bold text-xl text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 font-mono"
                          placeholder="john@example.com"
-                       />
-                     </div>
-                   </div>
-
-                   <div className="space-y-3 group">
-                     <label className="text-[10px] font-bold uppercase tracking-widest text-accent ml-1 flex items-center gap-2">
-                       <Briefcase className="w-3.5 h-3.5" />
-                       Experience
-                     </label>
-                     <div className="relative">
-                       <input 
-                         type="text"
-                         value={formData.experience}
-                         onChange={(e) => setFormData({...formData, experience: e.target.value})}
-                         className="w-full px-8 py-4 bg-surface border border-border rounded-xl font-bold text-xl text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 uppercase"
-                         placeholder="e.g. 5 Years"
+                         required
                        />
                      </div>
                    </div>
@@ -137,7 +172,7 @@ const ProfileEdit: React.FC = () => {
                      <div className="relative">
                         <input 
                           type="text"
-                          value={(user as any).mobile}
+                          value={(user as any).mobile || (user as any).phone || ''}
                           disabled
                           className="w-full px-8 py-4 bg-background border border-border rounded-xl font-bold text-xl text-primary/40 cursor-not-allowed tracking-widest"
                         />
@@ -151,10 +186,11 @@ const ProfileEdit: React.FC = () => {
                 <div className="flex flex-col gap-8">
                   <button 
                     type="submit"
-                    className="btn-primary w-full h-16 text-sm gap-4"
+                    disabled={loading}
+                    className={`btn-primary w-full h-16 text-sm gap-4 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                   >
                     <Check className="w-5 h-5" />
-                    <span>Synchronize Profile Changes</span>
+                    <span>{loading ? 'Synchronizing...' : 'Synchronize Profile Changes'}</span>
                   </button>
                   
                   <div className="flex items-center justify-center gap-8 opacity-20 hover:opacity-100 transition-opacity duration-300">

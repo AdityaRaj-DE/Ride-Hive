@@ -1,15 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
+import axios from 'axios';
 import type { RootState } from '../store';
 import { Mail, Phone, Shield, Star, LogOut, Edit2, Award, Briefcase, ArrowRight, ShieldCheck, Globe, Activity, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Profile: React.FC = () => {
-  const { user } = useSelector((s: RootState) => s.auth);
+  const { user, token } = useSelector((s: RootState) => s.auth);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!user) return null;
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        const { data } = await axios.get("http://localhost:3000/driver/me", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setProfile(data);
+      } catch (err) {
+        console.error("Failed to fetch driver profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const userData = user as { name?: string; email?: string; mobile?: string };
+    if (token) fetchProfileData();
+  }, [token]);
+
+  if (!user || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  const displayName = profile?.fullname ? `${profile.fullname.firstname} ${profile.fullname.lastname}` : (user as any).name;
+
 
   return (
     <div className="min-h-screen text-primary pb-24">
@@ -43,7 +70,7 @@ const Profile: React.FC = () => {
                 <div className="w-48 h-48 bg-accent/5 rounded-[3rem] flex items-center justify-center border-2 border-accent/10 shadow-inner overflow-hidden relative group">
                   <div className="absolute inset-0 bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <span className="text-accent text-8xl font-bold uppercase tracking-tighter relative z-10">
-                    {userData.name?.charAt(0) || 'D'}
+                    {displayName?.charAt(0) || 'D'}
                   </span>
                 </div>
                 <div className="absolute -bottom-4 -right-4 bg-surface p-2.5 rounded-2xl border border-border shadow-md">
@@ -54,7 +81,7 @@ const Profile: React.FC = () => {
               </div>
               
               <div className="space-y-4 mb-10">
-                 <h2 className="text-4xl font-bold tracking-tight text-primary uppercase leading-none">{userData.name}</h2>
+                 <h2 className="text-4xl font-bold tracking-tight text-primary uppercase leading-none">{displayName}</h2>
                  <div className="flex flex-col items-center gap-2">
                     <span className="px-4 py-1 rounded-full bg-accent/5 border border-accent/10 text-accent text-[9px] font-bold uppercase tracking-widest">Premium Partner</span>
                     <span className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40">Regional Hub: Sector 4</span>
@@ -63,19 +90,21 @@ const Profile: React.FC = () => {
               
               <div className="flex items-center justify-center gap-6 text-amber-500 mb-10 py-6 px-8 bg-accent/5 rounded-2xl border border-accent/10">
                  <Star className="w-6 h-6 fill-current" />
-                 <span className="text-4xl font-bold text-primary tracking-tighter">4.95</span>
+                 <span className="text-4xl font-bold text-primary tracking-tighter">{(profile?.rating || 0).toFixed(2)}</span>
                  <div className="w-px h-8 bg-border"></div>
-                 <span className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40">2,418 Trips</span>
+                 <span className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40">{profile?.totalRides || 0} Trips</span>
               </div>
 
               <div className="pt-8 border-t border-border grid grid-cols-2 gap-8">
-                 <div className="text-center">
+                  <div className="text-center">
                     <p className="text-[9px] font-bold text-muted uppercase tracking-widest mb-1 opacity-40">Active Years</p>
-                    <p className="text-2xl font-bold text-primary tracking-tight">3.2</p>
+                    <p className="text-2xl font-bold text-primary tracking-tight">
+                      {profile?.createdAt ? ((new Date().getTime() - new Date(profile.createdAt).getTime()) / (1000 * 60 * 60 * 24 * 365)).toFixed(1) : '0.0'}
+                    </p>
                  </div>
                  <div className="text-center">
                     <p className="text-[9px] font-bold text-muted uppercase tracking-widest mb-1 opacity-40">Acceptance</p>
-                    <p className="text-2xl font-bold text-primary tracking-tight">98%</p>
+                    <p className="text-2xl font-bold text-primary tracking-tight">{profile?.acceptanceRate || 100}%</p>
                  </div>
               </div>
             </div>
@@ -109,7 +138,7 @@ const Profile: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40 mb-1">Email Address</p>
-                      <p className="text-lg font-semibold truncate text-primary/80 lowercase">{userData.email || 'N/A'}</p>
+                      <p className="text-lg font-semibold truncate text-primary/80 lowercase">{profile?.email || (user as any).email || 'N/A'}</p>
                     </div>
                  </div>
 
@@ -119,7 +148,7 @@ const Profile: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40 mb-1">Mobile Number</p>
-                      <p className="text-lg font-semibold text-primary/80 uppercase tracking-widest">{userData.mobile}</p>
+                      <p className="text-lg font-semibold text-primary/80 uppercase tracking-widest">{profile?.mobile || (user as any).mobile}</p>
                     </div>
                  </div>
                </div>
@@ -138,17 +167,22 @@ const Profile: React.FC = () => {
                      </div>
                      <div>
                         <p className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40 mb-1">Registered Unit</p>
-                        <p className="text-xl font-bold text-primary/80 uppercase">Tesla Model S</p>
+                        <p className="text-xl font-bold text-primary/80 uppercase">{profile?.vehicleInfo?.color} {profile?.vehicleInfo?.model}</p>
+                        <p className="text-[10px] font-bold text-accent">{profile?.vehicleInfo?.plateNumber}</p>
                      </div>
                   </div>
                   <div className="flex items-center gap-6 p-6 rounded-2xl bg-surface border border-border hover:border-accent/30 transition-all group">
                      <div className="w-14 h-14 bg-accent/5 rounded-xl flex items-center justify-center text-accent border border-border group-hover:scale-105 transition-transform">
                         <Shield className="w-6 h-6" />
                      </div>
-                     <div>
+                      <div>
                         <p className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40 mb-1">Insurance Expiry</p>
-                        <p className="text-xl font-bold text-primary/80">Aug 2026</p>
-                     </div>
+                        <p className="text-xl font-bold text-primary/80">
+                          {profile?.subscription?.expiresAt 
+                            ? new Date(profile.subscription.expiresAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                            : 'Not Active'}
+                        </p>
+                      </div>
                   </div>
                </div>
 
@@ -158,7 +192,7 @@ const Profile: React.FC = () => {
                         <Award className="w-10 h-10" />
                      </div>
                      <div className="space-y-1">
-                        <p className="text-5xl font-bold tracking-tighter text-accent leading-none">₹4.8M+</p>
+                        <p className="text-5xl font-bold tracking-tighter text-accent leading-none">₹{profile?.totalEarnings || 0}</p>
                         <p className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40 italic">Total Lifetime Earnings</p>
                      </div>
                   </div>

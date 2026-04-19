@@ -258,3 +258,29 @@ module.exports.updateOnboarding = async (req, res) => {
     },
   });
 };
+
+module.exports.getUserByIdInternal = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log(`🔍 [Auth Internal] User lookup: ${userId}`);
+    
+    const user = await userModel.findById(userId).lean();
+    if (!user) {
+      console.warn(`⚠️ [Auth Internal] User not found: ${userId}`);
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.log(`✅ [Auth Internal] Found user mobile: ${user.mobileNumber}`);
+    return res.status(200).json({
+      id: user._id.toString(),
+      mobileNumber: user.mobileNumber,
+      roles: user.roles,
+      activeRole: user.activeRole,
+      onboarding: user.onboarding,
+      isVerified: user.isVerified,
+    });
+  } catch (err) {
+    console.error("❌ [Auth Internal] Error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

@@ -182,10 +182,64 @@ exports.getDriverProfile = async (req, res) => {
       return res.status(404).json({ message: "Driver not found" });
     }
 
-    res.status(200).json(driver);
+    // Fetch mobile from auth service
+    let mobile = "N/A";
+    try {
+      const url = `/internal/users/${userId}`;
+      console.log(`🔗 [Driver] Fetching mobile from Auth: ${url}`);
+      const { data: authUser } = await authClient.get(url, {
+        headers: { "x-internal-key": process.env.INTERNAL_SERVICE_KEY }
+      });
+      mobile = authUser.mobileNumber;
+      console.log(`✅ [Driver] Fetched mobile: ${mobile}`);
+    } catch (err) {
+      console.warn("❌ [Driver] Failed to fetch mobile from auth:", {
+        message: err.message,
+        status: err?.response?.status,
+        data: err?.response?.data
+      });
+    }
+
+    const acceptanceRate = driver.totalOffers > 0 
+      ? Math.round((driver.totalAccepted / driver.totalOffers) * 100) 
+      : 100;
+
+    res.status(200).json({
+      ...driver.toObject(),
+      mobile,
+      acceptanceRate
+    });
   } catch (error) {
     console.error("❌ Error in getDriverProfile:", error);
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Update driver profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { fullname, email, vehicleInfo } = req.body;
+
+    const updates = {};
+    if (fullname) updates.fullname = fullname;
+    if (email) updates.email = email;
+    if (vehicleInfo) updates.vehicleInfo = vehicleInfo;
+
+    const driver = await Driver.findOneAndUpdate(
+      { userId },
+      { $set: updates },
+      { new: true }
+    );
+
+    if (!driver) {
+      return res.status(404).json({ message: "Driver not found" });
+    }
+
+    res.status(200).json(driver);
+  } catch (error) {
+    console.error("❌ Error in updateProfile:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -697,4 +751,42 @@ module.exports.rejectDriver = async (req, res) => {
   await driver.save();
 
   return res.status(200).json({ message: "Driver rejected", driver });
+};
+
+// Internal: Increment Total Offers
+module.exports.incrementOffers = async (req, res) => {
+  try {
+    const { userIds } = req.body; // Array of user IDs
+    if (!userIds || !Array.isArray(userIds)) {
+      return res.status(400).json({ message: "userIds array required" });
+    }
+
+    await Driver.updateMany(
+      { userId: { $in: userIds } },
+      { $inc: { totalOffers: 1 } }
+    );
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("incrementOffers error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Internal: Increment Total Accepted
+module.exports.incrementAccepted = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ message: "userId required" });
+
+    await Driver.findOneAndUpdate(
+      { userId },
+      { $inc: { totalAccepted: 1 } }
+    );
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("incrementAccepted error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };

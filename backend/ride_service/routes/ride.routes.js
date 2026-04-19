@@ -69,6 +69,12 @@ router.get(
   controller.getActiveRide
 );
 
+router.get(
+  "/history",
+  protectWithAuthService,
+  controller.getRideHistory
+);
+
 router.post(
   "/estimate",
   protectWithAuthService,

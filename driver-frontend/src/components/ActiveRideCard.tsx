@@ -147,6 +147,17 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
           ) : (
             /* --- SOLO RIDE FLOW (Original) --- */
             <>
+              {/* Solo Passenger Info */}
+              <div className="flex items-center gap-4 mb-8 p-4 bg-accent/5 rounded-2xl border border-accent/10 animate-in fade-in slide-in-from-top-4 duration-500">
+                 <div className="w-12 h-12 rounded-full bg-surface border border-border flex items-center justify-center text-lg font-bold">
+                    {activeRide.rider?.name?.charAt(0) || "P"}
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-bold text-muted uppercase tracking-widest">Active Passenger</p>
+                    <p className="text-lg font-bold text-primary">{activeRide.rider?.name || "Passenger"}</p>
+                 </div>
+              </div>
+
               {activeRide.status === "DRIVER_ASSIGNED" && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-700">
                   <div className="space-y-2">

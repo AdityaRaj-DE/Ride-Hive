@@ -1,13 +1,71 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import axios from 'axios';
 import { TrendingUp, ArrowUpRight, ArrowDownLeft, Plus, CreditCard, Landmark, Sparkles, ShieldCheck, ArrowRight, Wallet, Activity, Globe, Zap, Search } from 'lucide-react';
+import type { RootState } from '../store';
 
 const WalletPage: React.FC = () => {
-  const transactions = [
-    { id: 1, type: 'credit', amount: '₹450', title: 'Trip #4829', date: 'Today, 2:30 PM', status: 'Completed', method: 'In-app Wallet' },
-    { id: 2, type: 'credit', amount: '₹320', title: 'Trip #4825', date: 'Today, 11:15 AM', status: 'Completed', method: 'Cash' },
-    { id: 3, type: 'debit', amount: '₹120', title: 'Weekly Subscription', date: 'Oct 12, 10:00 AM', status: 'Processed', method: 'Wallet' },
-    { id: 4, type: 'credit', amount: '₹890', title: 'Trip #4812', date: 'Oct 11, 09:45 PM', status: 'Completed', method: 'In-app Wallet' },
-  ];
+  const { token } = useSelector((s: RootState) => s.auth);
+  const [balance, setBalance] = useState(0);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchWalletData = async () => {
+      try {
+        // 1. Fetch balance & driver profile (to get driver _id)
+        const walletRes = await axios.get("http://localhost:3000/driver/wallet", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setBalance(walletRes.data.walletBalance || 0);
+        setSubscription(walletRes.data.subscription);
+
+        // 2. Fetch driver profile to get the internal driver._id for payment service
+        const driverRes = await axios.get("http://localhost:3000/driver/me", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        const driverId = driverRes.data._id;
+
+        // 3. Fetch transactions from payment service
+        const txnRes = await axios.get(`http://localhost:3000/payment/driver/${driverId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        const mappedTxns = txnRes.data.map((t: any) => ({
+          id: t._id,
+          type: 'credit', // In this system, payments to drivers are credits
+          amount: `₹${t.amount}`,
+          title: `Trip #${t.rideId.slice(-4).toUpperCase()}`,
+          date: new Date(t.createdAt).toLocaleString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          status: t.status === 'SUCCESS' ? 'Completed' : t.status,
+          method: t.paymentMethod === 'WALLET' ? 'In-app Wallet' : t.paymentMethod
+        }));
+
+        setTransactions(mappedTxns);
+      } catch (err) {
+        console.error("Failed to fetch wallet data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (token) fetchWalletData();
+  }, [token]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen text-primary p-6 sm:p-10">
@@ -62,11 +120,11 @@ const WalletPage: React.FC = () => {
                  <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8">
                     <div className="space-y-4">
                        <h2 className="text-6xl md:text-8xl font-bold tracking-tighter text-primary leading-none">
-                          ₹4,820<span className="text-3xl md:text-5xl opacity-20">.50</span>
+                          ₹{balance.toLocaleString('en-IN')}<span className="text-3xl md:text-5xl opacity-20">.00</span>
                        </h2>
                        <div className="flex items-center gap-3 text-accent font-bold bg-accent/5 w-fit px-4 py-1.5 rounded-full border border-accent/10">
                           <TrendingUp className="w-4 h-4" />
-                          <span className="text-[10px] uppercase tracking-widest">+12.4% this week</span>
+                          <span className="text-[10px] uppercase tracking-widest">Real-time Balance</span>
                        </div>
                     </div>
                     
@@ -90,14 +148,20 @@ const WalletPage: React.FC = () => {
                      <div className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
                      <p className="text-[10px] font-bold uppercase tracking-widest text-accent">Active Plan</p>
                   </div>
-                  <h3 className="text-4xl font-bold text-primary mb-4 tracking-tight">Pro Elite</h3>
+                  <h3 className="text-4xl font-bold text-primary mb-4 tracking-tight">
+                    {subscription?.plan?.name || "No Plan"}
+                  </h3>
                   <p className="text-sm text-secondary font-medium leading-relaxed opacity-60">
-                     Enjoy standard platform fees and priority access to high-premium routes.
+                    {subscription?.isActive 
+                      ? `Your subscription is active until ${new Date(subscription.expiresAt).toLocaleDateString()}.`
+                      : "You do not have an active subscription plan."}
                   </p>
-                  <div className="mt-8 flex items-center gap-3 px-4 py-2 rounded-xl bg-accent/5 border border-accent/10 w-fit">
-                     <Zap className="w-4 h-4 text-accent fill-current" />
-                     <span className="text-[10px] font-bold uppercase tracking-widest text-accent">Auto-renew active</span>
-                  </div>
+                  {subscription?.isActive && (
+                    <div className="mt-8 flex items-center gap-3 px-4 py-2 rounded-xl bg-accent/5 border border-accent/10 w-fit">
+                       <Zap className="w-4 h-4 text-accent fill-current" />
+                       <span className="text-[10px] font-bold uppercase tracking-widest text-accent">Auto-renew active</span>
+                    </div>
+                  )}
                </div>
 
                <button className="w-full mt-12 h-14 rounded-xl bg-accent text-white font-bold uppercase tracking-widest text-[10px] hover:bg-accent/90 transition-all shadow-lg shadow-accent/20 flex items-center justify-center gap-3">
@@ -122,33 +186,39 @@ const WalletPage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-4">
-            {transactions.map((t) => (
-              <div key={t.id} className="glass-card p-4 sm:p-6 flex items-center justify-between group hover:border-accent/40 transition-all relative overflow-hidden">
-                <div className="flex items-center gap-6 relative z-10">
-                   <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center border shadow-sm transition-all ${
-                     t.type === 'credit' 
-                     ? 'bg-accent/5 text-accent border-accent/20' 
-                     : 'bg-rose-500/5 text-rose-500 border-rose-500/20'
-                   }`}>
-                     {t.type === 'credit' ? <ArrowDownLeft className="w-6 h-6 sm:w-8 sm:h-8" /> : <ArrowUpRight className="w-6 h-6 sm:w-8 sm:h-8" />}
-                   </div>
-                   <div className="min-w-0 space-y-1">
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-accent mb-1 opacity-60">{t.method}</p>
-                      <h4 className="text-lg font-bold tracking-tight text-primary truncate leading-tight uppercase">{t.title}</h4>
-                      <p className="text-[9px] font-bold text-muted uppercase tracking-wider">{t.date}</p>
-                   </div>
+            {transactions.length > 0 ? (
+              transactions.map((t) => (
+                <div key={t.id} className="glass-card p-4 sm:p-6 flex items-center justify-between group hover:border-accent/40 transition-all relative overflow-hidden">
+                  <div className="flex items-center gap-6 relative z-10">
+                     <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center border shadow-sm transition-all ${
+                       t.type === 'credit' 
+                       ? 'bg-accent/5 text-accent border-accent/20' 
+                       : 'bg-rose-500/5 text-rose-500 border-rose-500/20'
+                     }`}>
+                       {t.type === 'credit' ? <ArrowDownLeft className="w-6 h-6 sm:w-8 sm:h-8" /> : <ArrowUpRight className="w-6 h-6 sm:w-8 sm:h-8" />}
+                     </div>
+                     <div className="min-w-0 space-y-1">
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-accent mb-1 opacity-60">{t.method}</p>
+                        <h4 className="text-lg font-bold tracking-tight text-primary truncate leading-tight uppercase">{t.title}</h4>
+                        <p className="text-[9px] font-bold text-muted uppercase tracking-wider">{t.date}</p>
+                     </div>
+                  </div>
+                  <div className="text-right relative z-10">
+                     <p className={`text-2xl sm:text-3xl font-bold tracking-tighter leading-none ${t.type === 'credit' ? 'text-accent' : 'text-rose-500'}`}>
+                       {t.type === 'credit' ? '+' : '−'} {t.amount}<span className="text-sm sm:text-lg opacity-40">.00</span>
+                     </p>
+                     <div className="flex items-center justify-end gap-2 mt-3">
+                        <div className={`w-1.5 h-1.5 rounded-full ${t.type === 'credit' ? 'bg-accent' : 'bg-rose-500'}`}></div>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-muted">{t.status}</p>
+                     </div>
+                  </div>
                 </div>
-                <div className="text-right relative z-10">
-                   <p className={`text-2xl sm:text-3xl font-bold tracking-tighter leading-none ${t.type === 'credit' ? 'text-accent' : 'text-rose-500'}`}>
-                     {t.type === 'credit' ? '+' : '−'} {t.amount}<span className="text-sm sm:text-lg opacity-40">.00</span>
-                   </p>
-                   <div className="flex items-center justify-end gap-2 mt-3">
-                      <div className={`w-1.5 h-1.5 rounded-full ${t.type === 'credit' ? 'bg-accent' : 'bg-rose-500'}`}></div>
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-muted">{t.status}</p>
-                   </div>
-                </div>
+              ))
+            ) : (
+              <div className=" glass-card p-12 text-center opacity-40">
+                <p className="text-sm font-bold uppercase tracking-widest">No transactions found</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -171,3 +241,4 @@ const WalletPage: React.FC = () => {
 };
 
 export default WalletPage;
+

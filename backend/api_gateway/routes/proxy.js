@@ -132,6 +132,8 @@ module.exports = function setupProxies(app) {
           on: {
             proxyReq: (proxyReq, req, res) => {
               console.log(`🔁 [Payment] ${req.method} ${req.originalUrl} → ${proxyReq.path}`);
+              const auth = req.headers.authorization || req.headers.Authorization;
+              if (auth) proxyReq.setHeader("Authorization", auth);
               if (req.headers.cookie) {
                 proxyReq.setHeader("cookie", req.headers.cookie);
               }

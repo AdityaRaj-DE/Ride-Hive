@@ -97,3 +97,17 @@ exports.refundPayment = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+exports.getDriverTransactions = async (req, res) => {
+  try {
+    const { driverId } = req.params;
+    const transactions = await Payment.find({ driverId })
+      .sort({ createdAt: -1 })
+      .limit(50);
+      
+    res.status(200).json(transactions);
+  } catch (err) {
+    console.error("getDriverTransactions error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
