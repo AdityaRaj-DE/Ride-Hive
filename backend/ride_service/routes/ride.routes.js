@@ -75,6 +75,12 @@ router.get(
   controller.getRideHistory
 );
 
+router.get(
+  "/:id",
+  protectWithAuthService,
+  controller.getRideDetails
+);
+
 router.post(
   "/estimate",
   protectWithAuthService,
@@ -87,7 +93,6 @@ router.post(
   protectWithAuthService,
   controller.getRouteGeometry
 );
-
 
 router.post("/pool/create", protectWithAuthService, controller.createPoolRide);
 router.post("/pool/:rideId/add", protectWithAuthService, controller.addRiderToPool);

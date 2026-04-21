@@ -1,5 +1,5 @@
 exports.calculatePrice = ({ distance, duration }) => {
-    const baseFare = 50;
+    const baseFare = 20;
     const perKm = 10;
     const perMin = 1;
   

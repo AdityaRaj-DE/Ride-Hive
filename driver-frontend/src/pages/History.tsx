@@ -1,21 +1,20 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api/axios";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import type { RootState } from "../store";
 import { 
   History as HistoryIcon, 
-  MapPin, 
-  Clock, 
+  TrendingUp,
   IndianRupee, 
   Calendar, 
   ChevronRight,
-  Filter,
-  ArrowRight
 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function History() {
   const { token } = useSelector((s: RootState) => s.auth);
+  const navigate = useNavigate();
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
@@ -23,9 +22,7 @@ export default function History() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const { data } = await axios.get("http://localhost:3000/ride/history", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const { data } = await api.get("/ride/history");
         setRides(data);
       } catch (err) {
         console.error("Failed to fetch history:", err);
@@ -89,7 +86,7 @@ export default function History() {
         <div className="grid gap-6">
           {filteredRides.map((ride, idx) => (
             <div 
-              key={ride._id} 
+              key={ride.rideId || ride._id || idx} 
               className="glass-card p-6 border-accent/10 hover:border-accent/30 transition-all group overflow-hidden relative"
               style={{ animationDelay: `${idx * 50}ms` }}
             >
@@ -108,10 +105,14 @@ export default function History() {
                         </div>
                         <div className="flex items-center gap-1.5 text-muted opacity-60">
                            <Calendar className="w-3 h-3" />
-                           <span className="text-[10px] font-bold">{format(new Date(ride.createdAt), 'MMM dd, yyyy • HH:mm')}</span>
+                           <span className="text-[10px] font-bold">
+                               {ride.createdAt || ride.requestedAt 
+                                 ? format(new Date(ride.createdAt || ride.requestedAt), 'MMM dd, yyyy • HH:mm')
+                                 : 'Recently Archived'}
+                            </span>
                         </div>
                      </div>
-                     <p className="text-[10px] font-bold text-muted uppercase tracking-widest opacity-40">ID: {ride._id.substring(0,8)}</p>
+                      <p className="text-[10px] font-bold text-muted uppercase tracking-widest opacity-40">ID: {(ride.rideId || ride._id || '').substring(0,8)}</p>
                   </div>
 
                   <div className="space-y-4">
@@ -120,7 +121,7 @@ export default function History() {
                       <div className="flex-1 min-w-0">
                          <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-0.5">Pickup</p>
                          <p className="text-sm font-semibold text-primary truncate">
-                            {ride.pickup?.label || `Point [${ride.pickup?.coordinates?.[0].toFixed(4)}, ${ride.pickup?.coordinates?.[1].toFixed(4)}]`}
+                            {ride.pickup?.label || `Point [${ride.pickup?.lat?.toFixed(4) || 0}, ${ride.pickup?.lng?.toFixed(4) || 0}]`}
                          </p>
                       </div>
                     </div>
@@ -130,23 +131,32 @@ export default function History() {
                       <div className="flex-1 min-w-0">
                          <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-0.5">Dropoff</p>
                          <p className="text-sm font-semibold text-primary truncate">
-                            {ride.drop?.label || `Point [${ride.drop?.coordinates?.[0].toFixed(4)}, ${ride.drop?.coordinates?.[1].toFixed(4)}]`}
+                            {ride.drop?.label || `Point [${ride.drop?.lat?.toFixed(4) || 0}, ${ride.drop?.lng?.toFixed(4) || 0}]`}
                          </p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex md:flex-col justify-between items-end md:w-48 pt-6 md:pt-0 border-t md:border-t-0 md:border-l border-border md:pl-8">
-                   <div className="text-right">
+                <div className="flex md:flex-col justify-between items-end md:w-56 pt-6 md:pt-0 border-t md:border-t-0 md:border-l border-border md:pl-8">
+                   <div className="text-right space-y-2">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-1">Total Earned</p>
                       <div className="flex items-center justify-end gap-1.5 text-3xl font-black text-accent tracking-tighter">
                          <IndianRupee size={22} className="mt-1" />
-                         <span>{ride.priceEstimate || ride.price || 0}</span>
+                         <span>{ride.status.includes('CANCELLED') ? '0' : (ride.finalPrice || ride.price || 0)}</span>
                       </div>
+                      {ride.isReduced && (
+                        <div className="flex items-center justify-end gap-1.5 text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 w-fit ml-auto">
+                           <TrendingUp size={10} />
+                           <span className="text-[8px] uppercase tracking-wider">Fare Adjusted</span>
+                        </div>
+                      )}
                    </div>
 
-                   <button className="h-10 px-4 rounded-lg bg-surface border border-border text-[9px] font-bold uppercase tracking-widest text-primary flex items-center gap-2 hover:bg-background transition-all group-hover:border-accent/40">
+                   <button 
+                      onClick={() => navigate(`/driver/history/${ride.rideId || ride._id}`)}
+                      className="h-10 px-4 rounded-lg bg-surface border border-border text-[9px] font-bold uppercase tracking-widest text-primary flex items-center gap-2 hover:bg-background transition-all group-hover:border-accent/40"
+                   >
                       Details <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                    </button>
                 </div>

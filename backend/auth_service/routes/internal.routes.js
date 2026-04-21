@@ -16,4 +16,10 @@ router.get(
   userController.getUserByIdInternal
 );
 
+router.patch(
+  "/wallet/:userId",
+  internalOnly,
+  userController.updateWalletInternal
+);
+
 module.exports = router;

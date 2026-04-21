@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import WalletPage from "./pages/WalletPage";
 import RidePool from "./pages/RidePool";
 import History from "./pages/History";
+import RideDetail from "./pages/RideDetail";
 import type { RootState } from "./store";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -167,6 +168,16 @@ export default function App() {
             <AuthenticatedLayout>
               <RequireDriverOnboarded>
                 <History />
+              </RequireDriverOnboarded>
+            </AuthenticatedLayout>
+          }
+        />
+        <Route
+          path="/driver/history/:id"
+          element={
+            <AuthenticatedLayout>
+              <RequireDriverOnboarded>
+                <RideDetail />
               </RequireDriverOnboarded>
             </AuthenticatedLayout>
           }

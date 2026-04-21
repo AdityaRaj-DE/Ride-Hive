@@ -790,3 +790,29 @@ module.exports.incrementAccepted = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+exports.updateEarnings = async (req, res) => {
+  try {
+    const { id } = req.params; // userId
+    const { amount, isCash } = req.body;
+
+    const driver = await Driver.findOne({ userId: id });
+    if (!driver) return res.status(404).json({ error: "Driver not found" });
+
+    driver.totalEarnings += amount;
+    driver.totalRides += 1;
+    if (isCash) {
+       driver.cashEarnings += amount;
+    } else {
+       // Optional: Add to virtual wallet balance
+       driver.walletBalance += amount;
+    }
+
+    await driver.save();
+    console.log(`📈 Earnings updated for ${id}: +${amount} (${isCash ? "CASH" : "WALLET"})`);
+
+    res.json({ success: true, totalEarnings: driver.totalEarnings });
+  } catch (err) {
+    console.error("updateEarnings error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};

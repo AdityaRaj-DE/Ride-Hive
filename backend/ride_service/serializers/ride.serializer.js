@@ -10,6 +10,7 @@ exports.serializeRide = (ride) => {
       ? {
           lat: ride.pickup.coordinates[1],
           lng: ride.pickup.coordinates[0],
+          label: ride.pickup.label,
         }
       : null,
 
@@ -17,6 +18,7 @@ exports.serializeRide = (ride) => {
       ? {
           lat: ride.drop.coordinates[1],
           lng: ride.drop.coordinates[0],
+          label: ride.drop.label,
         }
       : null,
 
@@ -26,6 +28,9 @@ exports.serializeRide = (ride) => {
     duration: ride.duration ?? null,
 
     price: ride.priceEstimate ?? null,
+    finalPrice: ride.finalPrice ?? null,
+    isReduced: !!(ride.finalPrice && ride.finalPrice < ride.priceEstimate),
+    paymentMethod: ride.paymentMethod ?? "WALLET",
 
     rideType: ride.rideType ?? "NORMAL",
     riders: ride.riders ?? null,
@@ -43,5 +48,6 @@ exports.serializeRide = (ride) => {
     assignedAt: ride.assignedAt ?? null,
     startedAt: ride.startedAt ?? null,
     completedAt: ride.completedAt ?? null,
+    createdAt: ride.createdAt ?? null,
   };
 };

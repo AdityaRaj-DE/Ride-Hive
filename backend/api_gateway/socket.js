@@ -144,11 +144,11 @@ module.exports = function setupSocket(httpServer) {
       }
     });
 
-    socket.on("driverCompleteRide", async ({ rideId }, ack) => {
+    socket.on("driverCompleteRide", async ({ rideId, currentLocation, paymentMethod }, ack) => {
       try {
         const { data } = await axios.post(
           `${urls.ride}/${rideId}/complete`,
-          { finalPrice: 200 },
+          { currentLocation, paymentMethod },
           { headers: { Authorization: `Bearer ${socket.token}` } },
         );
 

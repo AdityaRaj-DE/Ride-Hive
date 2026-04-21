@@ -278,9 +278,40 @@ module.exports.getUserByIdInternal = async (req, res) => {
       activeRole: user.activeRole,
       onboarding: user.onboarding,
       isVerified: user.isVerified,
+      walletBalance: user.walletBalance,
     });
   } catch (err) {
     console.error("❌ [Auth Internal] Error:", err.message);
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+module.exports.updateWalletInternal = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { amount, action } = req.body; // action: 'add' or 'deduct'
+
+    const user = await userModel.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (action === "add") {
+      user.walletBalance += amount;
+    } else if (action === "deduct") {
+      if (user.walletBalance < amount) {
+        return res.status(400).json({ message: "Insufficient balance" });
+      }
+      user.walletBalance -= amount;
+    }
+
+    await user.save();
+    console.log(`💰 [Auth Internal] Wallet ${action} for ${userId}: ${amount}. New balance: ${user.walletBalance}`);
+
+    return res.status(200).json({
+      message: "Wallet updated",
+      walletBalance: user.walletBalance,
+    });
+  } catch (err) {
+    console.error("❌ updateWalletInternal error:", err.message);
+    res.status(500).json({ error: "Server error" });
   }
 };

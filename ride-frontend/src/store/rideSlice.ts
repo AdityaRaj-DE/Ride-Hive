@@ -22,6 +22,8 @@ export interface RideState {
   distance: number | null;
   duration: number | null;
   price: number | null;
+  finalPrice: number | null;
+  paymentMethod: string | null;
   geometry: any | null;
 
   loading: boolean;
@@ -48,6 +50,8 @@ const initialState: RideState = {
   distance: null,
   duration: null,
   price: null,
+  finalPrice: null,
+  paymentMethod: null,
   geometry: null,
 
   loading: false,
@@ -105,6 +109,8 @@ function normalizeRide(payload: RideServerPayload, userId?: string | null) {
     driverId: payload.driverId || null,
     driver: payload.driver || null,
     rideStartOtp: payload.rideStartOtp || null,
+    finalPrice: payload.finalPrice || null,
+    paymentMethod: payload.paymentMethod || null,
   };
 }
 
@@ -133,8 +139,9 @@ const rideSlice = createSlice({
 
       state.driverId = normalized.driverId ?? state.driverId;
       state.driver = normalized.driver ?? state.driver;
-
       state.rideStartOtp = normalized.rideStartOtp ?? state.rideStartOtp;
+      state.finalPrice = normalized.finalPrice ?? state.finalPrice;
+      state.paymentMethod = normalized.paymentMethod ?? state.paymentMethod;
     },
     updateRideStatus(state, action: PayloadAction<string>) {
       state.status = action.payload;

@@ -7,12 +7,41 @@ import {
 import { getDriverSocket } from "../sockets/socketClient";
 import useRideCall from "../hooks/useRideCall";
 import CallModal from "./CallModal";
-import { Phone, Navigation, Check, Zap, Target, Activity, Clock, ShieldCheck, MapPin } from 'lucide-react';
+import { Phone, Navigation, Check, Zap, Target, Activity, Clock, ShieldCheck, MapPin, Wallet, Banknote, QrCode } from 'lucide-react';
+import QRCode from "react-qr-code";
 
 export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavigateToDrop }: { activeRide: any, onNavigateToPickup?: () => void, onNavigateToDrop?: () => void }) {
   const [otp, setOtp] = useState("");
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
   const socket = getDriverSocket();
   const { startCall, hangup, acceptIncoming, rejectIncoming, toggleMute, state, timer } = useRideCall(socket, activeRide?.rideId || activeRide?._id);
+
+  const handleFinishTrip = (paymentMethod: "CASH" | "WALLET") => {
+    setIsProcessing(true);
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const currentLocation = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude
+      };
+      
+      emitCompleteRide(activeRide._id || activeRide.rideId, currentLocation, paymentMethod, (ack) => {
+        setIsProcessing(false);
+        if (!ack?.error) {
+           setShowPaymentModal(false);
+        }
+      });
+    }, (err) => {
+      console.error("Location error:", err);
+      emitCompleteRide(activeRide._id || activeRide.rideId, { lat: 0, lng: 0 }, paymentMethod, (ack) => {
+        setIsProcessing(false);
+        if (!ack?.error) {
+           setShowPaymentModal(false);
+        }
+      });
+    });
+  };
 
   if (!activeRide) return null;
 
@@ -243,13 +272,76 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                           </button>
                         )}
                         <button
-                            onClick={() => emitCompleteRide(activeRide._id || activeRide.rideId)}
+                            onClick={() => setShowPaymentModal(true)}
                             className="h-14 flex-1 rounded-xl bg-accent text-white font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-accent/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
                           >
                             <Check className="w-5 h-5" />
                             Finish Trip
                           </button>
                   </div>
+                  
+                  {/* Payment Selection Modal */}
+                  {showPaymentModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+                       <div className="glass-card p-8 max-w-md w-full border-accent/20 shadow-2xl relative overflow-hidden">
+                          <div className="absolute top-0 right-0 p-8 opacity-[0.03] rotate-12 pointer-events-none">
+                             <QrCode className="w-24 h-24 text-accent" />
+                          </div>
+
+                          <div className="text-center mb-8">
+                             <h3 className="text-2xl font-bold text-primary mb-2">Select Payment Method</h3>
+                             <p className="text-sm text-secondary font-medium">How did the passenger pay for this journey?</p>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-4 mb-8">
+                             <button
+                               onClick={() => handleFinishTrip("WALLET")}
+                               disabled={isProcessing}
+                               className="h-24 rounded-2xl bg-accent/5 border border-accent/20 flex flex-col items-center justify-center gap-2 hover:bg-accent/10 transition-all group disabled:opacity-50"
+                             >
+                                <Wallet className={`w-6 h-6 text-accent group-hover:scale-110 transition-transform ${isProcessing ? 'animate-bounce' : ''}`} />
+                                <div className="text-center">
+                                   <p className="text-sm font-bold text-primary">{isProcessing ? "Processing..." : "Digital Wallet / QR"}</p>
+                                   <p className="text-[10px] text-muted uppercase tracking-widest font-bold">In-App Transaction</p>
+                                </div>
+                             </button>
+
+                             <button
+                               onClick={() => handleFinishTrip("CASH")}
+                               disabled={isProcessing}
+                               className="h-24 rounded-2xl bg-surface border border-border flex flex-col items-center justify-center gap-2 hover:bg-background transition-all group disabled:opacity-50"
+                             >
+                                <Banknote className={`w-6 h-6 text-emerald-500 group-hover:scale-110 transition-transform ${isProcessing ? 'animate-bounce' : ''}`} />
+                                <div className="text-center">
+                                   <p className="text-sm font-bold text-primary">{isProcessing ? "Processing..." : "Cash Payment"}</p>
+                                   <p className="text-[10px] text-muted uppercase tracking-widest font-bold">Physical Handover</p>
+                                </div>
+                             </button>
+                          </div>
+
+                          <div className="flex flex-col gap-4">
+                            {/* QR Section for Online Payment */}
+                            <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center gap-4">
+                               <div className="p-3 bg-white rounded-xl">
+                                  <QRCode 
+                                    value={`ride_hive_pay_${activeRide._id}_est`} 
+                                    size={120}
+                                    level="L"
+                                  />
+                               </div>
+                               <p className="text-[9px] font-bold text-accent uppercase tracking-widest animate-pulse">Show to Passenger</p>
+                            </div>
+
+                            <button
+                              onClick={() => setShowPaymentModal(false)}
+                              className="text-[10px] font-bold text-muted uppercase tracking-widest hover:text-primary transition-colors py-2"
+                            >
+                              Cancel & Return
+                            </button>
+                          </div>
+                       </div>
+                    </div>
+                  )}
                   
                   <footer className="pt-6 flex items-center justify-center sm:justify-start gap-8 opacity-40">
                       <div className="flex items-center gap-2">

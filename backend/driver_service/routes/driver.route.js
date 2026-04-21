@@ -120,5 +120,6 @@ router.patch("/:id/rating", async (req, res) => {
 // Internal endpoints (called by Ride Service)
 router.post("/internal/increment-offers", driverController.incrementOffers);
 router.post("/internal/increment-accepted", driverController.incrementAccepted);
+router.patch("/:id/earnings", driverController.updateEarnings);
 
 module.exports = router;

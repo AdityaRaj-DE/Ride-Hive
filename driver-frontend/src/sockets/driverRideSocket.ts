@@ -81,12 +81,18 @@ export const emitStartRide = (rideId: string, otp: string) => {
   });
 }
 
-export const emitCompleteRide = (rideId: string) => {
+export const emitCompleteRide = (
+  rideId: string, 
+  currentLocation: { lat: number, lng: number }, 
+  paymentMethod: string,
+  callback?: (ack: any) => void
+) => {
   const socket = getDriverSocket();
   if (!socket) return;
 
-  socket.emit("driverCompleteRide", { rideId }, (ack: any) => {
+  socket.emit("driverCompleteRide", { rideId, currentLocation, paymentMethod }, (ack: any) => {
     console.log("completeRide ack:", ack);
+    if (callback) callback(ack);
   });
 };
 

@@ -1,21 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
+import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import { Calendar, CreditCard, Filter, Star, ArrowRight, ShieldCheck, Activity, Globe } from 'lucide-react';
 import { format } from 'date-fns';
 
+interface Ride {
+  _id: string;
+  rideId?: string;
+  status: string;
+  finalPrice?: number;
+  price?: number;
+  isReduced?: boolean;
+  createdAt?: string;
+  requestedAt?: string;
+  rideType?: string;
+  pickup?: { label?: string; lat?: number; lng?: number };
+  drop?: { label?: string; lat?: number; lng?: number };
+}
+
 const RideHistory: React.FC = () => {
+  const navigate = useNavigate();
   const { token } = useSelector((s: RootState) => s.auth);
-  const [rides, setRides] = useState<any[]>([]);
+  const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const { data } = await axios.get("http://localhost:3000/ride/history", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const { data } = await api.get("/ride/history");
         setRides(data);
       } catch (err) {
         console.error("Failed to fetch history:", err);
@@ -72,9 +86,16 @@ const RideHistory: React.FC = () => {
                 style={{ animationDelay: `${idx * 100}ms` }}
               >
                 <div className="absolute top-0 right-0 p-8 flex flex-col items-end gap-3 text-right">
-                  <span className={`text-3xl font-bold tracking-tighter ${ride.status.includes('CANCELLED') ? 'text-muted/30 line-through' : 'text-accent'}`}>
-                    ₹{ride.finalPrice || ride.priceEstimate || 0}
-                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className={`text-3xl font-bold tracking-tighter ${ride.status.includes('CANCELLED') ? 'text-muted/30 line-through' : 'text-accent'}`}>
+                      ₹{ride.finalPrice || ride.price || 0}
+                    </span>
+                    {ride.isReduced && (
+                      <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 mt-1">
+                        Fare Adjusted
+                      </span>
+                    )}
+                  </div>
                   <div className={`px-4 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
                     ride.status.includes('CANCELLED') 
                     ? 'bg-rose-500/5 text-rose-500 border-rose-500/10' 
@@ -92,7 +113,13 @@ const RideHistory: React.FC = () => {
                        <Calendar className="w-8 h-8" />
                     </div>
                     <div className="space-y-1">
-                      <p className="text-2xl font-bold tracking-tight text-primary uppercase">{format(new Date(ride.createdAt), 'MMM dd, HH:mm')}</p>
+                      <p className="text-2xl font-bold tracking-tight text-primary uppercase">
+                         {ride.createdAt || ride.requestedAt 
+                           ? !isNaN(new Date(ride.createdAt || ride.requestedAt || '').getTime()) 
+                             ? format(new Date(ride.createdAt || ride.requestedAt || ''), 'MMM dd, HH:mm')
+                             : 'Invalid Date'
+                           : 'Recent Trip'}
+                      </p>
                       <div className="flex items-center gap-4 opacity-40">
                          <p className="text-[10px] font-bold uppercase tracking-widest">{ride.rideType === 'POOL' ? 'Shared Pool' : 'Solo Journey'}</p>
                       </div>
@@ -117,7 +144,7 @@ const RideHistory: React.FC = () => {
                     <div className="min-w-0">
                       <p className="text-[9px] font-bold uppercase tracking-widest text-muted opacity-40 mb-1">Pickup Location</p>
                       <p className="text-base font-semibold text-primary/80 truncate leading-tight uppercase">
-                         {ride.pickup?.label || `Point [${ride.pickup?.coordinates?.[0]?.toFixed(4)}, ${ride.pickup?.coordinates?.[1]?.toFixed(4)}]`}
+                          {ride.pickup?.label || `Point [${ride.pickup?.lat?.toFixed(4) || 0}, ${ride.pickup?.lng?.toFixed(4) || 0}]`}
                       </p>
                     </div>
                   </div>
@@ -127,7 +154,7 @@ const RideHistory: React.FC = () => {
                     <div className="min-w-0">
                       <p className="text-[9px] font-bold uppercase tracking-widest text-muted opacity-40 mb-1">Destination</p>
                       <p className="text-base font-semibold text-primary/80 truncate leading-tight uppercase">
-                         {ride.drop?.label || `Point [${ride.drop?.coordinates?.[0]?.toFixed(4)}, ${ride.drop?.coordinates?.[1]?.toFixed(4)}]`}
+                         {ride.drop?.label || `Point [${ride.drop?.lat?.toFixed(4) || 0}, ${ride.drop?.lng?.toFixed(4) || 0}]`}
                       </p>
                     </div>
                   </div>
@@ -137,10 +164,13 @@ const RideHistory: React.FC = () => {
                    <div className="flex items-center gap-8">
                       <div className="flex items-center gap-3 text-muted opacity-40">
                         <CreditCard className="w-4 h-4" />
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-primary font-bold">₹{ride.finalPrice || ride.priceEstimate || 0}</span>
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-primary font-bold">₹{ride.status.includes('CANCELLED') ? '0' : (ride.finalPrice || ride.price || 0)}</span>
                       </div>
                    </div>
-                   <button className="w-full md:w-auto h-12 px-8 rounded-xl bg-surface border border-border text-[10px] font-bold uppercase tracking-widest hover:bg-accent hover:text-white hover:border-accent transition-all flex items-center justify-center gap-3 active:scale-95">
+                   <button 
+                      onClick={() => navigate(`/history/${ride.rideId || ride._id}`)}
+                      className="w-full md:w-auto h-12 px-8 rounded-xl bg-surface border border-border text-[10px] font-bold uppercase tracking-widest hover:bg-accent hover:text-white hover:border-accent transition-all flex items-center justify-center gap-3 active:scale-95"
+                   >
                      Details
                      <ArrowRight className="w-4 h-4" />
                    </button>

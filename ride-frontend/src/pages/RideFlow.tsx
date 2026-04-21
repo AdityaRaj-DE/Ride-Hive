@@ -4,6 +4,7 @@ import type { RootState, AppDispatch } from "../store";
 import NormalRideFlow from "../components/NormalRideFlow";
 import PoolRideFlow from "../components/PoolRideFlow";
 import RideMap from "../components/RIdeMap";
+import RideCompleted from "../components/RideCompleted";
 import FeedbackModal from "../components/FeedbackModal";
 import { useEffect, useState } from "react";
 import { clearRide } from "../store/rideSlice";
@@ -15,12 +16,13 @@ export default function RideFlow() {
   const { user } = useSelector((s: RootState) => s.auth);
   const navigate = useNavigate();
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   useEffect(() => {
     const me = ride.riders?.find((r: { riderId: string }) => r.riderId === user?.id);
 
-    if (ride.status === "COMPLETED" || (me && me.status === "DROPPED")) {
-       setShowFeedback(true);
+    if ((ride.status === "COMPLETED" || (me && me.status === "DROPPED")) && !showFeedback) {
+       setShowCompleted(true);
        return;
     }
 
@@ -35,7 +37,7 @@ export default function RideFlow() {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [ride.status, navigate, ride.riders, user]);
+  }, [ride.status, navigate, ride.riders, user, showFeedback]);
 
   const handleCloseFeedback = () => {
     setShowFeedback(false);
@@ -123,6 +125,21 @@ export default function RideFlow() {
          <Globe className="w-3 h-3 text-accent" />
          <p className="text-[8px] font-bold uppercase tracking-[0.4em]">Ride-Hive Matrix v2.0</p>
       </footer>
+
+      {/* Ride Completed / Payment Summary Overlay */}
+      {showCompleted && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-background/90 backdrop-blur-xl animate-in fade-in duration-700">
+           <div className="w-full max-w-xl">
+              <RideCompleted 
+                ride={ride} 
+                onDone={() => {
+                  setShowCompleted(false);
+                  setShowFeedback(true);
+                }} 
+              />
+           </div>
+        </div>
+      )}
 
       {/* Feedback Modal Overlay */}
       {showFeedback && ride.rideId && ride.driverId && (

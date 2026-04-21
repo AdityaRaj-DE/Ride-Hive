@@ -111,3 +111,59 @@ exports.getDriverTransactions = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+exports.createPaymentInternal = async (req, res) => {
+  try {
+    const { rideId, userId, driverId, amount, paymentMethod } = req.body;
+
+    console.log(`💳 [Payment Internal] Processing ${paymentMethod} payment for ride ${rideId}`);
+
+    const payment = await Payment.create({
+      rideId,
+      userId,
+      driverId,
+      amount,
+      paymentMethod,
+      status: paymentMethod === "CASH" ? "SUCCESS" : "PENDING",
+      transactionId: `TXN-INT-${Date.now()}`,
+    });
+
+    if (paymentMethod === "WALLET") {
+      // 🔄 Sync with Auth Service (Deduct from Rider)
+      try {
+        await axios.patch(
+          `${process.env.AUTH_SERVICE_URL}/internal/wallet/${userId}`,
+          { amount, action: "deduct" },
+          { headers: { "x-internal-key": process.env.INTERNAL_SERVICE_KEY } }
+        );
+        payment.status = "SUCCESS";
+        await payment.save();
+        console.log(`✅ [Payment Internal] Wallet deduction success for ${userId}`);
+      } catch (err) {
+        console.error("❌ [Payment Internal] Wallet deduction failed:", err.message);
+        payment.status = "FAILED";
+        await payment.save();
+        return res.status(400).json({ message: "Payment failed due to wallet deduction error" });
+      }
+    }
+
+    // 📈 Sync with Driver Service (Record Earnings)
+    // Even if CASH, we record for analytics
+    try {
+      await axios.patch(`${process.env.DRIVER_SERVICE_URL}/driver/${driverId}/earnings`, { 
+        amount,
+        isCash: paymentMethod === "CASH"
+      });
+      console.log(`📈 [Payment Internal] Driver earnings updated for ${driverId}`);
+    } catch (err) {
+      console.warn("⚠️ [Payment Internal] Driver payout sync failed:", err.message);
+    }
+
+    return res.status(201).json({
+      message: "Payment processed successfully",
+      payment,
+    });
+  } catch (err) {
+    console.error("❌ createPaymentInternal error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};

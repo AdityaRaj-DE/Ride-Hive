@@ -328,39 +328,99 @@ exports.startRide = async (req, res) => {
 };
 
 exports.completeRide = async (req, res) => {
-  const ride = await Ride.findOneAndUpdate(
-    {
-      _id: req.params.id,
+  try {
+    const { id } = req.params;
+    const { currentLocation, paymentMethod } = req.body; // currentLocation: { lat, lng }
+
+    const ride = await Ride.findOne({
+      _id: id,
       driverId: req.user.id,
       status: "IN_PROGRESS",
-    },
-    {
-      $set: {
-        status: "COMPLETED",
-        completedAt: new Date(),
-        finalPrice: req.body.finalPrice || 0,
-      },
-    },
-    { new: true },
-  );
+    });
 
-  if (!ride) return res.status(400).json({ error: "Invalid transition" });
+    if (!ride) return res.status(400).json({ error: "Invalid transition" });
 
-  const payload = serializeRide(ride);
-  const io = req.app.get("io");
-  if (io) {
-    if (ride.rideType === "POOL") {
-      ride.riders.forEach((r) => {
-        io.to(`user_${r.riderId}`).emit("ride.updated", payload);
-      });
-    } else {
-      io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
+    let finalPrice = ride.priceEstimate;
+    let actualDistance = ride.distance;
+    let actualDuration = ride.duration;
+
+    // 1. Recalculate price if ride stopped early
+    if (currentLocation) {
+      try {
+        const pickupLoc = {
+          lat: ride.pickup.coordinates[1],
+          lng: ride.pickup.coordinates[0],
+        };
+        const route = await getRoute(pickupLoc, currentLocation);
+        
+        const recalculatedPrice = calculatePrice({
+          distance: route.distance,
+          duration: route.duration,
+        });
+
+        // Cap at estimate (per requirements)
+        finalPrice = Math.min(recalculatedPrice, ride.priceEstimate);
+        actualDistance = route.distance;
+        actualDuration = route.duration;
+        
+        console.log(`📊 Recalculated fare: ${recalculatedPrice}, Capped at: ${finalPrice}`);
+      } catch (err) {
+        console.warn("Failed to recalculate fare, falling back to estimate:", err.message);
+      }
     }
-    io.to(`user_${ride.driverId}`).emit("ride.updated", payload);
-  }
-  console.log("EMITTING ride.updated", ride.status);
 
-  res.json(payload);
+    ride.status = "COMPLETED";
+    ride.completedAt = new Date();
+    ride.finalPrice = finalPrice;
+    ride.paymentMethod = paymentMethod || "WALLET";
+    
+    // Save updated metrics
+    ride.distance = actualDistance;
+    ride.duration = actualDuration;
+
+    await ride.save();
+
+    // 2. Notify Frontend Immediately
+    const payload = serializeRide(ride);
+    const io = req.app.get("io");
+    if (io) {
+      if (ride.rideType === "POOL") {
+        ride.riders.forEach((r) => {
+          io.to(`user_${r.riderId}`).emit("ride.updated", payload);
+        });
+      } else {
+        io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
+      }
+      io.to(`user_${ride.driverId}`).emit("ride.updated", payload);
+      console.log(`📡 [Socket] Ride completed broadcast sent for ${ride._id}`);
+    }
+
+    // 3. Trigger Payment Service (Background)
+    try {
+      // We don't await here to avoid blocking a fast response, 
+      // but we catch errors to log them correctly.
+      axios.post(`${process.env.PAYMENT_SERVICE_URL}/internal/payments`, {
+        rideId: ride._id,
+        userId: ride.riderId,
+        driverId: ride.driverId,
+        amount: finalPrice,
+        paymentMethod: ride.paymentMethod
+      }, {
+        headers: { "x-internal-key": process.env.INTERNAL_SERVICE_KEY }
+      }).then(() => {
+        console.log(`💰 [Payment Sync] Success for ride ${ride._id}`);
+      }).catch(err => {
+        console.error("❌ [Payment Sync] Failed background call:", err.message);
+      });
+    } catch (err) {
+       console.error("❌ Failed to initiate payment sync block:", err.message);
+    }
+
+    res.json(payload);
+  } catch (err) {
+    console.error("completeRide error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
 };
 
 exports.cancelByRider = async (req, res) => {
@@ -865,9 +925,86 @@ exports.getRideHistory = async (req, res) => {
       .limit(50)
       .lean();
 
-    res.json(rides);
+    const { serializeRide } = require("../serializers/ride.serializer");
+    res.json(rides.map(serializeRide));
   } catch (err) {
     console.error("getRideHistory error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+exports.getRideDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const ride = await Ride.findById(id).lean();
+
+    if (!ride) {
+      return res.status(404).json({ error: "Ride not found" });
+    }
+
+    // Check authorization
+    const userId = req.user.id;
+    const isRider = ride.riderId?.toString() === userId || ride.riders?.some(r => r.riderId?.toString() === userId);
+    const isDriver = ride.driverId?.toString() === userId;
+
+    if (!isRider && !isDriver) {
+      console.warn(`Unauthorized access attempt by user ${userId} to ride ${id}`);
+      return res.status(403).json({ error: "Unauthorized access to ride details" });
+    }
+
+    // Fetch Driver details if assigned
+    let driverData = null;
+    if (ride.driverId) {
+      try {
+        const { data: dProfile } = await axios.get(`${process.env.DRIVER_SERVICE_URL}/by-user/${ride.driverId}`);
+        driverData = {
+          id: dProfile.userId,
+          name: `${dProfile.fullname.firstname} ${dProfile.fullname.lastname}`,
+          vehicle: dProfile.vehicle,
+          phone: dProfile.phone || "N/A"
+        };
+      } catch (err) {
+        console.warn("Failed to fetch driver details for history:", err.message);
+      }
+    }
+
+    // Fetch Rider details
+    let ridersData = [];
+    if (ride.rideType === "POOL") {
+      const riderPromises = ride.riders.map(r => 
+        axios.get(`${process.env.RIDER_SERVICE_URL}/by-user/${r.riderId}`).then(res => res.data).catch(() => null)
+      );
+      ridersData = (await Promise.all(riderPromises))
+        .filter(r => r !== null)
+        .map(r => ({
+          id: r.rider.userId,
+          name: `${r.rider.name.first} ${r.rider.name.last}`,
+          phone: r.rider.phone || "N/A"
+        }));
+    } else {
+      try {
+        const { data: rProfile } = await axios.get(`${process.env.RIDER_SERVICE_URL}/by-user/${ride.riderId}`);
+        ridersData = [{
+          id: rProfile.rider.userId,
+          name: `${rProfile.rider.name.first} ${rProfile.rider.name.last}`,
+          phone: rProfile.rider.phone || "N/A"
+        }];
+      } catch (err) {
+        console.warn("Failed to fetch rider details for history:", err.message);
+      }
+    }
+
+    const payload = {
+      ...serializeRide(ride),
+      driver: driverData,
+      riders: ridersData,
+      // For backward compatibility on frontend
+      rider: ridersData[0] || null
+    };
+
+    res.json(payload);
+  } catch (err) {
+    console.error("getRideDetails error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
 };

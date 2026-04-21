@@ -25,6 +25,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
 import RideHistory from "./pages/RideHistory";
+import RideDetail from "./pages/RideDetail";
 import Services from "./pages/Services";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
@@ -167,6 +168,16 @@ export default function App() {
               <AuthenticatedLayout>
                 <RequireOnboarding>
                   <RideHistory />
+                </RequireOnboarding>
+              </AuthenticatedLayout>
+            }
+          />
+          <Route
+            path="/history/:id"
+            element={
+              <AuthenticatedLayout>
+                <RequireOnboarding>
+                  <RideDetail />
                 </RequireOnboarding>
               </AuthenticatedLayout>
             }

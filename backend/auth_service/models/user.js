@@ -25,7 +25,9 @@ const userSchema = new mongoose.Schema(
     onboarding: {
       rider: { type: Boolean, default: false },
       driver: { type: Boolean, default: false }
-    }
+    },
+
+    walletBalance: { type: Number, default: 1000 },
     
   },
   { timestamps: true }

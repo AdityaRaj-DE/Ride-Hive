@@ -139,6 +139,12 @@ const RideSchema = new mongoose.Schema(
       index: true,
     },
 
+    paymentMethod: {
+      type: String,
+      enum: ["CASH", "WALLET"],
+      default: "WALLET",
+    },
+
     // ---- Pricing ----
     priceEstimate: {
       type: Number,
