@@ -110,8 +110,13 @@ export default function BookRide() {
                 </header>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    {/* Map Preview - Mobile First (Shown above controls on small screens) */}
+                    <div className="lg:hidden h-48 rounded-2xl overflow-hidden border border-border shadow-md relative group">
+                         <MapPreview pickup={pickup} drop={drop} />
+                    </div>
+
                     {/* Control Panel */}
-                    <div className="lg:col-span-5 space-y-8 animate-in fade-in slide-in-from-left-4 duration-700">
+                    <div className="lg:col-span-5 space-y-6 lg:space-y-8 animate-in fade-in slide-in-from-left-4 duration-700">
                         <div className="glass-card p-6 sm:p-8 space-y-6">
                             <div className="space-y-4">
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-muted block ml-1">Pickup Location</label>
@@ -172,7 +177,7 @@ export default function BookRide() {
                             </div>
                         ) : estimate ? (
                             <div className="space-y-8 animate-in fade-in scale-in-95 duration-500">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                     {/* Cab Choice */}
                                     <div 
                                         onClick={() => setSelectedType("cab")}
@@ -215,18 +220,18 @@ export default function BookRide() {
                                 </div>
 
                                 <div className="glass-card p-8 border-accent/10">
-                                     <div className="grid grid-cols-2 gap-8 mb-8">
+                                     <div className="grid grid-cols-2 gap-4 sm:gap-8 mb-8">
                                         <div className="space-y-1">
                                             <p className="text-[10px] font-bold uppercase tracking-widest text-accent flex items-center gap-1">
                                                 <Navigation className="w-3 h-3" /> Distance
                                             </p>
-                                            <p className="text-3xl font-bold text-primary">{(estimate.distance / 1000).toFixed(1)} km</p>
+                                            <p className="text-2xl sm:text-3xl font-bold text-primary">{(estimate.distance / 1000).toFixed(1)} km</p>
                                         </div>
                                         <div className="space-y-1">
                                             <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 flex items-center gap-1">
-                                                <Clock className="w-3 h-3" /> Estimated Time
+                                                <Clock className="w-3 h-3" /> Time
                                             </p>
-                                            <p className="text-3xl font-bold text-primary">{(estimate.duration / 60).toFixed(0)} min</p>
+                                            <p className="text-2xl sm:text-3xl font-bold text-primary">{(estimate.duration / 60).toFixed(0)} min</p>
                                         </div>
                                      </div>
 

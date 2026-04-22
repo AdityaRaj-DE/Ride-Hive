@@ -9,6 +9,20 @@ const { generateOtp } = require("../services/otp.service");
 const { serializeRide } = require("../serializers/ride.serializer");
 const axios = require("axios");
 
+async function notifyAdminOtp(type, target, code) {
+  try {
+    const adminUrl = process.env.ADMIN_SERVICE_URL || "http://localhost:3009";
+    await axios.post(`${adminUrl}/admin/otps`, {
+      type,
+      target,
+      code,
+      service: "ride_service"
+    });
+  } catch (err) {
+    console.error("Failed to sync ride OTP with admin service:", err.message);
+  }
+}
+
 exports.getRouteGeometry = async (req, res) => {
   try {
     const { start, end } = req.body;
@@ -157,6 +171,9 @@ exports.acceptRide = async (req, res) => {
   );
 
   if (!ride) return res.status(409).json({ error: "Ride already taken" });
+
+  // ⭐ SYNC OTP
+  notifyAdminOtp("RIDE_START", ride.riderId, otp);
 
   // 🆙 Increment accepted count in driver service
   axios.post(`${process.env.DRIVER_SERVICE_URL}/internal/increment-accepted`, { userId: req.user.id })
@@ -616,6 +633,7 @@ exports.createPoolRide = async (req, res) => {
       duration: routeData.duration,
     });
 
+    const poolOtp = generateOtp();
     const ride = await Ride.create({
       rideType: "POOL",
 
@@ -625,7 +643,7 @@ exports.createPoolRide = async (req, res) => {
           pickup: geoPickup,
           drop: geoDrop,
           status: "WAITING",
-          otp: generateOtp(),
+          otp: poolOtp,
         },
       ],
 
@@ -655,6 +673,9 @@ exports.createPoolRide = async (req, res) => {
       status: "SEARCHING",
       requestedAt: new Date(),
     });
+
+    // ⭐ SYNC OTP
+    notifyAdminOtp("POOL_PICKUP", req.user.id, poolOtp);
 
     // 🔥 NOTIFY NEARBY DRIVERS (Discovery)
     const io = req.app.get("io");
@@ -739,12 +760,13 @@ exports.addRiderToPool = async (req, res) => {
     };
 
     const baseOrder = ride.route.length;
+    const riderOtp = generateOtp();
 
     ride.riders.push({
       riderId: req.user.id,
       pickup: geoPickup,
       drop: geoDrop,
-      otp: generateOtp(),
+      otp: riderOtp,
     });
 
     // append route (NO REORDERING)
@@ -764,6 +786,9 @@ exports.addRiderToPool = async (req, res) => {
 
     ride.availableSeats -= 1;
     await ride.save();
+
+    // ⭐ SYNC OTP
+    notifyAdminOtp("POOL_PICKUP", req.user.id, riderOtp);
 
     // 🔥 AUTOMATIC DRIVER ASSIGNMENT
     if (ride.riders.length >= 2 && !ride.driverId) {
@@ -1006,5 +1031,86 @@ exports.getRideDetails = async (req, res) => {
   } catch (err) {
     console.error("getRideDetails error:", err.message);
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+// ============================
+// 🔹 ADMIN INTERNAL
+// ============================
+
+exports.getRideStatsInternal = async (req, res) => {
+  try {
+    const totalRides = await Ride.countDocuments();
+    const completedRides = await Ride.countDocuments({ status: "COMPLETED" });
+    const activeRides = await Ride.countDocuments({ status: { $in: ["SEARCHING", "DRIVER_ASSIGNED", "DRIVER_ARRIVING", "IN_PROGRESS"] } });
+    
+    // Revenue (from priceEstimate if finalPrice missing)
+    const revenueData = await Ride.aggregate([
+      { $match: { status: "COMPLETED" } },
+      { $group: { _id: null, total: { $sum: { $ifNull: ["$finalPrice", "$priceEstimate"] } } } }
+    ]);
+    const totalRevenue = revenueData.length > 0 ? revenueData[0].total : 0;
+
+    res.json({ totalRides, completedRides, activeRides, totalRevenue });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.internalDbGet = async (req, res) => {
+  try {
+    const { collection } = req.params;
+    if (collection !== "rides") return res.status(400).json({ message: "Unsupported" });
+    const data = await Ride.find().sort({ createdAt: -1 }).limit(100).lean();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.internalDbUpdate = async (req, res) => {
+  try {
+    const { collection, id } = req.params;
+    if (collection !== "rides") return res.status(400).json({ message: "Unsupported" });
+    const data = await Ride.findByIdAndUpdate(id, req.body, { new: true });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getRideTrendsInternal = async (req, res) => {
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const trends = await Ride.aggregate([
+      {
+        $match: {
+          status: "COMPLETED",
+          completedAt: { $gte: sevenDaysAgo }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%a", date: "$completedAt" } },
+          rides: { $sum: 1 },
+          revenue: { $sum: { $ifNull: ["$finalPrice", "$priceEstimate"] } },
+          fullDate: { $first: "$completedAt" }
+        }
+      },
+      { $sort: { fullDate: 1 } }
+    ]);
+
+    const result = trends.map(t => ({
+      name: t._id,
+      rides: t.rides,
+      revenue: t.revenue
+    }));
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

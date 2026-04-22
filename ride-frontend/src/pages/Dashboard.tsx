@@ -17,7 +17,7 @@ export default function Dashboard() {
                 <div className="w-2 h-2 rounded-full bg-accent animate-pulse"></div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-accent">Personal Dashboard</p>
              </div>
-             <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-primary">
+             <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold tracking-tight text-primary leading-tight">
                Welcome back, <br />
                <span className="text-accent">{(user as any)?.name?.split(' ')[0] || 'Rider'}</span>
              </h1>
@@ -41,7 +41,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-24">
           <div 
             onClick={() => navigate("/book-ride")}
-            className="lg:col-span-8 relative min-h-[400px] sm:min-h-[480px] rounded-[2rem] bg-gradient-to-br from-accent to-blue-700 p-8 sm:p-12 text-white overflow-hidden group cursor-pointer shadow-xl animate-in fade-in slide-in-from-left-4 duration-700 transition-all hover:shadow-accent/20"
+            className="lg:col-span-8 relative min-h-[350px] sm:min-h-[480px] rounded-[1.5rem] sm:rounded-[2rem] bg-gradient-to-br from-accent to-blue-700 p-6 sm:p-12 text-white overflow-hidden group cursor-pointer shadow-xl animate-in fade-in slide-in-from-left-4 duration-700 transition-all hover:shadow-accent/20"
           >
              <div className="relative z-20 h-full flex flex-col justify-between">
                 <div className="space-y-8">
@@ -49,7 +49,7 @@ export default function Dashboard() {
                      <Navigation className="w-4 h-4" />
                      Instant Booking
                   </div>
-                  <h2 className="text-4xl sm:text-6xl font-bold tracking-tight leading-tight">
+                  <h2 className="text-2xl sm:text-4xl md:text-6xl font-bold tracking-tight leading-tight">
                      Request a ride <br />
                      <span className="text-white/60 group-hover:text-white transition-colors duration-500">to any destination.</span>
                   </h2>

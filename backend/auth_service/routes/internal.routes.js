@@ -22,4 +22,11 @@ router.patch(
   userController.updateWalletInternal
 );
 
+// ============================
+// 🔹 ADMIN INTERNAL
+// ============================
+router.get("/admin/internal/stats", internalOnly, userController.getUserStatsInternal);
+router.get("/admin/internal/db/:collection", internalOnly, userController.internalDbGet);
+router.put("/admin/internal/db/:collection/:id", internalOnly, userController.internalDbUpdate);
+
 module.exports = router;

@@ -13,12 +13,13 @@ const userSchema = new mongoose.Schema(
     roles: {
       rider: { type: Boolean, default: true },
       driver: { type: Boolean, default: false },
+      admin: { type: Boolean, default: false },
     },
 
     // Which UI to open after login
     activeRole: {
       type: String,
-      enum: ["rider", "driver"],
+      enum: ["rider", "driver", "admin"],
       default: "rider",
     },
 

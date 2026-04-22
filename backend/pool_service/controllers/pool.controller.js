@@ -1,7 +1,11 @@
-// controllers/pool.controller.js
-
 const axios = require("axios");
 const urls = require("../utils/serviceUrls");
+const { isMatch } = require("../services/match.service");
+
+// Dummy findNearbyPools for now
+const findNearbyPools = async (pickup) => {
+  return []; // Placeholder
+};
 
 exports.requestPool = async (req, res) => {
   try {

@@ -89,24 +89,24 @@ export default function Dashboard() {
       </div>
 
       {/* Main Header Interface */}
-      <nav className="absolute top-6 inset-x-4 sm:inset-x-8 z-40 flex items-center justify-between">
-         <div className="flex items-center gap-4">
+      <nav className="absolute top-4 sm:top-6 inset-x-4 sm:inset-x-8 z-40 flex items-center justify-between gap-2 sm:gap-4">
+         <div className="flex items-center gap-2 sm:gap-4">
             <Link 
               to="/driver/profile"
-              className="w-12 h-12 rounded-xl glass-card flex items-center justify-center text-primary hover:border-accent/30 transition-all active:scale-95 group overflow-hidden"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl glass-card flex items-center justify-center text-primary hover:border-accent/30 transition-all active:scale-95 group overflow-hidden"
             >
-               <User className="w-6 h-6 group-hover:text-accent transition-colors" />
+               <User className="w-5 h-5 sm:w-6 sm:h-6 group-hover:text-accent transition-colors" />
             </Link>
             
-            <div className="glass-card py-2.5 px-5 flex items-center gap-4 border-accent/10 sm:min-w-[200px]">
+            <div className="glass-card py-2 px-4 sm:py-2.5 sm:px-5 flex items-center gap-3 sm:gap-4 border-accent/10">
                <div className="relative">
-                  <div className={`w-2 h-2 rounded-full ${isOnline ? "bg-accent shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-muted"}`}></div>
+                  <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isOnline ? "bg-accent shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-muted"}`}></div>
                   {isOnline && <div className="absolute inset-0 bg-accent rounded-full animate-ping opacity-40"></div>}
                </div>
                <div className="flex-1">
-                  <h1 className="text-[10px] font-bold uppercase tracking-widest text-primary">Driver Hub</h1>
-                  <p className="text-[9px] font-bold text-muted uppercase tracking-wider">
-                     {isOnline ? (activeRide ? "On Trip" : "Active & Ready") : "Currently Offline"}
+                  <h1 className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-primary">Driver Hub</h1>
+                  <p className="text-[7px] sm:text-[9px] font-bold text-muted uppercase tracking-wider whitespace-nowrap">
+                     {isOnline ? (activeRide ? "On Trip" : "Ready") : "Offline"}
                   </p>
                </div>
             </div>
@@ -155,12 +155,12 @@ export default function Dashboard() {
                   </div>
                </div>
                
-               <div className="glass-card px-10 py-6 text-center shadow-xl space-y-2 max-w-sm animate-bounce">
+               <div className="glass-card px-6 sm:px-10 py-4 sm:py-6 text-center shadow-xl space-y-2 max-w-[280px] sm:max-w-sm animate-bounce">
                   <div className="flex items-center justify-center gap-3 text-accent">
                      <Activity className="w-4 h-4" />
                      <p className="text-[10px] font-bold uppercase tracking-widest">Scanning Grid</p>
                   </div>
-                  <p className="text-xl font-bold tracking-tight text-primary">Searching for passengers...</p>
+                  <p className="text-lg sm:text-xl font-bold tracking-tight text-primary">Searching for passengers...</p>
                </div>
             </div>
          </div>

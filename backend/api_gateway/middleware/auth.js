@@ -33,10 +33,17 @@ const requireRider = (req, res, next) => {
   next();
 };
 
+const requireAdmin = (req, res, next) => {
+  if (req.user.activeRole !== "admin" && !req.user.roles?.admin) {
+    return res.status(403).json({ message: "Requires admin privileges" });
+  }
+  next();
+};
+
 const requireDriver = (req, res, next) => {
   if (req.user.activeRole !== "driver") return res.status(403).json({ message: "Requires driver" });
   if (!req.user.onboarding?.driver) return res.status(403).json({ message: "Driver not onboarded" });
   next();
 };
 
-module.exports = { authenticate, requireRider, requireDriver };
+module.exports = { authenticate, requireRider, requireDriver, requireAdmin };

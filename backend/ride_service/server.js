@@ -16,7 +16,7 @@ const server = http.createServer(app);
 // Parse CORS origins from environment variable
 const corsOrigins = process.env.CORS_ORIGINS 
   ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
-  : ["https://localhost:5173", "https://localhost:5174", "https://10.54.225.195:5173", "https://10.54.225.195:5174"];
+  : ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://127.0.0.1:5175"];
 
 const { Server } = require('socket.io');
 const io = new Server(server, {

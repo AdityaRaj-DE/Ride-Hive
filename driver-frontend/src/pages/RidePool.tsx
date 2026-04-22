@@ -96,7 +96,7 @@ export default function RidePool() {
                   <div className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-accent">Active Service Loop</p>
                </div>
-               <h1 className="text-5xl md:text-8xl font-bold tracking-tight text-primary leading-tight">
+               <h1 className="text-2xl sm:text-4xl md:text-8xl font-bold tracking-tight text-primary leading-tight">
                  Pool <span className="text-accent">Operation</span>
                </h1>
             </div>
@@ -113,8 +113,8 @@ export default function RidePool() {
           </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-             <div className="lg:col-span-8 space-y-8 relative">
-                <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-accent/20 via-border to-accent/20"></div>
+             <div className="lg:col-span-8 space-y-4 sm:space-y-8 relative">
+                <div className="absolute left-6 sm:left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-accent/20 via-border to-accent/20"></div>
                 
                 {activeRide.route.map((stop: any, idx: number) => {
                   const riderNum = activeRide.riders.findIndex((r: any) => r.riderId === stop.riderId) + 1;
@@ -129,20 +129,20 @@ export default function RidePool() {
                         isActive ? "bg-background border-accent animate-pulse scale-125" : "bg-background border-border"
                       }`}></div>
 
-                      <div className={`glass-card p-8 border-accent/5 shadow-lg transition-all ml-16 flex flex-col md:flex-row items-center justify-between gap-8 ${
+                      <div className={`glass-card p-4 sm:p-8 border-accent/5 shadow-lg transition-all ml-12 sm:ml-16 flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 ${
                         isCompleted ? "opacity-30 grayscale scale-[0.98]" : 
                         isActive ? "border-accent/20 shadow-accent/5 scale-[1.02]" : "opacity-40"
                       }`}>
-                         <div className="flex items-center gap-8 flex-1 min-w-0">
-                            <div className={`w-16 h-16 rounded-xl flex items-center justify-center border shadow-sm ${
+                         <div className="flex items-center gap-4 sm:gap-8 flex-1 min-w-0 w-full">
+                            <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center border shadow-sm ${
                               stop.type === "PICKUP" ? "bg-accent/5 text-accent border-accent/10" : "bg-rose-500/5 text-rose-500 border-rose-500/10"
                             }`}>
-                               {stop.type === "PICKUP" ? <Navigation className="w-8 h-8" /> : <MapPin className="w-8 h-8" />}
+                               {stop.type === "PICKUP" ? <Navigation className="w-6 h-6 sm:w-8 sm:h-8" /> : <MapPin className="w-6 h-6 sm:w-8 sm:h-8" />}
                             </div>
 
                             <div className="space-y-1">
                                <p className={`text-[10px] font-bold uppercase tracking-widest ${stop.type === "PICKUP" ? "text-accent" : "text-rose-500"}`}>{stop.type} HUB</p>
-                               <h3 className="text-2xl font-bold tracking-tight text-primary uppercase">Passenger #{riderNum}</h3>
+                               <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-primary uppercase">Passenger #{riderNum}</h3>
                                <p className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40 truncate max-w-[200px]">LOC: {stop.location.coordinates[1].toFixed(5)}, {stop.location.coordinates[0].toFixed(5)}</p>
                             </div>
                          </div>
@@ -224,9 +224,9 @@ export default function RidePool() {
                  <ShieldCheck className="w-16 h-16 group-hover:scale-110 transition-transform" />
               </div>
 
-              <div className="space-y-4 mb-16">
-                 <h2 className="text-5xl font-bold uppercase tracking-tight text-primary">Identity <span className="text-accent underline decoration-4 underline-offset-8">Verify</span></h2>
-                 <p className="text-secondary font-medium text-base opacity-40 uppercase tracking-widest px-10">
+              <div className="space-y-4 mb-8 sm:mb-16">
+                 <h2 className="text-3xl sm:text-5xl font-bold uppercase tracking-tight text-primary leading-tight">Identity <span className="text-accent underline decoration-4 underline-offset-8">Verify</span></h2>
+                 <p className="text-secondary font-medium text-[10px] sm:text-base opacity-40 uppercase tracking-widest px-4 sm:px-10">
                    Input the 4-digit code provided by your passenger to authorize stop #{selectedStop?.order}.
                  </p>
               </div>
@@ -322,49 +322,48 @@ export default function RidePool() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-10">
             {availablePools.map((pool) => (
-              <div key={pool._id} className="glass-card p-12 border-accent/10 shadow-xl relative overflow-hidden group hover:border-accent/30 transition-all duration-500 rounded-[3.5rem] backdrop-blur-xl">
-                <div className="absolute top-0 right-0 p-10 flex flex-col items-end gap-4">
-                   <div className="bg-accent/10 text-accent border border-accent/20 px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-sm">
+              <div key={pool._id} className="glass-card p-8 sm:p-12 border-accent/10 shadow-xl relative overflow-hidden group hover:border-accent/30 transition-all duration-500 rounded-[2.5rem] sm:rounded-[3.5rem] backdrop-blur-xl">
+                <div className="absolute top-0 right-0 p-6 sm:p-10 flex flex-col items-end gap-4">
+                   <div className="bg-accent/10 text-accent border border-accent/20 px-4 sm:px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-sm">
                        <Users className="w-3.5 h-3.5" />
-                       {pool.riders.length}/4 Payload
+                       {pool.riders.length}/4
                    </div>
                 </div>
 
-                <header className="mb-12">
-                   <p className="text-[9px] font-bold uppercase tracking-widest text-accent mb-4 opacity-60">Estimated Yield</p>
+                <header className="mb-8 sm:mb-12">
+                   <p className="text-[9px] font-bold uppercase tracking-widest text-accent mb-2 sm:mb-4 opacity-60">Estimated Yield</p>
                    <div className="flex items-baseline gap-4">
-                      <span className="text-7xl font-bold text-primary tracking-tighter group-hover:text-accent transition-colors">₹{pool.priceEstimate}</span>
-                      <p className="text-[10px] font-bold text-muted uppercase tracking-widest opacity-30 italic">Priority Loop</p>
+                      <span className="text-5xl sm:text-7xl font-bold text-primary tracking-tighter group-hover:text-accent transition-colors">₹{pool.priceEstimate}</span>
                    </div>
                 </header>
 
-                <div className="space-y-8 mb-12 relative pl-8">
+                <div className="space-y-6 sm:space-y-8 mb-8 sm:mb-12 relative pl-8">
                    <div className="absolute left-1.5 top-2 bottom-2 w-0.5 bg-gradient-to-b from-accent via-border to-accent/20"></div>
                    
-                   <div className="space-y-2 group/loc">
+                   <div className="space-y-1 sm:space-y-2 group/loc">
                       <div className="flex items-center gap-4">
-                         <div className="w-3 h-3 rounded-full bg-accent shadow-[0_0_10px_rgba(16,185,129,1)]"></div>
-                         <p className="text-[9px] font-bold uppercase tracking-widest text-muted opacity-40 leading-none">Origin Ingest</p>
+                         <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-accent shadow-[0_0_10px_rgba(16,185,129,1)]"></div>
+                         <p className="text-[9px] font-bold uppercase tracking-widest text-muted opacity-40 leading-none">Origin</p>
                       </div>
-                      <p className="text-xl font-semibold truncate text-primary/80 italic pl-7">GRID: {pool.route[0]?.location.coordinates[1].toFixed(5)}, {pool.route[0]?.location.coordinates[0].toFixed(5)}</p>
+                      <p className="text-lg sm:text-xl font-semibold truncate text-primary/80 italic pl-7">GRID: {pool.route[0]?.location.coordinates[1].toFixed(4)}, {pool.route[0]?.location.coordinates[0].toFixed(4)}</p>
                    </div>
 
-                   <div className="space-y-2 group/loc">
+                   <div className="space-y-1 sm:space-y-2 group/loc">
                       <div className="flex items-center gap-4">
-                         <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-                         <p className="text-[9px] font-bold uppercase tracking-widest text-muted opacity-40 leading-none">Discharge Hub</p>
+                         <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-rose-500"></div>
+                         <p className="text-[9px] font-bold uppercase tracking-widest text-muted opacity-40 leading-none">Hub</p>
                       </div>
-                      <p className="text-xl font-semibold truncate text-primary/80 italic pl-7">GRID: {pool.route[pool.route.length - 1]?.location.coordinates[1].toFixed(5)}, {pool.route[pool.route.length - 1]?.location.coordinates[0].toFixed(5)}</p>
+                      <p className="text-lg sm:text-xl font-semibold truncate text-primary/80 italic pl-7">GRID: {pool.route[pool.route.length - 1]?.location.coordinates[1].toFixed(4)}, {pool.route[pool.route.length - 1]?.location.coordinates[0].toFixed(4)}</p>
                    </div>
                 </div>
 
                 <button 
                   onClick={() => handleAcceptPool(pool._id)}
-                  className="btn-primary w-full h-16 text-sm gap-4"
+                  className="btn-primary w-full h-14 sm:h-16 text-xs sm:text-sm gap-4"
                 >
-                   <span>Engage Operation Cluster</span>
+                   <span>Engage Operation</span>
                    <Globe className="w-6 h-6" />
                 </button>
               </div>

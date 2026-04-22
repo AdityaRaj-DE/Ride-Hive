@@ -4,19 +4,33 @@
     "start:rider": "cd backend/rider_service && nodemon server.js",
     "start:driver": "cd backend/driver_service && nodemon server.js",
     "start:ride": "cd backend/ride_service && nodemon server.js",
+    "start:pool": "cd backend/pool_service && nodemon server.js",
+    "start:admin": "cd backend/admin_service && nodemon server.js",
     "start:payment": "cd backend/payment_service && nodemon server.js",
     "start:notification": "cd backend/notification_service && nodemon server.js",
     "start:feedback": "cd backend/feedback_service && nodemon server.js",
     "start:gateway": "cd backend/api_gateway && nodemon server.js",
     "start:Riderfrontend": "cd ride-frontend && npm run dev -- --host",
     "start:Driverfrontend": "cd driver-frontend && npm run dev -- --host",
-    "start:frontend": "concurrently \"npm run start:Riderfrontend\" \"npm run start:Driverfrontend\" ",
-    "start:all": "concurrently \"npm run start:auth\" \"npm run start:rider\" \"npm run start:driver\" \"npm run start:ride\" \"npm run start:payment\" \"npm run start:notification\" \"npm run start:feedback\" \"npm run start:gateway\" "
+    "start:Adminfrontend": "cd admin-frontend && npm run dev -- --host",
+    "start:frontend": "concurrently \"npm run start:Riderfrontend\" \"npm run start:Driverfrontend\" \"npm run start:Adminfrontend\"",
+    "start:all": "concurrently \"npm run start:auth\" \"npm run start:rider\" \"npm run start:driver\" \"npm run start:ride\" \"npm run start:pool\" \"npm run start:admin\" \"npm run start:payment\" \"npm run start:notification\" \"npm run start:feedback\" \"npm run start:gateway\""
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
   },
   "dependencies": {
-    "socket.io-client": "^4.8.3"
+    "@tailwindcss/vite": "^4.2.3",
+    "autoprefixer": "^10.5.0",
+    "axios": "^1.15.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.8.0",
+    "postcss": "^8.5.10",
+    "react-router-dom": "^7.14.1",
+    "recharts": "^3.8.1",
+    "socket.io-client": "^4.8.3",
+    "tailwindcss": "^4.2.3"
   }
 }

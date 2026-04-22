@@ -1,72 +1,95 @@
-import React, { useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { sendOtp, verifyOtp, fetchMe } from "../store/authSlice";
-import type { RootState, AppDispatch } from "../store";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Phone, Lock, ArrowRight, ShieldCheck, Zap, Globe, Activity } from 'lucide-react';
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 export default function Login() {
-  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-
-  const { loading, error, otpSent, user } = useSelector(
-    (state: RootState) => state.auth
-  );
 
   const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const submitMobile = (e: React.FormEvent) => {
+  const AUTH_URL = import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:3001';
+
+  const submitMobile = async (e: React.FormEvent) => {
     e.preventDefault();
-    dispatch(sendOtp(mobile));
+    setLoading(true);
+    try {
+      await axios.post(`${AUTH_URL}/otp/send`, { mobileNumber: mobile });
+      setOtpSent(true);
+      toast.success("OTP sent to your mobile");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const submitOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await dispatch(verifyOtp({ mobile, otp }));
-    if (verifyOtp.fulfilled.match(result)) {
-      dispatch(fetchMe());
+    setLoading(true);
+    try {
+      const res = await axios.post(`${AUTH_URL}/otp/verify`, { 
+        mobileNumber: mobile, 
+        otp, 
+        deviceId: 'admin-console-' + Math.random().toString(36).slice(2, 9)
+      });
+      
+      const { user, accessToken } = res.data;
+
+      // Verify if user is actually an admin
+      if (user.roles?.admin !== true) {
+        toast.error("Access Denied: Admin privileges required");
+        return;
+      }
+
+      // Store in localStorage
+      localStorage.setItem('adminToken', accessToken);
+      localStorage.setItem('adminUser', JSON.stringify(user));
+      
+      toast.success(`Welcome, Admin ${user.mobileNumber}`);
+      navigate("/dashboard");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Verification failed");
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      if (!user.onboarding?.rider) {
-        navigate("/onboarding");
-      } else {
-        navigate("/dashboard");
-      }
-    }
-  }, [user, navigate]);
-
   return (
-    <div className="min-h-screen text-primary flex items-center justify-center p-6 sm:p-10">
+    <div className="min-h-screen text-primary flex items-center justify-center p-6 sm:p-10 bg-background">
+      {/* Background Gradients */}
+      <div className="fixed top-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 blur-[120px] rounded-full pointer-events-none" />
+      
       <div className="w-full max-w-xl relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <header className="text-center mb-12 space-y-6">
           <div className="w-20 h-20 bg-accent rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-lg shadow-accent/20 rotate-6 hover:rotate-0 transition-transform duration-700 border border-white/10">
              <Zap className="w-10 h-10 text-white fill-current" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-primary leading-tight">
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-primary leading-tight font-display">
               Ride<span className="text-accent">Hive</span>
             </h1>
-            <p className="text-secondary text-base font-medium opacity-60">
-              Premium Mobility Solutions for the Modern Professional.
+            <p className="text-secondary text-base font-medium opacity-60 uppercase tracking-widest text-[10px]">
+              Centarlized Administration Console
             </p>
           </div>
         </header>
 
-        <div className="glass-card p-6 sm:p-10 md:p-12 border-accent/10 shadow-xl backdrop-blur-xl relative overflow-hidden">
+        <div className="glass-card p-10 md:p-12 border-accent/10 shadow-xl backdrop-blur-xl relative overflow-hidden">
            <div className="absolute top-0 right-0 p-8 opacity-[0.02] pointer-events-none rotate-12">
               <Globe className="w-48 h-48 text-accent" />
            </div>
 
           <header className="mb-10 text-center space-y-2">
             <h2 className="text-2xl font-bold tracking-tight text-primary">
-              {otpSent ? "Verify Identity" : "Welcome Back"}
+              {otpSent ? "Identity Verification" : "Admin Secure Portal"}
             </h2>
             <p className="text-[10px] font-bold uppercase tracking-widest text-accent opacity-60">
-              {otpSent ? "Verification code sent to mobile" : "Sign in to access your dashboard"}
+              {otpSent ? "Verification code sent to administrative mobile" : "Sign in to access secure infrastructure"}
             </p>
           </header>
 
@@ -75,26 +98,20 @@ export default function Login() {
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-[10px] font-bold text-accent uppercase tracking-widest ml-1">
                    <div className="w-2 h-2 rounded-full bg-accent"></div>
-                   Mobile Number
+                   Authorized Mobile
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted opacity-20" />
                   <input
                     type="tel"
                     placeholder="+91 98765 43210"
-                    className="w-full pl-16 pr-6 py-4 bg-surface border border-border rounded-xl outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/10 transition-all font-bold text-lg text-primary placeholder:text-muted/10 tracking-wider"
+                    className="w-full pl-16 pr-6 py-4 bg-surface/30 border border-border rounded-xl outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/10 transition-all font-bold text-lg text-primary placeholder:text-muted/10 tracking-wider"
+                    value={mobile}
                     onChange={(e) => setMobile(e.target.value)}
                     required
                   />
                 </div>
               </div>
-
-              {error && (
-                <div className="p-4 rounded-xl bg-rose-500/5 border border-rose-500/10 text-rose-500 text-[10px] font-bold uppercase tracking-widest animate-in slide-in-from-top-2 duration-500 flex items-center gap-3">
-                   <div className="w-1.5 h-4 bg-rose-500 rounded-full"></div>
-                   Error: {error}
-                </div>
-              )}
 
               <button
                 disabled={loading}
@@ -103,11 +120,11 @@ export default function Login() {
                 {loading ? (
                   <div className="flex items-center gap-3">
                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                     <span>Connecting...</span>
+                     <span>Validating...</span>
                   </div>
                 ) : (
                   <>
-                    <span>Continue</span>
+                    <span>Proceed to Verification</span>
                     <ArrowRight className="w-5 h-5" />
                   </>
                 )}
@@ -118,27 +135,21 @@ export default function Login() {
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-[10px] font-bold text-accent uppercase tracking-widest ml-1">
                    <div className="w-2 h-2 rounded-full bg-accent"></div>
-                   Security Code
+                   Administrative OTP
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted opacity-20" />
                   <input
                     type="text"
                     placeholder="      OTP"
-                    className="w-full px-6 py-6 bg-surface border border-border rounded-xl outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/10 transition-all font-bold text-4xl text-center tracking-[0.4em] text-accent placeholder:text-muted/10"
+                    className="w-full px-6 py-6 bg-surface/30 border border-border rounded-xl outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/10 transition-all font-bold text-4xl text-center tracking-[0.4em] text-accent placeholder:text-muted/10"
+                    value={otp}
                     onChange={(e) => setOtp(e.target.value)}
                     maxLength={6}
                     required
                   />
                 </div>
               </div>
-
-              {error && (
-                <div className="p-4 rounded-xl bg-rose-500/5 border border-rose-500/10 text-rose-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-3">
-                   <div className="w-1.5 h-4 bg-rose-500 rounded-full"></div>
-                   Code Mismatch: {error}
-                </div>
-              )}
 
               <button
                 disabled={loading}
@@ -147,11 +158,11 @@ export default function Login() {
                 {loading ? (
                   <div className="flex items-center gap-3">
                      <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                     <span>Verifying...</span>
+                     <span>Verifying Admin...</span>
                   </div>
                 ) : (
                   <>
-                    <span>Verify & Login</span>
+                    <span>Unlock Dashboard</span>
                     <ShieldCheck className="w-5 h-5" />
                   </>
                 )}
@@ -159,11 +170,11 @@ export default function Login() {
               
               <button 
                 type="button"
-                onClick={() => window.location.reload()}
+                onClick={() => setOtpSent(false)}
                 className="w-full py-2 text-[9px] font-bold text-secondary uppercase tracking-widest hover:text-accent transition-all flex items-center justify-center gap-2 opacity-40 hover:opacity-100"
               >
                 <Activity className="w-3.5 h-3.5" />
-                Resend Verification Code
+                Change Mobile Number
               </button>
             </form>
           )}
@@ -171,7 +182,7 @@ export default function Login() {
       </div>
       
       <footer className="fixed bottom-8 left-1/2 -translate-x-1/2 text-center opacity-20 w-full px-6">
-         <p className="text-[9px] font-bold uppercase tracking-widest text-muted">Hive OS • Secure Session Management</p>
+         <p className="text-[9px] font-bold uppercase tracking-widest text-muted">Core Infrastructure Security • Node Admin v1.0</p>
       </footer>
     </div>
   );

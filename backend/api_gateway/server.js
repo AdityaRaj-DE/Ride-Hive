@@ -9,7 +9,11 @@ const setupProxies = require("./routes/proxy");
 
 const app = express();
 app.use(morgan("dev"));
-app.use(cors({ origin: true, credentials: true }));
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
+  : ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"];
+
+app.use(cors({ origin: corsOrigins, credentials: true }));
 
 app.get("/", (_, res) => res.send("Gateway OK"));
 

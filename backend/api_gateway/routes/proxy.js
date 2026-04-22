@@ -1,6 +1,6 @@
 const { createProxyMiddleware } = require("http-proxy-middleware");
 const urls = require("../utils/serviceUrls");
-const { authenticate, requireRider, requireDriver } = require("../middleware/auth");
+const { authenticate, requireRider, requireDriver, requireAdmin } = require("../middleware/auth");
 
 module.exports = function setupProxies(app) {
 
@@ -188,6 +188,26 @@ module.exports = function setupProxies(app) {
               } else {
                 console.warn("Gateway Proxy: req.user or req.user.id missing");
               }
+              const auth = req.headers.authorization || req.headers.Authorization;
+              if (auth) proxyReq.setHeader("Authorization", auth);
+            }
+          }
+        })
+      );
+
+      // ============================
+      // 🔹 ADMIN SERVICE
+      // ============================
+      app.use(
+        "/admin",
+        authenticate,
+        requireAdmin,
+        createProxyMiddleware({
+          target: urls.admin,
+          changeOrigin: true,
+          pathRewrite: { "^/admin": "" },
+          on: {
+            proxyReq: (proxyReq, req, res) => {
               const auth = req.headers.authorization || req.headers.Authorization;
               if (auth) proxyReq.setHeader("Authorization", auth);
             }

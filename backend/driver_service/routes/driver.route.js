@@ -122,4 +122,13 @@ router.post("/internal/increment-offers", driverController.incrementOffers);
 router.post("/internal/increment-accepted", driverController.incrementAccepted);
 router.patch("/:id/earnings", driverController.updateEarnings);
 
+// ============================
+// 🔹 ADMIN INTERNAL
+// ============================
+router.get("/admin/internal/drivers/pending", driverController.getPendingDrivers);
+router.post("/admin/internal/drivers/approve/:userId", driverController.approveDriverByUserId);
+router.get("/admin/internal/db/:collection", driverController.internalDbGet);
+router.put("/admin/internal/db/:collection/:id", driverController.internalDbUpdate);
+router.get("/admin/internal/stats", driverController.getDriverStatsInternal);
+
 module.exports = router;

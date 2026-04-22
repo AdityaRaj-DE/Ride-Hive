@@ -737,6 +737,7 @@ module.exports.approveDriver = async (req, res) => {
 
 
 
+
 module.exports.rejectDriver = async (req, res) => {
   const { driverId } = req.params;
   const { reason } = req.body;
@@ -814,5 +815,80 @@ exports.updateEarnings = async (req, res) => {
   } catch (err) {
     console.error("updateEarnings error:", err.message);
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+// ============================
+// 🔹 ADMIN INTERNAL
+// ============================
+
+exports.getPendingDrivers = async (req, res) => {
+  try {
+    const drivers = await Driver.find({ status: "pending_review" }).lean();
+    res.json(drivers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.approveDriverByUserId = async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const driver = await Driver.findOne({ userId });
+      if (!driver) return res.status(404).json({ message: "Driver not found" });
+  
+      // reuse the logic from approveDriver mostly
+      driver.status = "approved";
+      driver.verification.licenseVerified = true;
+      driver.verification.vehicleVerified = true;
+      driver.verification.backgroundCheckPassed = true;
+      driver.onboarding.completed = true;
+      driver.onboarding.step = "done";
+  
+      await driver.save();
+      await markDriverOnboardedInAuth(userId);
+  
+      res.json({ success: true, message: "Driver approved" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+};
+
+exports.internalDbGet = async (req, res) => {
+  try {
+    const { collection } = req.params;
+    // For now only allow Driver collection
+    if (collection !== "drivers") return res.status(400).json({ message: "Unsupported collection" });
+    const data = await Driver.find().limit(100).lean();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.internalDbUpdate = async (req, res) => {
+  try {
+    const { collection, id } = req.params;
+    if (collection !== "drivers") return res.status(400).json({ message: "Unsupported collection" });
+    const data = await Driver.findByIdAndUpdate(id, req.body, { new: true });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getDriverStatsInternal = async (req, res) => {
+  try {
+    const totalDrivers = await Driver.countDocuments();
+    const onlineDrivers = await Driver.countDocuments({ isAvailable: true, status: "approved" });
+    const pendingReviewCount = await Driver.countDocuments({ status: "pending_review" });
+    
+    res.json({
+      totalDrivers,
+      onlineDrivers,
+      pendingReviewCount
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

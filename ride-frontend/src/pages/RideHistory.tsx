@@ -58,7 +58,7 @@ const RideHistory: React.FC = () => {
                 <div className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-accent">Activity Logs</p>
              </div>
-             <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-primary leading-tight">
+             <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold tracking-tight text-primary leading-tight">
                 Ride <span className="text-accent">History</span>
              </h1>
           </div>
@@ -82,78 +82,60 @@ const RideHistory: React.FC = () => {
             {rides.map((ride, idx) => (
               <div 
                 key={ride._id} 
-                className="glass-card p-8 border-accent/10 shadow-xl relative overflow-hidden group hover:border-accent/30 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4"
+                className="glass-card p-5 sm:p-8 border-accent/10 shadow-xl relative overflow-hidden group hover:border-accent/30 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4"
                 style={{ animationDelay: `${idx * 100}ms` }}
               >
-                <div className="absolute top-0 right-0 p-8 flex flex-col items-end gap-3 text-right">
-                  <div className="flex flex-col items-end">
-                    <span className={`text-3xl font-bold tracking-tighter ${ride.status.includes('CANCELLED') ? 'text-muted/30 line-through' : 'text-accent'}`}>
-                      ₹{ride.finalPrice || ride.price || 0}
-                    </span>
-                    {ride.isReduced && (
-                      <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 mt-1">
-                        Fare Adjusted
-                      </span>
-                    )}
-                  </div>
+                <div className="md:absolute top-0 right-0 p-0 md:p-8 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-start gap-3 text-right mb-6 md:mb-0">
                   <div className={`px-4 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border ${
                     ride.status.includes('CANCELLED') 
                     ? 'bg-rose-500/5 text-rose-500 border-rose-500/10' 
                     : 'bg-accent/5 text-accent border-accent/10'
-                  }`}>
+                  } order-2 md:order-1`}>
                     {ride.status.replace(/_/g, ' ')}
                   </div>
-                </div>
-
-                <div className="flex flex-col md:flex-row gap-8 items-start md:items-center mb-10">
-                  <div className="flex items-center gap-6">
-                    <div className={`w-16 h-16 rounded-xl flex items-center justify-center border shadow-sm transition-all group-hover:scale-105 ${
-                       ride.status.includes('CANCELLED') ? 'bg-rose-500/5 text-rose-500 border-rose-500/10' : 'bg-accent/5 text-accent border-accent/10'
-                    }`}>
-                       <Calendar className="w-8 h-8" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-2xl font-bold tracking-tight text-primary uppercase">
-                         {ride.createdAt || ride.requestedAt 
-                           ? !isNaN(new Date(ride.createdAt || ride.requestedAt || '').getTime()) 
-                             ? format(new Date(ride.createdAt || ride.requestedAt || ''), 'MMM dd, HH:mm')
-                             : 'Invalid Date'
-                           : 'Recent Trip'}
-                      </p>
-                      <div className="flex items-center gap-4 opacity-40">
-                         <p className="text-[10px] font-bold uppercase tracking-widest">{ride.rideType === 'POOL' ? 'Shared Pool' : 'Solo Journey'}</p>
-                      </div>
-                    </div>
+                  <div className="flex flex-col items-start md:items-end order-1 md:order-2">
+                    <span className={`text-2xl sm:text-3xl font-bold tracking-tighter ${ride.status.includes('CANCELLED') ? 'text-muted/30 line-through' : 'text-accent'}`}>
+                      ₹{ride.finalPrice || ride.price || 0}
+                    </span>
                   </div>
-                  
-                  {ride.status === 'COMPLETED' && (
-                    <div className="flex items-center gap-2 text-accent bg-accent/5 px-4 py-1.5 rounded-xl border border-accent/10">
-                       {[...Array(5)].map((_, i) => (
-                         <Star key={i} className={`w-3.5 h-3.5 fill-current`} />
-                       ))}
-                       <span className="text-xs font-bold ml-1 text-primary">5.0</span>
-                    </div>
-                  )}
                 </div>
 
-                <div className="space-y-8 relative pl-8 py-2 mb-10">
+                <div className="flex flex-row gap-4 sm:gap-8 items-center mb-6 sm:mb-10">
+                  <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center border shadow-sm transition-all group-hover:scale-105 ${
+                     ride.status.includes('CANCELLED') ? 'bg-rose-500/5 text-rose-500 border-rose-500/10' : 'bg-accent/5 text-accent border-accent/10'
+                  }`}>
+                     <Calendar className="w-6 h-6 sm:w-8 sm:h-8" />
+                  </div>
+                  <div className="space-y-0.5 sm:space-y-1 pr-16 md:pr-0">
+                    <p className="text-base sm:text-2xl font-bold tracking-tight text-primary uppercase leading-tight">
+                       {ride.createdAt || ride.requestedAt 
+                         ? !isNaN(new Date(ride.createdAt || ride.requestedAt || '').getTime()) 
+                           ? format(new Date(ride.createdAt || ride.requestedAt || ''), 'MMM dd, HH:mm')
+                           : 'Recent Trip'
+                         : 'Recent Trip'}
+                    </p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">{ride.rideType === 'POOL' ? 'Shared Pool' : 'Solo Journey'}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6 relative pl-8 py-2 mb-8 sm:mb-10">
                   <div className="absolute left-2.5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-accent/40 via-accent/5 to-accent/40"></div>
                   
-                  <div className="flex items-start gap-6 group/loc">
-                    <div className="mt-1.5 w-3 h-3 rounded-full bg-accent shadow-[0_0_5px_rgba(99,102,241,0.5)]"></div>
+                  <div className="flex items-start gap-4 sm:gap-6 group/loc">
+                    <div className="mt-1.5 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-accent shadow-[0_0_5px_rgba(99,102,241,0.5)]"></div>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-muted opacity-40 mb-1">Pickup Location</p>
-                      <p className="text-base font-semibold text-primary/80 truncate leading-tight uppercase">
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-muted opacity-40 mb-0.5">Pickup</p>
+                      <p className="text-sm sm:text-base font-semibold text-primary/80 truncate leading-tight uppercase">
                           {ride.pickup?.label || `Point [${ride.pickup?.lat?.toFixed(4) || 0}, ${ride.pickup?.lng?.toFixed(4) || 0}]`}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-6 group/loc">
-                    <div className="mt-1.5 w-3 h-3 rounded-full bg-indigo-400"></div>
+                  <div className="flex items-start gap-4 sm:gap-6 group/loc">
+                    <div className="mt-1.5 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-indigo-400"></div>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-muted opacity-40 mb-1">Destination</p>
-                      <p className="text-base font-semibold text-primary/80 truncate leading-tight uppercase">
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-muted opacity-40 mb-0.5">Destination</p>
+                      <p className="text-sm sm:text-base font-semibold text-primary/80 truncate leading-tight uppercase">
                          {ride.drop?.label || `Point [${ride.drop?.lat?.toFixed(4) || 0}, ${ride.drop?.lng?.toFixed(4) || 0}]`}
                       </p>
                     </div>
@@ -164,8 +146,14 @@ const RideHistory: React.FC = () => {
                    <div className="flex items-center gap-8">
                       <div className="flex items-center gap-3 text-muted opacity-40">
                         <CreditCard className="w-4 h-4" />
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-primary font-bold">₹{ride.status.includes('CANCELLED') ? '0' : (ride.finalPrice || ride.price || 0)}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-primary">₹{ride.status.includes('CANCELLED') ? '0' : (ride.finalPrice || ride.price || 0)}</span>
                       </div>
+                      {ride.status === 'COMPLETED' && (
+                        <div className="flex items-center gap-2 text-accent">
+                           <Star className="w-3.5 h-3.5 fill-current" />
+                           <span className="text-xs font-bold text-primary">5.0</span>
+                        </div>
+                      )}
                    </div>
                    <button 
                       onClick={() => navigate(`/history/${ride.rideId || ride._id}`)}

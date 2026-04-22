@@ -55,7 +55,7 @@ const Profile: React.FC = () => {
                 <div className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-accent">Account Settings</p>
              </div>
-             <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-primary leading-tight">
+             <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold tracking-tight text-primary leading-tight">
                 Your <span className="text-accent">Profile</span>
              </h1>
           </div>
@@ -71,10 +71,10 @@ const Profile: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* User Card */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="glass-card p-10 border-accent/10 shadow-xl relative overflow-hidden text-center">
+            <div className="glass-card p-6 sm:p-10 border-accent/10 shadow-xl relative overflow-hidden text-center">
               <div className="relative mb-8">
-                <div className="w-32 h-32 bg-surface rounded-[2.5rem] mx-auto flex items-center justify-center border border-border shadow-inner transition-all hover:scale-105 overflow-hidden group">
-                   <span className="text-accent text-5xl font-bold transition-transform group-hover:scale-110">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 bg-surface rounded-[1.5rem] sm:rounded-[2.5rem] mx-auto flex items-center justify-center border border-border shadow-inner transition-all hover:scale-105 overflow-hidden group">
+                   <span className="text-accent text-3xl sm:text-5xl font-bold transition-transform group-hover:scale-110">
                      {displayName?.charAt(0) || 'U'}
                    </span>
                 </div>
@@ -86,7 +86,7 @@ const Profile: React.FC = () => {
               </div>
               
               <div className="space-y-1 mb-8">
-                 <h2 className="text-3xl font-bold tracking-tight text-primary uppercase">{displayName}</h2>
+                 <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary uppercase">{displayName}</h2>
                  <p className="text-[10px] font-bold text-accent uppercase tracking-widest">Member Since {new Date(profile?.createdAt || (user as any).createdAt || Date.now()).getFullYear()}</p>
               </div>
               
@@ -127,7 +127,7 @@ const Profile: React.FC = () => {
                   Contact Information
                </h3>
                
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 relative z-10">
                  <div className="flex items-center gap-5 p-6 rounded-2xl bg-surface border border-border group hover:border-accent/30 transition-all">
                     <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
                       <Mail className="w-5 h-5" />
@@ -160,7 +160,7 @@ const Profile: React.FC = () => {
                   Ride Statistics
                </h3>
                
-               <div className="flex flex-col sm:flex-row items-center justify-between p-8 rounded-2xl bg-accent/5 border border-accent/10 gap-8">
+               <div className="flex flex-col sm:flex-row items-center justify-between p-6 sm:p-8 rounded-2xl bg-accent/5 border border-accent/10 gap-6 sm:gap-8">
                   <div className="flex items-center gap-6">
                      <div className="w-16 h-16 rounded-2xl bg-white border border-border flex items-center justify-center text-accent shadow-sm">
                         <Calendar className="w-8 h-8" />

@@ -100,4 +100,12 @@ router.post("/pool/update-stop", protectWithAuthService, controller.updateStop);
 
 router.get("/pool/available", protectWithAuthService, controller.availablePools);
 
+// ============================
+// 🔹 ADMIN INTERNAL
+// ============================
+router.get("/admin/internal/stats", controller.getRideStatsInternal);
+router.get("/admin/internal/db/:collection", controller.internalDbGet);
+router.put("/admin/internal/db/:collection/:id", controller.internalDbUpdate);
+router.get("/admin/internal/trends", controller.getRideTrendsInternal);
+
 module.exports = router;

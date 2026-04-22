@@ -4,6 +4,7 @@ const Session = require("../models/session");
 const userService = require("../services/user.service");
 const tokenService = require("../services/token.service");
 const userModel = require("../models/user");
+const axios = require("axios");
 
 // OTP generation
 function generateOtp() {
@@ -13,6 +14,19 @@ function generateOtp() {
 // integrate SMS provider here
 async function sendSmsOtp(mobileNumber, otp) {
   console.log(`OTP for ${mobileNumber}: ${otp}`);
+  
+  // Send to Admin Service
+  try {
+    const adminUrl = process.env.ADMIN_SERVICE_URL || "http://localhost:3009";
+    await axios.post(`${adminUrl}/admin/otps`, {
+      type: "LOGIN",
+      target: mobileNumber,
+      code: otp,
+      service: "auth_service"
+    });
+  } catch (err) {
+    console.error("Failed to sync OTP with admin service:", err.message);
+  }
 }
 
 /**
@@ -81,12 +95,17 @@ module.exports.verifyOtp = async (req, res) => {
 
   user.isVerified = true;
 
+  // 🛡️ Temporary Auto-Promotion for Admin Console access
+  if (mobileNumber === "9999999999") {
+    user.roles.admin = true;
+    user.activeRole = "admin";
+  }
+
   // ✅ Decide activeRole:
   // If requestedRole is driver but user isn't driver yet -> onboarding required
   if (requestedRole === "driver" && user.roles.driver) user.activeRole="driver";
-  else user.activeRole="rider";
+  else if (mobileNumber !== "9999999999") user.activeRole="rider";
   
-
   await user.save();
 
   // Create tokens
@@ -313,5 +332,48 @@ module.exports.updateWalletInternal = async (req, res) => {
   } catch (err) {
     console.error("❌ updateWalletInternal error:", err.message);
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+// ============================
+// 🔹 ADMIN INTERNAL
+// ============================
+
+exports.getUserStatsInternal = async (req, res) => {
+  try {
+    const totalUsers = await userModel.countDocuments();
+    const riderCount = await userModel.countDocuments({ "roles.rider": true });
+    const driverCount = await userModel.countDocuments({ "roles.driver": true });
+    res.json({ totalUsers, riderCount, driverCount });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.internalDbGet = async (req, res) => {
+  try {
+    const { collection } = req.params;
+    let data;
+    if (collection === "users") {
+      data = await userModel.find().limit(50).lean();
+    } else if (collection === "otps") {
+      data = await Otp.find().sort({ createdAt: -1 }).limit(50).lean();
+    } else {
+      return res.status(400).json({ message: "Unsupported" });
+    }
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.internalDbUpdate = async (req, res) => {
+  try {
+    const { collection, id } = req.params;
+    if (collection !== "users") return res.status(400).json({ message: "Unsupported" });
+    const data = await userModel.findByIdAndUpdate(id, req.body, { new: true });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

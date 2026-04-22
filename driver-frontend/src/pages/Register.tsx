@@ -6,21 +6,15 @@ import React, {
 import { Link, useNavigate } from "react-router-dom";
 import { axiosInstance } from "../services/axiosInstance";
 import { 
-  User, 
-  Users,
-  Mail, 
-  Phone, 
-  CreditCard, 
-  Car, 
   ArrowRight, 
   ArrowLeft, 
   ShieldCheck, 
-  Lock, 
   Activity, 
   Globe, 
   CheckCircle2,
   Sparkles,
-  Fingerprint
+  Fingerprint,
+  Zap
 } from 'lucide-react';
 
 type Step = 0 | 1 | 2;
@@ -144,7 +138,7 @@ export default function Register() {
                    Partner Onboarding v2.4
                 </div>
              </div>
-             <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-primary leading-tight">
+             <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold tracking-tight text-primary leading-tight">
                Join the <span className="text-accent">Fleet</span>
              </h1>
              <p className="text-secondary text-base md:text-xl font-medium max-w-2xl mx-auto lg:mx-0 opacity-60 leading-relaxed">
@@ -169,7 +163,7 @@ export default function Register() {
         </header>
 
         {/* Progress Bar */}
-        <div className="mb-16 px-4 max-w-2xl mx-auto lg:mx-0">
+        <div className="mb-8 sm:mb-16 px-4 max-w-2xl mx-auto lg:mx-0">
            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                  <div className="w-2 h-2 rounded-full bg-accent animate-pulse"></div>
@@ -197,7 +191,7 @@ export default function Register() {
               {step === 0 && (
                 <div className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-700">
                   <div className="space-y-2">
-                     <h2 className="text-3xl font-bold tracking-tight text-primary uppercase">Profile <span className="text-accent">Information</span></h2>
+                     <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-primary uppercase">Profile <span className="text-accent">Information</span></h2>
                      <p className="text-sm text-secondary font-medium opacity-60">Establish your professional identity in our network.</p>
                   </div>
 
@@ -264,7 +258,7 @@ export default function Register() {
               {step === 1 && (
                 <div className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-700">
                   <div className="space-y-2">
-                     <h2 className="text-3xl font-bold tracking-tight text-primary uppercase">Vehicle <span className="text-accent">Details</span></h2>
+                     <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-primary uppercase">Vehicle <span className="text-accent">Details</span></h2>
                      <p className="text-sm text-secondary font-medium opacity-60">Register your primary vehicle for road operations.</p>
                   </div>
 
@@ -365,7 +359,7 @@ export default function Register() {
               {step === 2 && (
                 <div className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-700">
                   <div className="space-y-2">
-                     <h2 className="text-3xl font-bold tracking-tight text-primary uppercase">Security <span className="text-accent">Access</span></h2>
+                     <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-primary uppercase">Security <span className="text-accent">Access</span></h2>
                      <p className="text-sm text-secondary font-medium opacity-60">Create a secure password for your terminal access.</p>
                   </div>
 
@@ -403,7 +397,7 @@ export default function Register() {
               )}
 
               {/* Navigation Hub */}
-              <div className="flex items-center justify-between mt-16 pt-10 border-t border-border gap-6 relative z-10">
+              <div className="flex flex-col sm:flex-row items-center justify-between mt-8 sm:mt-16 pt-6 sm:pt-10 border-t border-border gap-6 relative z-10">
                 {step > 0 ? (
                   <button
                     type="button"
