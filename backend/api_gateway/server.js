@@ -11,9 +11,26 @@ const app = express();
 app.use(morgan("dev"));
 const corsOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
-  : ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"];
+  : [
+      "http://localhost:5173", "https://localhost:5173",
+      "http://localhost:5174", "https://localhost:5174",
+      "http://localhost:5175", "https://localhost:5175"
+    ];
 
-app.use(cors({ origin: corsOrigins, credentials: true }));
+app.use(cors({
+  origin: (origin, callback) => {
+    console.log("🛠️ [Gateway CORS] Origin:", origin);
+    if (!origin || corsOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn("🚫 [Gateway CORS] Forbidden Origin:", origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+}));
 
 app.get("/", (_, res) => res.send("Gateway OK"));
 

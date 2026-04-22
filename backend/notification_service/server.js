@@ -11,31 +11,9 @@ process.emitWarning = function (warning, ...args) {
 const cookieParser = require("cookie-parser");
 const express = require("express");
 const connectToDb = require("./db/db");
-const cors = require("cors");
 const notificationRoutes = require("./routes/notification.routes");
 connectToDb();
 const app = express();
-
-// Parse CORS origins from environment variable
-const corsOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
-  : [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:5175",
-      "http://127.0.0.1:5173",
-      "http://127.0.0.1:5174",
-      "http://127.0.0.1:5175",
-    ];
-
-app.use(
-  cors({
-    origin: corsOrigins,
-    credentials: true, // allow cookies / JWT headers
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  }),
-);
 app.use(cookieParser());
 app.use(express.json());
 

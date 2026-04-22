@@ -49,7 +49,9 @@ exports.protectWithAuthService = async (req, res, next) => {
 
 exports.requireActiveRole = (role) => (req, res, next) => {
   if (!req.user?.activeRole) return res.status(403).json({ message: "activeRole missing" });
-  if (req.user.activeRole !== role) return res.status(403).json({ message: `Requires activeRole=${role}` });
+  if (req.user.activeRole !== role && req.user.activeRole !== "admin") {
+    return res.status(403).json({ message: `Requires activeRole=${role}` });
+  }
   next();
 };
 
@@ -59,6 +61,7 @@ exports.requireRole = (role) => (req, res, next) => {
 };
 
 exports.requireOnboarded = (role) => (req, res, next) => {
+  if (req.user?.activeRole === "admin") return next();
   if (!req.user?.onboarding?.[role]) {
     return res.status(403).json({ message: `${role} not onboarded` });
   }

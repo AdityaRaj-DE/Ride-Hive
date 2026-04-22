@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
-const cors = require('cors');
+const { Server } = require('socket.io');
 const cookieParser = require("cookie-parser");
 
 const rideRoutes = require('./routes/ride.routes');
@@ -14,30 +14,15 @@ const app = express();
 const server = http.createServer(app);
 
 // Parse CORS origins from environment variable
-const corsOrigins = process.env.CORS_ORIGINS 
-  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
-  : ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://127.0.0.1:5175"];
-
-const { Server } = require('socket.io');
 const io = new Server(server, {
   cors: {
-    origin: corsOrigins,  // ✅ same here
+    origin: "*", // Internal communication or behind gateway
     credentials: true,
   },
 });
 
-
 app.use(cookieParser());
 app.use(express.json());
-
-app.use(
-  cors({
-    origin: corsOrigins,  // ✅ match the FRONTEND, not the gateway
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
 
 // Debug: log cookies to confirm they're arriving
 app.use((req, res, next) => {
