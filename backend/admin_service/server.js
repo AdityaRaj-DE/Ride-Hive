@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const morgan = require("morgan");
+const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 const adminRoutes = require("./routes/adminRoutes");
@@ -15,6 +16,7 @@ const io = new Server(server, {
   }
 });
 app.use(express.json());
+app.use(cors());
 app.use(morgan("dev"));
 
 // Attach IO to app so routes can use it

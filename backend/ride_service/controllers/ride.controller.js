@@ -12,7 +12,7 @@ const axios = require("axios");
 async function notifyAdminOtp(type, target, code) {
   try {
     const adminUrl = process.env.ADMIN_SERVICE_URL || "http://localhost:3009";
-    await axios.post(`${adminUrl}/admin/otps`, {
+    await axios.post(`${adminUrl}/otps`, {
       type,
       target,
       code,

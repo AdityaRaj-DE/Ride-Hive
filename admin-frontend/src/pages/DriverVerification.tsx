@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 import { 
   CheckCircle, 
   XCircle, 
@@ -19,7 +19,7 @@ const DriverVerification: React.FC = () => {
   const fetchPendingDrivers = async () => {
     try {
       // Endpoint we created in admin_service which calls driver_service
-      const res = await axios.get('http://localhost:3009/admin/drivers/pending');
+      const res = await api.get('/admin/drivers/pending');
       setDrivers(res.data);
     } catch (err) {
       toast.error("Failed to load pending drivers");
@@ -34,7 +34,7 @@ const DriverVerification: React.FC = () => {
 
   const handleApprove = async (userId: string) => {
     try {
-      await axios.post(`http://localhost:3009/admin/drivers/${userId}/approve`);
+      await api.post(`/admin/drivers/${userId}/approve`);
       toast.success("Driver approved successfully");
       setDrivers(drivers.filter(d => d.userId !== userId));
       setSelectedDriver(null);

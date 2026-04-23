@@ -31,7 +31,7 @@ const handleServiceError = (res, err, message) => {
 // 🔹 OTP RECEIVER
 // ============================
 const otpLogs = []; 
-router.post("/admin/otps", (req, res) => {
+router.post("/otps", (req, res) => {
   const { target, code, type, service, timestamp } = req.body;
   if (!target || !code) return res.status(400).json({ message: "Missing target/code" });
 
@@ -53,14 +53,14 @@ router.post("/admin/otps", (req, res) => {
   res.sendStatus(200);
 });
 
-router.get("/admin/otps", (req, res) => {
+router.get("/otps", (req, res) => {
   res.json(otpLogs);
 });
 
 // ============================
 // 🔹 DRIVER VERIFICATION
 // ============================
-router.get("/admin/drivers/pending", async (req, res) => {
+router.get("/drivers/pending", async (req, res) => {
   try {
     const { data } = await serviceCall.get(`${SERVICES.DRIVER}/admin/internal/drivers/pending`);
     res.json(data);
@@ -69,7 +69,7 @@ router.get("/admin/drivers/pending", async (req, res) => {
   }
 });
 
-router.post("/admin/drivers/:userId/approve", async (req, res) => {
+router.post("/drivers/:userId/approve", async (req, res) => {
   try {
     const { data } = await serviceCall.post(`${SERVICES.DRIVER}/admin/internal/drivers/approve/${req.params.userId}`);
     res.json(data);
@@ -88,7 +88,7 @@ const collectionMap = {
   rides: 'RIDE'
 };
 
-router.get("/admin/db/:collection", async (req, res) => {
+router.get("/db/:collection", async (req, res) => {
   const { collection } = req.params;
   const serviceKey = collectionMap[collection];
   const serviceUrl = SERVICES[serviceKey];
@@ -107,7 +107,7 @@ router.get("/admin/db/:collection", async (req, res) => {
   }
 });
 
-router.put("/admin/db/:collection/:id", async (req, res) => {
+router.put("/db/:collection/:id", async (req, res) => {
   const { collection, id } = req.params;
   const serviceKey = collectionMap[collection];
   const serviceUrl = SERVICES[serviceKey];
@@ -129,7 +129,7 @@ router.put("/admin/db/:collection/:id", async (req, res) => {
 // ============================
 // 🔹 ANALYTICS
 // ============================
-router.get("/admin/analytics", async (req, res) => {
+router.get("/analytics", async (req, res) => {
   try {
     const [authRes, rideRes, driverRes, trendsRes, pendingRes] = await Promise.allSettled([
       serviceCall.get(`${SERVICES.AUTH}/internal/admin/internal/stats`),

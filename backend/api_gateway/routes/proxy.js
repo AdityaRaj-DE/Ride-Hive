@@ -9,6 +9,7 @@ module.exports = function setupProxies(app) {
         createProxyMiddleware({
           target: urls.auth,
           changeOrigin: true,
+          pathRewrite: { "^/auth": "" },
           on: {
             proxyReq: (proxyReq, req, res) => {
               const auth =
@@ -205,7 +206,6 @@ module.exports = function setupProxies(app) {
         createProxyMiddleware({
           target: urls.admin,
           changeOrigin: true,
-          pathRewrite: { "^/admin": "" },
           on: {
             proxyReq: (proxyReq, req, res) => {
               const auth = req.headers.authorization || req.headers.Authorization;

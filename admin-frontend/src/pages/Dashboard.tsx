@@ -16,7 +16,7 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import axios from 'axios';
+import api from '../api/axios';
 
 const data = [
   { name: 'Mon', rides: 400, revenue: 2400 },
@@ -54,7 +54,7 @@ const Dashboard: React.FC = () => {
     const fetchStats = async () => {
       try {
         setLoading(true);
-        const res = await axios.get('http://localhost:3009/admin/analytics');
+        const res = await api.get('/admin/analytics');
         setStats(res.data);
       } catch (err) {
         console.error("Failed to fetch analytics");

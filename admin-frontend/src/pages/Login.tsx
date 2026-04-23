@@ -12,7 +12,7 @@ export default function Login() {
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const AUTH_URL = import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:3001';
+  const AUTH_URL = import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:3000/auth';
 
   const submitMobile = async (e: React.FormEvent) => {
     e.preventDefault();

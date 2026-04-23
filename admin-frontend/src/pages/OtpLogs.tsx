@@ -11,7 +11,7 @@ import {
   Server
 } from 'lucide-react';
 import { io } from 'socket.io-client';
-import axios from 'axios';
+import api from '../api/axios';
 
 const OtpLogs: React.FC = () => {
   const [logs, setLogs] = useState<any[]>([]);
@@ -23,7 +23,7 @@ const OtpLogs: React.FC = () => {
     // Initial fetch
     const fetchLogs = async () => {
       try {
-        const res = await axios.get('http://localhost:3009/admin/otps');
+        const res = await api.get('/admin/otps');
         setLogs(res.data);
       } catch (err) {
         console.error("Failed to fetch logs");

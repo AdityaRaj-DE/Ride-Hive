@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 import { 
   Database, 
   Search, 
@@ -29,7 +29,7 @@ const DatabaseExplorer: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`http://localhost:3009/admin/db/${activeCollection.id}`);
+      const res = await api.get(`/admin/db/${activeCollection.id}`);
       setData(res.data);
     } catch (err) {
       toast.error(`Failed to load ${activeCollection.id}`);
@@ -45,7 +45,7 @@ const DatabaseExplorer: React.FC = () => {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:3009/admin/db/${activeCollection.id}/${editDoc._id}`, editDoc);
+      await api.put(`/admin/db/${activeCollection.id}/${editDoc._id}`, editDoc);
       toast.success("Document updated successfully");
       setData(data.map(d => d._id === editDoc._id ? editDoc : d));
       setEditDoc(null);
