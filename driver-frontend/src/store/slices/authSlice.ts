@@ -19,6 +19,7 @@ interface User {
 interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   loading: boolean;
   error: string | null;
   otpSent: boolean;
@@ -27,6 +28,7 @@ interface AuthState {
 const initialState: AuthState = {
   user: null,
   token: localStorage.getItem("token"),
+  refreshToken: localStorage.getItem("refreshToken"),
   loading: false,
   error: null,
   otpSent: false,
@@ -102,8 +104,10 @@ const authSlice = createSlice({
     logout(state) {
       state.user = null;
       state.token = null;
+      state.refreshToken = null;
       state.otpSent = false;
       localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
     },
   },
   extraReducers: (builder) => {
@@ -130,8 +134,10 @@ const authSlice = createSlice({
       .addCase(verifyOtp.fulfilled, (state, action) => {
         state.loading = false;
         state.token = action.payload.accessToken;
+        state.refreshToken = action.payload.refreshToken;
         state.otpSent = false;
         localStorage.setItem("token", action.payload.accessToken);
+        localStorage.setItem("refreshToken", action.payload.refreshToken);
       })
       .addCase(verifyOtp.rejected, (state, action: any) => {
         state.loading = false;

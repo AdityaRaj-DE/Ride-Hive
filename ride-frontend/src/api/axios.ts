@@ -14,9 +14,36 @@ api.interceptors.request.use((config) => {
 });
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    if (err.response?.status === 401) {
+  async (err) => {
+    const originalRequest = err.config;
+
+    if (err.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refreshToken = localStorage.getItem("refreshToken");
+
+      if (refreshToken) {
+        try {
+          const res = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {
+            refreshToken,
+            deviceId: "web" // consistent with verifyOtp
+          });
+
+          if (res.status === 200) {
+            const { accessToken, refreshToken: newRefreshToken } = res.data;
+            
+            localStorage.setItem("token", accessToken);
+            localStorage.setItem("refreshToken", newRefreshToken);
+            
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            return axios(originalRequest);
+          }
+        } catch (refreshErr) {
+          console.error("Token refresh failed:", refreshErr);
+        }
+      }
+      
       localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
       window.location.href = "/login";
     }
     return Promise.reject(err);

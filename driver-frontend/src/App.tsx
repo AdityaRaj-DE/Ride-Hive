@@ -6,7 +6,7 @@ import WalletPage from "./pages/WalletPage";
 import RidePool from "./pages/RidePool";
 import History from "./pages/History";
 import RideDetail from "./pages/RideDetail";
-import type { RootState } from "./store";
+import type { RootState, AppDispatch } from "./store";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { connectDriverSocket } from "./sockets/socketClient";
@@ -25,10 +25,10 @@ import Profile from "./pages/Profile";
 import ProfileEdit from "./pages/ProfileEdit";
 import Services from "./pages/Services";
 
-function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
+function AuthenticatedLayout({ children, fullContent }: { children: React.ReactNode, fullContent?: boolean }) {
   return (
     <RequireAuth>
-      <MainLayout>{children}</MainLayout>
+      <MainLayout fullContent={fullContent}>{children}</MainLayout>
     </RequireAuth>
   );
 }
@@ -60,7 +60,7 @@ function RequireNotDriverOnboarded({ children }: { children: React.ReactNode }) 
 }
 
 export default function App() {
-  const dispatch = useDispatch<any>();
+  const dispatch = useDispatch<AppDispatch>();
   const { token, user } = useSelector((s: RootState) => s.auth);
 
   useEffect(() => {
@@ -98,7 +98,7 @@ export default function App() {
         <Route
           path="/driver/dashboard"
           element={
-            <AuthenticatedLayout>
+            <AuthenticatedLayout fullContent={true}>
               <RequireDriverOnboarded>
                 <Dashboard />
               </RequireDriverOnboarded>
