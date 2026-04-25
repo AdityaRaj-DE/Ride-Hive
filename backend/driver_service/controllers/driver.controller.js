@@ -13,8 +13,20 @@ async function markDriverOnboardedInAuth(userId) {
     );
   } catch (err) {
     console.error("❌ Failed to update auth onboarding:", err?.response?.data || err.message);
-    // Note: res is not available in this scope, so we just log and move on.
   }  
+}
+
+async function ensureActiveSubscription(driver) {
+  if (!driver.subscription || !driver.subscription.isActive) return false;
+  
+  const now = new Date();
+  if (driver.subscription.expiresAt && now > new Date(driver.subscription.expiresAt)) {
+    driver.subscription.isActive = false;
+    await driver.save();
+    return false;
+  }
+  
+  return true;
 }
 
 /**
@@ -381,10 +393,13 @@ exports.updateLocation = async (req, res) => {
     const driver = await Driver.findOne({ userId: req.user.id });
     if (!driver) return res.status(404).json({ error: "Driver not found" });
 
-    driver.location = { lat, lng };
+    driver.location = {
+      type: "Point",
+      coordinates: [lng, lat] // [longitude, latitude] per GeoJSON
+    };
     await driver.save();
 
-    res.json({ success: true, message: "Location updated" });
+    res.json({ success: true, message: "Location updated", location: driver.location });
   } catch (err) {
     console.error("updateLocation error:", err.message);
     res.status(500).json({ error: "Server error" });

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
-import { User, Mail, Phone, ArrowLeft, Check, Camera, Briefcase, ShieldCheck, Activity, Zap } from 'lucide-react';
+import { User, Mail, Phone, ArrowLeft, Check, Camera, ShieldCheck, Activity, Zap, Car } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ProfileEdit: React.FC = () => {
@@ -13,24 +13,26 @@ const ProfileEdit: React.FC = () => {
     firstName: '',
     lastName: '',
     email: '',
+    vehicleModel: '',
+    plateNumber: '',
   });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const { data } = await axios.get("http://localhost:3000/driver/me", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (data.fullname) {
+        const { data } = await api.get("/driver/me");
+        if (data) {
           setFormData({
-            firstName: data.fullname.firstname || '',
-            lastName: data.fullname.lastname || '',
-            email: data.email || (user as any)?.email || '',
+            firstName: data.fullname?.firstname || '',
+            lastName: data.fullname?.lastname || '',
+            email: (user as any)?.email || '', // Email comes from auth state
+            vehicleModel: data.vehicleInfo?.model || '',
+            plateNumber: data.vehicleInfo?.plateNumber || '',
           });
         }
       } catch (err) {
-        console.error("Failed to fetch driver profile for editing:", err);
+        console.error("Failed to fetch profile for editing:", err);
       }
     };
     if (token) fetchProfile();
@@ -40,11 +42,9 @@ const ProfileEdit: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.patch("http://localhost:3000/driver/me", {
+      await api.patch("/driver/me", {
         fullname: { firstname: formData.firstName, lastname: formData.lastName },
-        email: formData.email
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+        vehicleInfo: { model: formData.vehicleModel, plateNumber: formData.plateNumber }
       });
       navigate('/driver/profile');
     } catch (err) {
@@ -147,19 +147,49 @@ const ProfileEdit: React.FC = () => {
                       </div>
                    </div>
 
-                   <div className="space-y-3 group">
-                     <label className="text-[10px] font-bold uppercase tracking-widest text-accent ml-1 flex items-center gap-2">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="space-y-3 group">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-accent ml-1 flex items-center gap-2">
+                           <Car className="w-3.5 h-3.5" />
+                           Vehicle Model
+                        </label>
+                        <input 
+                           type="text"
+                           value={formData.vehicleModel}
+                           onChange={(e) => setFormData({...formData, vehicleModel: e.target.value})}
+                           className="w-full px-8 py-4 bg-surface border border-border rounded-xl font-bold text-xl text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 uppercase"
+                           placeholder="e.g. Tesla Model 3"
+                           required
+                        />
+                      </div>
+
+                      <div className="space-y-3 group">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-accent ml-1 flex items-center gap-2">
+                           <ShieldCheck className="w-3.5 h-3.5" />
+                           Plate Number
+                        </label>
+                        <input 
+                           type="text"
+                           value={formData.plateNumber}
+                           onChange={(e) => setFormData({...formData, plateNumber: e.target.value})}
+                           className="w-full px-8 py-4 bg-surface border border-border rounded-xl font-bold text-xl text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 uppercase"
+                           placeholder="e.g. ABC 123"
+                           required
+                        />
+                      </div>
+                   </div>
+
+                   <div className="space-y-3 group opacity-40">
+                     <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-1 flex items-center gap-2">
                        <Mail className="w-3.5 h-3.5" />
-                       Email Address
+                       Email Address (Immutable)
                      </label>
                      <div className="relative">
                        <input 
                          type="email"
                          value={formData.email}
-                         onChange={(e) => setFormData({...formData, email: e.target.value})}
-                         className="w-full px-8 py-4 bg-surface border border-border rounded-xl font-bold text-xl text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 font-mono"
-                         placeholder="john@example.com"
-                         required
+                         disabled
+                         className="w-full px-8 py-4 bg-background border border-border rounded-xl font-bold text-xl text-primary/40 outline-none cursor-not-allowed font-mono"
                        />
                      </div>
                    </div>

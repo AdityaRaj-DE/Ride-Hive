@@ -7,6 +7,7 @@ import {
   Terminal, 
   LogOut,
   Hexagon,
+  ShieldAlert,
   X
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -21,6 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: ShieldAlert, label: 'Safety Hub', path: '/safety' },
     { icon: ShieldCheck, label: 'Driver Verification', path: '/drivers' },
     { icon: Database, label: 'Database Explorer', path: '/database' },
     { icon: Terminal, label: 'OTP Logs', path: '/logs' },

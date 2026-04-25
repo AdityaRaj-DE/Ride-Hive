@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import { User, Mail, Phone, ArrowLeft, Check, Camera, ShieldCheck } from 'lucide-react';
@@ -19,9 +19,7 @@ const ProfileEdit: React.FC = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const { data } = await axios.get("http://localhost:3000/rider/profile", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const { data } = await api.get("/rider/profile");
         if (data.rider) {
           setFormData({
             firstName: data.rider.name?.first || '',
@@ -40,11 +38,9 @@ const ProfileEdit: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.patch("http://localhost:3000/rider/profile", {
+      await api.patch("/rider/profile", {
         name: { first: formData.firstName, last: formData.lastName },
         email: formData.email
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       navigate('/profile');
     } catch (err) {

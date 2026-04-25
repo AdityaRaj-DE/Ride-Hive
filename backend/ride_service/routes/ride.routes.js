@@ -89,6 +89,12 @@ router.get(
 );
 
 router.post(
+  "/sos",
+  protectWithAuthService,
+  controller.triggerSos
+);
+
+router.post(
   "/estimate",
   protectWithAuthService,
   requireActiveRole("rider"),
@@ -110,6 +116,8 @@ router.get("/pool/available", protectWithAuthService, controller.availablePools)
 // ============================
 // 🔹 ADMIN INTERNAL
 // ============================
+router.get("/sos/all", protectWithAuthService, controller.getAllSosAlerts);
+router.patch("/sos/:id/resolve", protectWithAuthService, controller.resolveSosAlert);
 router.get("/admin/internal/stats", controller.getRideStatsInternal);
 router.get("/admin/internal/db/:collection", controller.internalDbGet);
 router.put("/admin/internal/db/:collection/:id", controller.internalDbUpdate);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import axios from 'axios';
+import api from '../api/axios';
 import { TrendingUp, ArrowUpRight, ArrowDownLeft, Plus, CreditCard, Landmark, Sparkles, ShieldCheck, ArrowRight, Wallet, Activity, Globe, Zap, Search, Calendar } from 'lucide-react';
 import type { RootState } from '../store';
 
@@ -15,7 +15,7 @@ interface ISubscription {
 interface ITransaction {
   id: string;
   type: 'credit' | 'debit' | string;
-  amount: number;
+  amount: string;
   title: string;
   date: string;
   method: string;
@@ -41,28 +41,18 @@ const WalletPage: React.FC = () => {
   useEffect(() => {
     const fetchWalletData = async () => {
       try {
-        // 1. Fetch balance & driver profile (to get driver _id)
-        const walletRes = await axios.get("http://localhost:3000/driver/wallet", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const walletRes = await api.get("/driver/wallet");
         setBalance(walletRes.data.walletBalance || 0);
         setSubscription(walletRes.data.subscription);
 
-        // 2. Fetch driver profile to get the internal driver._id for payment service
-        const driverRes = await axios.get("http://localhost:3000/driver/me", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        const driverId = driverRes.data._id;
+        const driverRes = await api.get("/driver/me");
+        const driverId = (driverRes.data as any)._id;
 
-        // 3. Fetch transactions from payment service
-        const txnRes = await axios.get(`http://localhost:3000/payment/driver/${driverId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const txnRes = await api.get(`/payment/driver/${driverId}`);
         
         const mappedTxns = txnRes.data.map((t: RawTransaction) => ({
           id: t._id,
-          type: 'credit', // In this system, payments to drivers are credits
+          type: 'credit', 
           amount: `₹${t.amount}`,
           title: `Trip #${t.rideId.slice(-4).toUpperCase()}`,
           date: new Date(t.createdAt).toLocaleString('en-US', { 
@@ -271,4 +261,3 @@ const WalletPage: React.FC = () => {
 };
 
 export default WalletPage;
-

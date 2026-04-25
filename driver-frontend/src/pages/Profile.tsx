@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import axios from 'axios';
+import api from '../api/axios';
 import type { RootState } from '../store';
 import { Mail, Phone, Shield, Star, LogOut, Edit2, Award, Briefcase, ArrowRight, ShieldCheck, Globe, Activity, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -26,6 +26,13 @@ interface IDriverProfile {
     expiresAt?: string;
     isActive?: boolean;
   };
+  status?: string;
+  documents?: {
+    drivingLicense?: { url: string; uploadedAt: string };
+    rcBook?: { url: string; uploadedAt: string };
+    insurance?: { url: string; uploadedAt: string };
+    profilePhoto?: { url: string; uploadedAt: string };
+  };
 }
 
 const Profile: React.FC = () => {
@@ -36,9 +43,7 @@ const Profile: React.FC = () => {
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
-        const { data } = await axios.get("http://localhost:3000/driver/me", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const { data } = await api.get("/driver/me");
         setProfile(data);
       } catch (err) {
         console.error("Failed to fetch driver profile:", err);
@@ -60,6 +65,11 @@ const Profile: React.FC = () => {
 
   const displayName = profile?.fullname ? `${profile.fullname.firstname} ${profile.fullname.lastname}` : user?.mobileNumber || 'Anonymous';
 
+  const docItems = [
+    { label: "Driving License", status: profile?.documents?.drivingLicense ? "Verified" : "Missing" },
+    { label: "RC Book", status: profile?.documents?.rcBook ? "Verified" : "Missing" },
+    { label: "Insurance", status: profile?.documents?.insurance ? "Verified" : "Missing" },
+  ];
 
   return (
     <div className="min-h-screen text-primary pb-24">
@@ -106,12 +116,24 @@ const Profile: React.FC = () => {
               <div className="space-y-3 mb-12 text-center">
                  <h2 className="text-4xl font-bold tracking-tighter text-primary uppercase leading-tight">{displayName}</h2>
                  <div className="flex flex-col items-center gap-3">
-                    <span className="px-5 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-[9px] font-bold uppercase tracking-[0.3em]">Premium Partner Hub</span>
+                    <span className="px-5 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-[9px] font-bold uppercase tracking-[0.3em]">{profile?.status || "Partner Hub"}</span>
                     <span className="text-[9px] font-bold text-muted uppercase tracking-[0.3em] opacity-40">Operational Node: Regional-04</span>
                  </div>
               </div>
+
+              <div className="space-y-4 mb-8">
+                 <p className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40">Document Clearance</p>
+                 <div className="space-y-2">
+                    {docItems.map((doc, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-surface border border-border">
+                         <span className="text-[10px] font-bold text-primary/80 uppercase">{doc.label}</span>
+                         <span className={`text-[9px] font-bold uppercase ${doc.status === "Verified" ? "text-accent" : "text-warning"}`}>{doc.status}</span>
+                      </div>
+                    ))}
+                 </div>
+              </div>
               
-              <div className="flex flex-col gap-4 mb-12">
+              <div className="flex flex-col gap-4 mb-4">
                  <div className="flex items-center justify-between p-6 bg-accent/5 rounded-2xl border border-accent/10">
                     <div className="flex items-center gap-4 text-amber-500">
                        <Star className="w-6 h-6 fill-current" />

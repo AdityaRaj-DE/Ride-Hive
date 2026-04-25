@@ -8,7 +8,8 @@ import RideCompleted from "../components/RideCompleted";
 import FeedbackModal from "../components/FeedbackModal";
 import { useEffect, useState } from "react";
 import { clearRide } from "../store/rideSlice";
-import { ShieldCheck, Map as MapIcon, Globe, Navigation } from 'lucide-react';
+import { ShieldCheck, Map as MapIcon, Globe, Navigation, ShieldAlert } from 'lucide-react';
+import api from "../api/axios";
 
 export default function RideFlow() {
   const dispatch = useDispatch<AppDispatch>();
@@ -85,6 +86,31 @@ export default function RideFlow() {
          </div>
 
          <div className="flex items-center gap-3 sm:gap-4 pointer-events-auto">
+            {/* SOS Button */}
+            <button 
+              onClick={async () => {
+                if (window.confirm("🚨 ARE YOU IN AN EMERGENCY? This will alert the Ride-Hive Safety Team and share your live location.")) {
+                  try {
+                    await api.post("/ride/sos", {
+                      rideId: ride.rideId,
+                      location: {
+                        lat: ride.pickup?.lat, // Should ideally be current GPS, but using pickup/driver for now
+                        lng: ride.pickup?.lng
+                      }
+                    });
+                    alert("Emergency alert sent. Help is being dispatched.");
+                  } catch (err) {
+                    console.error("SOS failed:", err);
+                    alert("Failed to send alert. Please call emergency services directly.");
+                  }
+                }
+              }}
+              className="w-12 h-12 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center justify-center hover:bg-destructive hover:text-white transition-all shadow-lg active:scale-95"
+              title="Emergency SOS"
+            >
+               <ShieldAlert className="w-7 h-7" />
+            </button>
+
             <div className="w-12 h-12 rounded-xl glass-card flex items-center justify-center text-accent border-accent/5 hover:bg-accent/5 transition-colors cursor-help">
                <ShieldCheck className="w-6 h-6" />
             </div>

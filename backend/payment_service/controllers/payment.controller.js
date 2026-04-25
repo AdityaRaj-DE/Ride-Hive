@@ -20,9 +20,16 @@ exports.createPayment = async (req, res) => {
       transactionId: `TXN-${Date.now()}`,
     });
 
-    // 🔗 TODO: integrate with Razorpay/Stripe API here later
-    console.log("🔸 Simulating payment processing...");
+    // 🔗 Integrated with Payment Gateway
+    const gateway = require("../services/gateway.service");
+    const order = await gateway.createOrder({ 
+      amount, 
+      receipt: payment.transactionId 
+    });
 
+    console.log(`🔸 Payment order created via ${process.env.PAYMENT_PROVIDER || "MOCK"}:`, order.id);
+
+    // Simulation of webhook / async success
     setTimeout(async () => {
       payment.status = "SUCCESS";
       await payment.save();
@@ -30,7 +37,7 @@ exports.createPayment = async (req, res) => {
       // Sync with Auth Service → update user wallet
       try {
         await axios.patch(
-          "http://localhost:3001/users/wallet",
+          `${process.env.AUTH_SERVICE_URL}/users/wallet`,
           { amount, action: "deduct" },
           { headers: { Authorization: req.headers.authorization } }
         );
@@ -40,7 +47,7 @@ exports.createPayment = async (req, res) => {
 
       // Sync with Driver Service → add earnings
       try {
-        await axios.patch(`http://localhost:3003/driver/${driverId}/earnings`, { amount });
+        await axios.patch(`${process.env.DRIVER_SERVICE_URL}/driver/${driverId}/earnings`, { amount });
       } catch (err) {
         console.warn("⚠️ Driver payout sync failed:", err.message);
       }
@@ -83,7 +90,7 @@ exports.refundPayment = async (req, res) => {
     // Sync with wallet (refund to user)
     try {
       await axios.patch(
-        "http://localhost:3001/users/wallet",
+        `${process.env.AUTH_SERVICE_URL}/users/wallet`,
         { amount: payment.amount, action: "add" },
         { headers: { Authorization: req.headers.authorization } }
       );
@@ -111,6 +118,7 @@ exports.getDriverTransactions = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 exports.createPaymentInternal = async (req, res) => {
   try {
     const { rideId, userId, driverId, amount, paymentMethod } = req.body;

@@ -4,7 +4,7 @@ import React, {
   type ChangeEvent,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { axiosInstance } from "../services/axiosInstance";
+import api from "../api/axios";
 import { 
   ArrowRight, 
   ArrowLeft, 
@@ -89,7 +89,7 @@ export default function Register() {
       setLoading(true);
       setErrorMsg("");
 
-      await axiosInstance.post("/auth/drivers/register", {
+      await api.post("/auth/drivers/register", {
         fullname: {
           firstname: form.firstname,
           lastname: form.lastname,

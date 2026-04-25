@@ -22,7 +22,8 @@ import {
   Fingerprint,
   Wallet,
   Banknote,
-  QrCode
+  QrCode,
+  ShieldAlert
 } from 'lucide-react';
 import QRCode from "react-qr-code";
 
@@ -56,10 +57,6 @@ export default function RidePool() {
 
   const handleAcceptPool = (rideId: string) => {
     emitAcceptRide(rideId);
-    const ride = availablePools.find((r) => r._id === rideId);
-    if (ride) {
-      dispatch(setActiveRide(ride));
-    }
   };
 
   const openMapsUrl = (lat?: number, lng?: number) => {
@@ -111,6 +108,31 @@ export default function RidePool() {
                <h1 className="text-2xl sm:text-4xl md:text-8xl font-bold tracking-tight text-primary leading-tight">
                  Pool <span className="text-accent">Operation</span>
                </h1>
+            </div>
+
+            <div className="flex flex-col items-end gap-4">
+              <button 
+                onClick={async () => {
+                  if (window.confirm("🚨 EMERGENCY SOS? This will broadcast your location to the dispatcher and local authorities.")) {
+                    try {
+                      await api.post("/ride/sos", {
+                        rideId: activeRide._id,
+                        location: activeRide.driverLocation || { lat: 0, lng: 0 }
+                      });
+                      alert("SOS Signal Broadcasted. Support is inbound.");
+                    } catch (err) {
+                      console.error("SOS failed:", err);
+                      alert("Manual Override: call emergency services immediately!");
+                    }
+                  }
+                }}
+                className="group flex items-center gap-3 bg-destructive/10 text-destructive px-6 py-3 rounded-2xl border border-destructive/20 hover:bg-destructive hover:text-white transition-all shadow-xl active:scale-95"
+              >
+                <div className="w-8 h-8 rounded-full bg-destructive/20 flex items-center justify-center animate-pulse group-hover:bg-white/20">
+                  <ShieldAlert className="w-5 h-5" />
+                </div>
+                <span className="font-bold uppercase tracking-tighter text-sm">Emergency SOS</span>
+              </button>
             </div>
             
             <div className="glass-card px-8 py-4 border-accent/10 flex items-center gap-6 backdrop-blur-xl">

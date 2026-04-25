@@ -42,11 +42,27 @@ const RideHistory: React.FC = () => {
   }, [token]);
 
   if (loading) {
-     return (
-       <div className="flex items-center justify-center min-h-[60vh]">
-         <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
-       </div>
-     );
+    return (
+      <div className="min-h-screen text-primary pb-24">
+        <div className="max-w-5xl mx-auto px-6 pt-16">
+          <div className="h-16 w-64 bg-surface animate-pulse rounded-2xl mb-20"></div>
+          <div className="space-y-8">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="glass-card p-10 h-64 animate-pulse border-accent/5">
+                <div className="flex justify-between mb-8">
+                  <div className="h-6 w-32 bg-surface rounded-lg"></div>
+                  <div className="h-8 w-24 bg-surface rounded-lg"></div>
+                </div>
+                <div className="space-y-4">
+                  <div className="h-4 w-full bg-surface rounded-lg opacity-50"></div>
+                  <div className="h-4 w-3/4 bg-surface rounded-lg opacity-30"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

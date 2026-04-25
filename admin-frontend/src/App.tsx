@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import DriverVerification from './pages/DriverVerification';
 import DatabaseExplorer from './pages/DatabaseExplorer';
 import OtpLogs from './pages/OtpLogs';
+import SafetyHub from './pages/SafetyHub';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Toaster } from 'react-hot-toast';
@@ -36,6 +37,7 @@ function App() {
           <Route path="drivers" element={<DriverVerification />} />
           <Route path="database" element={<DatabaseExplorer />} />
           <Route path="logs" element={<OtpLogs />} />
+          <Route path="safety" element={<SafetyHub />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

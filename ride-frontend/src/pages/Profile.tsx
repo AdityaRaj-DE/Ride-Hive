@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import axios from 'axios';
 import type { RootState } from '../store';
 import { Mail, Phone, Calendar, Edit2, LogOut, ShieldCheck, Award, Star, ArrowRight, User, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -15,12 +14,8 @@ const Profile: React.FC = () => {
     const fetchProfileData = async () => {
       try {
         const [profileRes, historyRes] = await Promise.all([
-          axios.get("http://localhost:3000/rider/profile", {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          axios.get("http://localhost:3000/ride/history", {
-            headers: { Authorization: `Bearer ${token}` }
-          })
+          api.get("/rider/profile"),
+          api.get("/ride/history")
         ]);
         
         setProfile(profileRes.data.rider);

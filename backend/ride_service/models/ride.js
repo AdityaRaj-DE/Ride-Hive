@@ -161,6 +161,12 @@ const RideSchema = new mongoose.Schema(
       default: "WALLET",
     },
 
+    paymentStatus: {
+      type: String,
+      enum: ["PENDING", "COMPLETED", "FAILED"],
+      default: "PENDING",
+    },
+
     // ---- Pricing ----
     priceEstimate: {
       type: Number,

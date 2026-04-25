@@ -40,27 +40,16 @@ module.exports = function setupProxies(app) {
       app.use(
         "/rider",
         authenticate,
+        (req, res, next) => {
+          if (req.path.startsWith("/onboard")) return next();
+          return requireRider(req, res, next);
+        },
         createProxyMiddleware({
           target: urls.rider,
           changeOrigin: true,
           pathRewrite: {
             "^/rider": "",
           },
-          onProxyReq(proxyReq, req) {
-            const auth = req.headers.authorization || req.headers.Authorization;
-            if (auth) proxyReq.setHeader("Authorization", auth);
-          },
-        })
-      );
-      
-      
-      app.use(
-        "/rider",
-        authenticate,
-        requireRider,
-        createProxyMiddleware({
-          target: urls.rider,
-          changeOrigin: true,
           on: {
             proxyReq: (proxyReq, req, res) => {
               const auth = req.headers.authorization || req.headers.Authorization;
@@ -112,6 +101,7 @@ module.exports = function setupProxies(app) {
         createProxyMiddleware({
           target: urls.ride,
           changeOrigin: true,
+          pathRewrite: { "^/ride": "" },
           on: {
             proxyReq: (proxyReq, req, res) => {
               proxyReq.setHeader("authorization", req.headers.authorization);

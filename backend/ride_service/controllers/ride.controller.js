@@ -25,6 +25,23 @@ async function notifyAdminOtp(type, target, code) {
   }
 }
 
+async function sendNotification(userId, title, message, type = "ride") {
+  try {
+    const notifUrl = process.env.NOTIFICATION_SERVICE_URL || "http://localhost:3007";
+    await axios.post(`${notifUrl}/send`, {
+      userId,
+      title,
+      message,
+      type
+    }, {
+      headers: { "x-internal-key": process.env.INTERNAL_SERVICE_KEY }
+    });
+    console.log(`🔔 Notification sent to user ${userId}: ${title}`);
+  } catch (err) {
+    console.error("Failed to send notification via service:", err.message);
+  }
+}
+
 async function fetchRiderName(userId) {
   try {
     const { data: riderInfo } = await axios.get(
@@ -264,6 +281,15 @@ exports.acceptRide = async (req, res) => {
     }
     io.to(`user_${ride.driverId}`).emit("ride.assigned", payload);
   }
+  
+  // 🔔 NOTIFY RIDER
+  if (ride.rideType === "POOL") {
+    ride.riders.forEach(r => {
+      sendNotification(r.riderId, "Hive: Driver Assigned", `Driver ${driver.fullname.firstname} has accepted your pool request.`);
+    });
+  } else {
+    sendNotification(ride.riderId, "Hive: Driver Assigned", `Driver ${driver.fullname.firstname} is on the way!`);
+  }
   console.log("EMITTING ride.updated", ride.status);
 
   res.json(payload);
@@ -294,6 +320,15 @@ exports.driverArriving = async (req, res) => {
       io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
     }
     io.to(`user_${ride.driverId}`).emit("ride.updated", payload);
+  }
+
+  // 🔔 NOTIFY RIDER
+  if (ride.rideType === "POOL") {
+    ride.riders.forEach(r => {
+      sendNotification(r.riderId, "Hive: Driver Arriving", "Your driver is reaching the pickup point.");
+    });
+  } else {
+    sendNotification(ride.riderId, "Hive: Driver Arriving", "Your driver is almost there!");
   }
   console.log("EMITTING ride.updated", ride.status);
 
@@ -416,44 +451,63 @@ exports.completeRide = async (req, res) => {
         io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
       }
       io.to(`user_${ride.driverId}`).emit("ride.updated", payload);
-      console.log(`📡 [Socket] Ride completed broadcast sent for ${ride._id}`);
-    }
+    console.log(`📡 [Socket] Ride completed broadcast sent for ${ride._id}`);
+  }
+
+  // 🔔 NOTIFY COMPLETION
+  if (ride.rideType === "POOL") {
+    ride.riders.forEach(r => {
+      if (r.status === "DROPPED") {
+        sendNotification(r.riderId, "Hive: Destination Reached", "Thank you for riding with Hive-Pool! Your receipt has been generated.");
+      }
+    });
+  } else {
+    sendNotification(ride.riderId, "Hive: Trip Completed", "Hope you had a great ride! Check your history for the detailed receipt.");
+  }
 
     // 3. Trigger Payment Service (Background)
-    try {
-      const internalKey = process.env.INTERNAL_SERVICE_KEY;
-      const paymentUrl = `${process.env.PAYMENT_SERVICE_URL}/internal/payments`;
+    const triggerPayment = async () => {
+      try {
+        const internalKey = process.env.INTERNAL_SERVICE_KEY;
+        const paymentUrl = `${process.env.PAYMENT_SERVICE_URL}/internal/payments`;
 
-      if (ride.rideType === "POOL") {
-        // Multi-rider payment loop
-        ride.riders.forEach((rider) => {
-           if (rider.status === "DROPPED") {
-              axios.post(paymentUrl, {
-                rideId: ride._id,
-                userId: rider.riderId,
-                driverId: ride.driverId,
-                amount: rider.fare || Math.round(finalPrice / ride.riders.length),
-                paymentMethod: req.body.paymentMethod || ride.paymentMethod || "WALLET"
-              }, {
-                headers: { "x-internal-key": internalKey }
-              }).catch(err => console.error(`❌ [Payment Sync] Failed for pool rider ${rider.riderId}:`, err.message));
-           }
-        });
-      } else {
-        // Solo ride payment
-        axios.post(paymentUrl, {
-          rideId: ride._id,
-          userId: ride.riderId,
-          driverId: ride.driverId,
-          amount: finalPrice,
-          paymentMethod: req.body.paymentMethod || ride.paymentMethod || "WALLET"
-        }, {
-          headers: { "x-internal-key": internalKey }
-        }).catch(err => console.error("❌ [Payment Sync] Failed solo payment call:", err.message));
+        if (ride.rideType === "POOL") {
+          // Multi-rider payment loop
+          const syncPromises = ride.riders
+            .filter((rider) => rider.status === "DROPPED")
+            .map((rider) => 
+               axios.post(paymentUrl, {
+                 rideId: ride._id,
+                 userId: rider.riderId,
+                 driverId: ride.driverId,
+                 amount: rider.fare || Math.round(finalPrice / ride.riders.length),
+                 paymentMethod: req.body.paymentMethod || ride.paymentMethod || "WALLET"
+               }, { headers: { "x-internal-key": internalKey } })
+            );
+          
+          await Promise.all(syncPromises);
+        } else {
+          // Solo ride payment
+          await axios.post(paymentUrl, {
+            rideId: ride._id,
+            userId: ride.riderId,
+            driverId: ride.driverId,
+            amount: finalPrice,
+            paymentMethod: req.body.paymentMethod || ride.paymentMethod || "WALLET"
+          }, { headers: { "x-internal-key": internalKey } });
+        }
+
+        ride.paymentStatus = "COMPLETED";
+        await ride.save();
+        console.log(`✅ [Payment Sync] Success for ride ${ride._id}`);
+      } catch (err) {
+        console.error(`❌ [Payment Sync] Failed for ride ${ride._id}:`, err.message);
+        ride.paymentStatus = "FAILED";
+        await ride.save();
       }
-    } catch (err) {
-       console.error("❌ Failed to initiate payment sync block:", err.message);
-    }
+    };
+
+    triggerPayment(); // Fire and forget but with internal status tracking
 
     res.json(payload);
   } catch (err) {
@@ -1303,6 +1357,72 @@ exports.getRideTrendsInternal = async (req, res) => {
     }));
 
     res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * 🆘 Emergency SOS Trigger
+ */
+const SosAlert = require("../models/sosModel");
+
+exports.triggerSos = async (req, res) => {
+  try {
+    const { rideId, location } = req.body;
+    const userId = req.user.id;
+    const role = req.user.activeRole;
+
+    if (!rideId) return res.status(400).json({ error: "rideId is required" });
+
+    const sos = await SosAlert.create({
+      rideId,
+      userId,
+      role,
+      location,
+      status: "OPEN",
+    });
+
+    console.warn(`🚨 [SOS] Emergency alert triggered by ${role} ${userId} for ride ${rideId}`);
+
+    // Notify Admin via Socket (if IO is attached)
+    const io = req.app.get("io");
+    if (io) {
+      io.to("admin_room").emit("admin.sos_alert", {
+        sosId: sos._id,
+        rideId,
+        userId,
+        role,
+        location,
+        timestamp: sos.createdAt,
+      });
+    }
+
+    res.status(201).json({
+      message: "SOS alert recorded. Help is on the way.",
+      sosId: sos._id,
+    });
+  } catch (err) {
+    console.error("❌ triggerSos error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+exports.getAllSosAlerts = async (req, res) => {
+  try {
+    const alerts = await SosAlert.find().sort({ createdAt: -1 }).limit(100);
+    res.json(alerts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.resolveSosAlert = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const alert = await SosAlert.findByIdAndUpdate(id, { status: "RESOLVED" }, { new: true });
+    if (!alert) return res.status(404).json({ error: "Alert not found" });
+    res.json(alert);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
