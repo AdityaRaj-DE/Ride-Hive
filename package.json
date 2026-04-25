@@ -1,4 +1,14 @@
 {
+  "name": "ride-hive-monorepo",
+  "private": true,
+  "workspaces": [
+    "backend/*",
+    "driver-frontend",
+    "ride-frontend",
+    "admin-frontend",
+    "driver-mobile",
+    "shared"
+  ],
   "scripts": {
     "start:auth": "cd backend/auth_service && nodemon server.js",
     "start:rider": "cd backend/rider_service && nodemon server.js",

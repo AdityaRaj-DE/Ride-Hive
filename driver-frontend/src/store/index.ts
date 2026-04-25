@@ -1,9 +1,9 @@
 import { configureStore } from "@reduxjs/toolkit";
-import authReducer from "./slices/authSlice";
-import driverRideReducer from "./slices/driverRideSlice";
-import driverLocationReducer from "./slices/driverLocationSlice";
-import walletReducer from "./slices/driverWalletSlice";
-import driverReducer from "./slices/driverSlice" 
+import authReducer from "../../shared/store/slices/authSlice";
+import driverRideReducer from "../../shared/store/slices/driverRideSlice";
+import driverLocationReducer from "../../shared/store/slices/driverLocationSlice";
+import walletReducer from "../../shared/store/slices/driverWalletSlice";
+import driverReducer from "../../shared/store/slices/driverSlice" 
 
 export const store = configureStore({
   reducer: {
