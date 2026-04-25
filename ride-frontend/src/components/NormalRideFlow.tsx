@@ -18,7 +18,7 @@ export default function NormalRideFlow() {
       </div>
 
       {/* Cancel Button */}
-      {(ride.status === "SEARCHING" || ride.status === "DRIVER_ASSIGNED") && ride.rideId && (
+      {(ride.status === "SEARCHING" || ride.status === "DRIVER_ASSIGNED" || ride.status === "DRIVER_ARRIVING") && ride.rideId && (
         <div className="animate-in fade-in duration-700 delay-500">
            <CancelRideButton rideId={ride.rideId} />
         </div>

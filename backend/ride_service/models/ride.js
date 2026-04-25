@@ -12,6 +12,10 @@ const GeoPointSchema = new mongoose.Schema(
       type: [Number], // [lng, lat]
       required: true,
     },
+    label: {
+      type: String,
+      default: null,
+    },
   },
   { _id: false },
 );
@@ -25,6 +29,10 @@ const RideSchema = new mongoose.Schema(
         return this.rideType === "NORMAL";
       },
       index: true,
+    },
+    riderName: {
+      type: String,
+      default: "Passenger",
     },
 
     rideType: {
@@ -40,6 +48,10 @@ const RideSchema = new mongoose.Schema(
         riderId: {
           type: String,
           required: true,
+        },
+        name: {
+          type: String,
+          default: "Passenger",
         },
 
         pickup: {
@@ -60,6 +72,10 @@ const RideSchema = new mongoose.Schema(
         otp: {
           type: String,
           default: null,
+        },
+        fare: {
+          type: Number,
+          default: 0,
         },
       },
     ],
@@ -151,6 +167,10 @@ const RideSchema = new mongoose.Schema(
       default: 0,
     },
 
+    price: {
+      type: Number,
+      default: 0,
+    },
     finalPrice: {
       type: Number,
       default: null,
@@ -189,6 +209,14 @@ const RideSchema = new mongoose.Schema(
     cancelledAt: Date,
 
     cancelReason: String,
+    
+    // ---- Multi-passenger (Normal) ----
+    passengers: {
+      type: Number,
+      default: 1,
+      min: 1,
+      max: 6
+    },
   },
   { timestamps: true },
 );

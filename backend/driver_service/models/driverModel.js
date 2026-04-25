@@ -41,6 +41,7 @@ const driverSchema = new mongoose.Schema(
       plateNumber: { type: String, default: "" },
       color: { type: String, default: "" },
       type: { type: String, default: "" }, // bike/car/etc.
+      capacity: { type: Number, default: 4 }, // Default 4 seats
     },
 
     // legal info

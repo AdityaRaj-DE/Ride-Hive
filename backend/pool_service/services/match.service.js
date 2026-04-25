@@ -1,14 +1,31 @@
 // services/match.service.js
 
 exports.isMatch = (pool, pickup, drop) => {
-  if (pool.availableSeats <= 0) return false;
+  // 1. Basic capacity check
+  if (pool.availableSeats <= 0) return { matched: false };
 
-  const [lng1, lat1] = pool.route[0].location.coordinates;
-  const [lng2, lat2] = pickup.coordinates;
+  // 2. Coordinate extraction
+  const [pLng, pLat] = pool.route[0].location.coordinates;
+  const riderPickupCoords = pickup.lng !== undefined ? [pickup.lng, pickup.lat] : pickup.coordinates;
+  const [rLng, rLat] = riderPickupCoords;
 
+  // 3. Distance Heuristic (Euclidean approx)
+  // 0.1 deg is ~11km. We use 10km as a reasonable limit for even considering a pool.
   const distance = Math.sqrt(
-    Math.pow(lat1 - lat2, 2) + Math.pow(lng1 - lng2, 2)
+    Math.pow(pLat - rLat, 2) + Math.pow(pLng - rLng, 2)
   );
 
-  return distance < 0.03; // ~3km approx
-};
+  if (distance > 0.1) {
+    return { matched: false };
+  }
+
+  // 4. Detour Logic (Simplified for matching phase)
+  // A match is viable if the rider's pickup is "on the way" or reasonably close to the start.
+  // Real reordering and final detour validation happens in ride_service during the 'add' phase.
+  
+  return { 
+    matched: true, 
+    score: distance, 
+    matchingPoolId: pool._id 
+  };
+};

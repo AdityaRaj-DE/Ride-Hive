@@ -63,6 +63,13 @@ router.post(
   controller.completeRide
 );
 
+router.post(
+  "/:id/cancel-driver",
+  protectWithAuthService,
+  requireActiveRole("driver"),
+  controller.cancelByDriver
+);
+
 router.get(
   "/active",
   protectWithAuthService,

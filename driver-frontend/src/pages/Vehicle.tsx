@@ -3,7 +3,7 @@ import { useDispatch } from "react-redux";
 import { onboardVehicle } from "../store/slices/driverSlice";
 import type { AppDispatch } from "../store";
 import { useNavigate } from "react-router-dom";
-import { Car, Hash, Palette, Info, ArrowRight, ShieldCheck, ChevronDown, Activity, Zap } from 'lucide-react';
+import { Car, Hash, Palette, Info, ArrowRight, ShieldCheck, ChevronDown, Activity, Zap, Users } from 'lucide-react';
 
 export default function Vehicle() {
   const dispatch = useDispatch<AppDispatch>();
@@ -13,11 +13,12 @@ export default function Vehicle() {
   const [plateNumber, setPlate] = useState("");
   const [color, setColor] = useState("");
   const [type, setType] = useState("");
+  const [capacity, setCapacity] = useState(4);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await dispatch(
-      onboardVehicle({ model, plateNumber, color, type })
+      onboardVehicle({ model, plateNumber, color, type, capacity })
     );
     if (onboardVehicle.fulfilled.match(res)) {
       navigate("/driver/onboarding/documents");
@@ -108,7 +109,31 @@ export default function Vehicle() {
                       <option value="Luxury">Prime Luxury</option>
                       <option value="Hatchback">Regional Compact</option>
                     </select>
-                    <ChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 w-6 h-6 text-muted opacity-20 pointer-events-none" />
+                    <ChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground opacity-20 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div className="space-y-4 group">
+                  <label className="flex items-center gap-3 text-[10px] font-bold text-accent uppercase tracking-[0.2em] ml-1 opacity-70 group-focus-within:opacity-100 transition-opacity">
+                    <Users className="w-4 h-4" />
+                    Seating Capacity
+                  </label>
+                  <div className="flex items-center gap-6 glass-card p-2 border-border/50 group-focus-within:border-accent/40 transition-all">
+                     <button 
+                        type="button"
+                        onClick={() => setCapacity(Math.max(1, capacity - 1))}
+                        className="w-14 h-14 rounded-xl bg-surface border border-border flex items-center justify-center text-primary hover:border-accent/40 transition-all"
+                     >
+                        <span className="text-2xl">-</span>
+                     </button>
+                     <span className="text-3xl font-bold text-primary flex-1 text-center">{capacity}</span>
+                     <button 
+                        type="button"
+                        onClick={() => setCapacity(Math.min(6, capacity + 1))}
+                        className="w-14 h-14 rounded-xl bg-accent text-background flex items-center justify-center hover:scale-105 transition-all shadow-lg"
+                     >
+                        <span className="text-2xl">+</span>
+                     </button>
                   </div>
                 </div>
               </div>

@@ -23,6 +23,7 @@ interface Ride {
     duration: number;
     finalPrice?: number;
     price?: number;
+    priceEstimate?: number;
     isReduced?: boolean;
     pickup: { lat: number; lng: number; label: string };
     drop: { lat: number; lng: number; label: string };
@@ -145,7 +146,7 @@ export default function RideDetail() {
                                     </div>
                                     <div className="space-y-1">
                                         <p className="text-[9px] font-bold uppercase tracking-widest text-muted">Earned</p>
-                                        <p className="text-lg font-bold text-accent">₹{isCancelled ? '0' : (ride.finalPrice || ride.price || 0)}</p>
+                                        <p className="text-lg font-bold text-accent">₹{isCancelled ? '0' : (ride.finalPrice || ride.price || ride.priceEstimate || 0)}</p>
                                     </div>
                                     <div className="space-y-1 text-right">
                                         <p className="text-[9px] font-bold uppercase tracking-widest text-muted">Type</p>
@@ -216,7 +217,7 @@ export default function RideDetail() {
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center text-xs">
                                     <span className="text-muted font-medium">Net Fare</span>
-                                    <span className="text-primary font-bold">₹{isCancelled ? '0' : (ride.price || 0)}</span>
+                                    <span className="text-primary font-bold">₹{isCancelled ? '0' : (ride.price || ride.priceEstimate || 0)}</span>
                                 </div>
                                 {ride.isReduced && (
                                     <div className="flex justify-between items-center text-xs text-emerald-500 bg-emerald-500/5 px-2 py-1 rounded">
@@ -227,7 +228,7 @@ export default function RideDetail() {
                                 <div className="h-px bg-border my-2"></div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-primary">Your Earnings</span>
-                                    <span className="text-xl font-black text-accent tracking-tighter">₹{isCancelled ? '0' : (ride.finalPrice || ride.price || 0)}</span>
+                                    <span className="text-xl font-black text-accent tracking-tighter">₹{isCancelled ? '0' : (ride.finalPrice || ride.price || ride.priceEstimate || 0)}</span>
                                 </div>
                                 <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border opacity-50">
                                     <ShieldCheck className="w-3 h-3 text-success" />

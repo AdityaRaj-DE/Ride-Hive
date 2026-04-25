@@ -3,6 +3,7 @@ exports.serializeRide = (ride) => {
 
   return {
     rideId: ride._id,
+    _id: ride._id,
 
     status: ride.status,
 
@@ -23,17 +24,20 @@ exports.serializeRide = (ride) => {
       : null,
 
     geometry: ride.routeGeometry || null,
+    route: ride.route || null,
 
     distance: ride.distance ?? null,
     duration: ride.duration ?? null,
 
-    price: ride.priceEstimate ?? null,
+    price: ride.price ?? ride.priceEstimate ?? null,
+    passengers: ride.passengers ?? 1,
     finalPrice: ride.finalPrice ?? null,
     isReduced: !!(ride.finalPrice && ride.finalPrice < ride.priceEstimate),
     paymentMethod: ride.paymentMethod ?? "WALLET",
 
     rideType: ride.rideType ?? "NORMAL",
     riders: ride.riders ?? null,
+    riderName: ride.riderName ?? "Passenger",
 
     riderId: ride.riderId ?? null,
     driverId: ride.driverId ?? null,

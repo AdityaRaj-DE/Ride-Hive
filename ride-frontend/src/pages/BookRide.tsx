@@ -24,6 +24,7 @@ export default function BookRide() {
     const [selectedType, setSelectedType] = useState<"cab" | "pool">("cab");
     const [usingCurrentLocation, setUsingCurrentLocation] = useState(true);
     const [isCalculating, setIsCalculating] = useState(false);
+    const [passengers, setPassengers] = useState(1);
 
     useEffect(() => {
         if (state?.pickup) {
@@ -91,7 +92,7 @@ export default function BookRide() {
         if (selectedType === "pool") {
             import("../sockets/rideSocket").then(({ emitCreatePoolRide }) => emitCreatePoolRide({ pickup, drop }));
         } else {
-            emitCreateRide({ pickup, drop });
+            emitCreateRide({ pickup, drop, passengers });
         }
         navigate("/ride");
     };
@@ -218,6 +219,37 @@ export default function BookRide() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {selectedType === "cab" && (
+                                    <div className="glass-card p-6 border-accent/20 animate-in fade-in zoom-in duration-300">
+                                        <div className="flex items-center justify-between">
+                                            <div className="space-y-1">
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-accent">Neural Occupancy</p>
+                                                <h3 className="text-lg font-bold text-primary">Passengers</h3>
+                                            </div>
+                                            <div className="flex items-center gap-6">
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); setPassengers(Math.max(1, passengers - 1)); }}
+                                                    disabled={passengers <= 1}
+                                                    className="w-10 h-10 rounded-xl bg-surface border border-border flex items-center justify-center text-primary hover:border-accent/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                                >
+                                                    <span className="text-2xl">-</span>
+                                                </button>
+                                                <span className="text-3xl font-bold text-primary min-w-[1.5rem] text-center">{passengers}</span>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); setPassengers(Math.min(6, passengers + 1)); }}
+                                                    disabled={passengers >= 6}
+                                                    className="w-10 h-10 rounded-xl bg-accent text-background flex items-center justify-center hover:scale-110 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg"
+                                                >
+                                                    <span className="text-2xl">+</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p className="mt-4 text-[10px] text-muted-foreground font-medium uppercase tracking-[0.05em] leading-relaxed">
+                                            Select up to 6 traversal nodes. Larger units will be prioritized for multi-node trajectories.
+                                        </p>
+                                    </div>
+                                )}
 
                                 <div className="glass-card p-8 border-accent/10">
                                      <div className="grid grid-cols-2 gap-4 sm:gap-8 mb-8">

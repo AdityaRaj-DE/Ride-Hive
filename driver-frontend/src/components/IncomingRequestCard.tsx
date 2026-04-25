@@ -24,12 +24,17 @@ export default function IncomingRequestCard({ ride }: { ride: any }) {
             </div>
          </div>
          
-         {ride.rideType === "POOL" && (
-            <div className="px-3 py-1 bg-accent/10 text-accent border border-accent/20 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-               <Users className="w-4 h-4" />
-               Shared Pool
-            </div>
-         )}
+          {ride.rideType === "POOL" ? (
+             <div className="px-3 py-1 bg-accent/10 text-accent border border-accent/20 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Shared Pool
+             </div>
+          ) : (
+             <div className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                {ride.passengers || 1} { (ride.passengers || 1) === 1 ? 'Passenger' : 'Passengers' }
+             </div>
+          )}
       </header>
 
       <div className="space-y-6 mb-10 relative z-10">
@@ -53,7 +58,7 @@ export default function IncomingRequestCard({ ride }: { ride: any }) {
             <div className="space-y-1">
                <p className="text-[10px] font-bold uppercase tracking-widest text-muted">Estimated Fare</p>
                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold tracking-tight text-accent">₹{ride.price || ride.fare}</span>
+                  <span className="text-4xl font-bold tracking-tight text-accent">₹{ride.price || ride.fare || ride.priceEstimate}</span>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-muted opacity-40">Net Earnings</span>
                </div>
             </div>

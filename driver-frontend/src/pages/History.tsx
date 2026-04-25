@@ -19,6 +19,7 @@ interface IRide {
   drop?: { label?: string; lat?: number; lng?: number };
   price?: number;
   finalPrice?: number;
+  priceEstimate?: number;
   status: string;
   createdAt?: string;
   requestedAt?: string;
@@ -167,7 +168,7 @@ export default function History() {
                         <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-muted opacity-60">Yield Captured</p>
                         <div className="flex items-center justify-end gap-2 text-4xl font-bold text-primary tracking-tighter">
                            <IndianRupee size={24} className="text-accent mt-1" />
-                           <span>{ride.status.includes('CANCELLED') ? '0' : (ride.finalPrice || ride.price || 0)}</span>
+                           <span>{ride.status.includes('CANCELLED') ? '0' : (ride.finalPrice || ride.price || ride.priceEstimate || 0)}</span>
                         </div>
                         {ride.isReduced && (
                           <div className="flex items-center justify-end gap-2 text-emerald-500 font-bold bg-emerald-500/5 px-3 py-1 rounded-xl border border-emerald-500/10 w-fit ml-auto">

@@ -3,23 +3,36 @@ import {
   emitDriverArriving,
   emitStartRide,
   emitCompleteRide,
+  emitUpdatePoolStop,
+  emitCancelRide,
 } from "../sockets/driverRideSocket";
 import { getDriverSocket } from "../sockets/socketClient";
 import useRideCall from "../hooks/useRideCall";
 import CallModal from "./CallModal";
-import { Phone, Navigation, Check, Zap, Target, Activity, Clock, ShieldCheck, MapPin, Wallet, Banknote, QrCode } from 'lucide-react';
+import { Phone, Navigation, Check, Zap, Target, Activity, Clock, ShieldCheck, MapPin, Wallet, Banknote, QrCode, Users } from 'lucide-react';
 import QRCode from "react-qr-code";
 
 export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavigateToDrop }: { activeRide: any, onNavigateToPickup?: () => void, onNavigateToDrop?: () => void }) {
   const [otp, setOtp] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [pendingPoolStop, setPendingPoolStop] = useState<any>(null);
   
   const socket = getDriverSocket();
   const { startCall, hangup, acceptIncoming, rejectIncoming, toggleMute, state, timer } = useRideCall(socket, activeRide?.rideId || activeRide?._id);
 
   const handleFinishTrip = (paymentMethod: "CASH" | "WALLET") => {
     setIsProcessing(true);
+    
+    // Check if we are completing a pool stop or the whole ride
+    if (activeRide.rideType === "POOL" && pendingPoolStop) {
+       emitUpdatePoolStop(activeRide._id || activeRide.rideId, pendingPoolStop.order, undefined, paymentMethod);
+       setIsProcessing(false);
+       setShowPaymentModal(false);
+       setPendingPoolStop(null);
+       return;
+    }
+
     navigator.geolocation.getCurrentPosition((pos) => {
       const currentLocation = {
         lat: pos.coords.latitude,
@@ -61,13 +74,33 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
               <p className="text-[9px] font-bold text-muted uppercase tracking-wider">Ride ID: {activeRide._id?.substring(0, 8).toUpperCase()}</p>
            </div>
            
-           <button 
-             onClick={() => startCall({ callerName: "Passenger" })}
-             className="h-12 px-5 rounded-xl bg-accent/10 border border-accent/20 text-accent hover:bg-accent hover:text-white transition-all flex items-center gap-3 active:scale-95 group"
-           >
-             <Phone className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-             <span className="text-[10px] font-bold uppercase tracking-widest">Contact</span>
-           </button>
+           <div className="flex items-center gap-4">
+              <div className="text-right hidden sm:block">
+                 <p className="text-[9px] font-bold text-muted uppercase tracking-widest">Yield Estimate</p>
+                 <p className="text-2xl font-bold text-primary">₹{activeRide.price || activeRide.fare || activeRide.priceEstimate || (activeRide.rideType === 'POOL' ? (activeRide.riders?.reduce((acc: number, r: any) => acc + (r.fare || 0), 0)) : 0)}</p>
+              </div>
+
+              <button 
+                onClick={() => startCall({ callerName: "Passenger" })}
+                className="h-12 px-5 rounded-xl bg-accent/10 border border-accent/20 text-accent hover:bg-accent hover:text-white transition-all flex items-center gap-3 active:scale-95 group"
+              >
+                <Phone className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Contact</span>
+              </button>
+
+              {(activeRide.status === "DRIVER_ASSIGNED" || activeRide.status === "DRIVER_ARRIVING") && (
+                <button 
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to cancel this trip?")) {
+                      emitCancelRide(activeRide._id || activeRide.rideId);
+                    }
+                  }}
+                  className="h-12 px-5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center gap-3 active:scale-95 group"
+                >
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Cancel</span>
+                </button>
+              )}
+           </div>
         </header>
 
         <div className="relative z-10 space-y-8">
@@ -96,7 +129,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                     );
                  }
 
-                 const riderDetails = activeRide.allRiders?.find((r: { id: string; name: string }) => r.id === currentStop.riderId);
+                 const riderDetails = activeRide.riders?.find((r: any) => r.riderId === currentStop.riderId);
 
                  return (
                    <div className="space-y-8">
@@ -119,7 +152,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                            </div>
                            <div>
                               <p className="text-[10px] font-bold text-muted uppercase tracking-widest">Passenger</p>
-                              <p className="text-lg font-bold text-primary">{riderDetails?.name || `Passenger ${currentStop.riderId.substring(0,4)}`}</p>
+                              <p className="text-lg font-bold text-primary">{riderDetails?.name || activeRide.riderName || `Passenger ${currentStop.riderId.substring(0,4)}`}</p>
                            </div>
                         </div>
 
@@ -137,10 +170,8 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                              </div>
                              <button
                                 onClick={() => {
-                                  import("../sockets/driverRideSocket").then(({ emitUpdatePoolStop }) => {
-                                    emitUpdatePoolStop(activeRide._id || activeRide.rideId, currentStop.order, otp);
-                                    setOtp("");
-                                  });
+                                  emitUpdatePoolStop(activeRide._id || activeRide.rideId, currentStop.order, otp);
+                                  setOtp("");
                                 }}
                                 className="btn-primary w-full h-16 text-sm uppercase tracking-widest gap-3"
                               >
@@ -150,9 +181,8 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                         ) : (
                           <button
                             onClick={() => {
-                              import("../sockets/driverRideSocket").then(({ emitUpdatePoolStop }) => {
-                                emitUpdatePoolStop(activeRide._id || activeRide.rideId, currentStop.order);
-                              });
+                               setPendingPoolStop(currentStop);
+                               setShowPaymentModal(true);
                             }}
                             className="w-full h-16 rounded-xl bg-blue-500 text-white font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-blue-500/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
                           >
@@ -181,11 +211,17 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                  <div className="w-12 h-12 rounded-full bg-surface border border-border flex items-center justify-center text-lg font-bold">
                     {activeRide.rider?.name?.charAt(0) || "P"}
                  </div>
-                 <div>
-                    <p className="text-[10px] font-bold text-muted uppercase tracking-widest">Active Passenger</p>
-                    <p className="text-lg font-bold text-primary">{activeRide.rider?.name || "Passenger"}</p>
-                 </div>
-              </div>
+                  <div className="flex-1 min-w-0">
+                     <p className="text-[10px] font-bold text-muted uppercase tracking-widest">Active Passenger</p>
+                     <p className="text-lg font-bold text-primary truncate">{activeRide.rider?.name || "Passenger"}</p>
+                  </div>
+                  {activeRide.passengers > 1 && (
+                     <div className="px-3 py-1 bg-accent/10 border border-accent/20 rounded-lg text-[10px] font-bold text-accent uppercase tracking-widest flex items-center gap-2">
+                        <Users className="w-3 h-3" />
+                        {activeRide.passengers}
+                     </div>
+                  )}
+               </div>
 
               {activeRide.status === "DRIVER_ASSIGNED" && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-700">
@@ -239,7 +275,13 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                   </div>
 
                   <button
-                      onClick={() => emitStartRide(activeRide._id || activeRide.rideId, otp)}
+                      onClick={() => {
+                        const cleanOtp = otp.trim();
+                        if (cleanOtp.length === 4) {
+                          emitStartRide(activeRide._id || activeRide.rideId, cleanOtp);
+                          setOtp("");
+                        }
+                      }}
                       className="w-full h-16 rounded-xl bg-accent text-white font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-accent/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
                     >
                       <Zap className="w-5 h-5" />
@@ -278,87 +320,91 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                             <Check className="w-5 h-5" />
                             Finish Trip
                           </button>
-                  </div>
-                  
-                  {/* Payment Selection Modal */}
-                  {showPaymentModal && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
-                       <div className="glass-card p-8 max-w-md w-full border-accent/20 shadow-2xl relative overflow-hidden">
-                          <div className="absolute top-0 right-0 p-8 opacity-[0.03] rotate-12 pointer-events-none">
-                             <QrCode className="w-24 h-24 text-accent" />
-                          </div>
-
-                          <div className="text-center mb-8">
-                             <h3 className="text-2xl font-bold text-primary mb-2">Select Payment Method</h3>
-                             <p className="text-sm text-secondary font-medium">How did the passenger pay for this journey?</p>
-                          </div>
-
-                          <div className="grid grid-cols-1 gap-4 mb-8">
-                             <button
-                               onClick={() => handleFinishTrip("WALLET")}
-                               disabled={isProcessing}
-                               className="h-24 rounded-2xl bg-accent/5 border border-accent/20 flex flex-col items-center justify-center gap-2 hover:bg-accent/10 transition-all group disabled:opacity-50"
-                             >
-                                <Wallet className={`w-6 h-6 text-accent group-hover:scale-110 transition-transform ${isProcessing ? 'animate-bounce' : ''}`} />
-                                <div className="text-center">
-                                   <p className="text-sm font-bold text-primary">{isProcessing ? "Processing..." : "Digital Wallet / QR"}</p>
-                                   <p className="text-[10px] text-muted uppercase tracking-widest font-bold">In-App Transaction</p>
-                                </div>
-                             </button>
-
-                             <button
-                               onClick={() => handleFinishTrip("CASH")}
-                               disabled={isProcessing}
-                               className="h-24 rounded-2xl bg-surface border border-border flex flex-col items-center justify-center gap-2 hover:bg-background transition-all group disabled:opacity-50"
-                             >
-                                <Banknote className={`w-6 h-6 text-emerald-500 group-hover:scale-110 transition-transform ${isProcessing ? 'animate-bounce' : ''}`} />
-                                <div className="text-center">
-                                   <p className="text-sm font-bold text-primary">{isProcessing ? "Processing..." : "Cash Payment"}</p>
-                                   <p className="text-[10px] text-muted uppercase tracking-widest font-bold">Physical Handover</p>
-                                </div>
-                             </button>
-                          </div>
-
-                          <div className="flex flex-col gap-4">
-                            {/* QR Section for Online Payment */}
-                            <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center gap-4">
-                               <div className="p-3 bg-white rounded-xl">
-                                  <QRCode 
-                                    value={`ride_hive_pay_${activeRide._id}_est`} 
-                                    size={120}
-                                    level="L"
-                                  />
-                               </div>
-                               <p className="text-[9px] font-bold text-accent uppercase tracking-widest animate-pulse">Show to Passenger</p>
-                            </div>
-
-                            <button
-                              onClick={() => setShowPaymentModal(false)}
-                              className="text-[10px] font-bold text-muted uppercase tracking-widest hover:text-primary transition-colors py-2"
-                            >
-                              Cancel & Return
-                            </button>
-                          </div>
+                   </div>
+                   
+                   <footer className="pt-6 flex items-center justify-center sm:justify-start gap-8 opacity-40">
+                       <div className="flex items-center gap-2">
+                         <Clock className="w-3 h-3 text-accent" />
+                         <p className="text-[9px] font-bold uppercase tracking-widest">Est: 12 min</p>
                        </div>
-                    </div>
-                  )}
-                  
-                  <footer className="pt-6 flex items-center justify-center sm:justify-start gap-8 opacity-40">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-3 h-3 text-accent" />
-                        <p className="text-[9px] font-bold uppercase tracking-widest">Est: 12 min</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck className="w-3 h-3 text-accent" />
-                        <p className="text-[9px] font-bold uppercase tracking-widest">Secured</p>
-                      </div>
-                  </footer>
-                </div>
-              )}
+                       <div className="flex items-center gap-2">
+                         <ShieldCheck className="w-3 h-3 text-accent" />
+                         <p className="text-[9px] font-bold uppercase tracking-widest">Secured</p>
+                       </div>
+                   </footer>
+                 </div>
+               )}
             </>
           )}
         </div>
       </div>
+
+      {/* Payment Selection Modal (Unified) */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+           <div className="glass-card p-8 max-w-md w-full border-accent/20 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] rotate-12 pointer-events-none">
+                 <QrCode className="w-24 h-24 text-accent" />
+              </div>
+
+              <div className="text-center mb-8">
+                 <h3 className="text-2xl font-bold text-primary mb-2">
+                   {activeRide.rideType === "POOL" ? "Collect Pool Payment" : "Finish Journey"}
+                 </h3>
+                 <p className="text-sm text-secondary font-medium">How did the passenger pay for this segment?</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 mb-8">
+                 <button
+                   onClick={() => handleFinishTrip("WALLET")}
+                   disabled={isProcessing}
+                   className="h-24 rounded-2xl bg-accent/5 border border-accent/20 flex flex-col items-center justify-center gap-2 hover:bg-accent/10 transition-all group disabled:opacity-50"
+                 >
+                    <Wallet className={`w-6 h-6 text-accent group-hover:scale-110 transition-transform ${isProcessing ? 'animate-bounce' : ''}`} />
+                    <div className="text-center">
+                       <p className="text-sm font-bold text-primary">{isProcessing ? "Processing..." : "Digital Wallet / QR"}</p>
+                       <p className="text-[10px] text-muted uppercase tracking-widest font-bold">In-App Transaction</p>
+                    </div>
+                 </button>
+
+                 <button
+                   onClick={() => handleFinishTrip("CASH")}
+                   disabled={isProcessing}
+                   className="h-24 rounded-2xl bg-surface border border-border flex flex-col items-center justify-center gap-2 hover:bg-background transition-all group disabled:opacity-50"
+                 >
+                    <Banknote className={`w-6 h-6 text-emerald-500 group-hover:scale-110 transition-transform ${isProcessing ? 'animate-bounce' : ''}`} />
+                    <div className="text-center">
+                       <p className="text-sm font-bold text-primary">{isProcessing ? "Processing..." : "Cash Payment"}</p>
+                       <p className="text-[10px] text-muted uppercase tracking-widest font-bold">Physical Handover</p>
+                    </div>
+                 </button>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center gap-4">
+                   <div className="p-3 bg-white rounded-xl">
+                      <QRCode 
+                        value={`ride_hive_pay_${activeRide._id}_${activeRide.rideType === "POOL" ? (pendingPoolStop?.order || 'p') : 'solo'}`} 
+                        size={120}
+                        level="L"
+                      />
+                   </div>
+                   <p className="text-[9px] font-bold text-accent uppercase tracking-widest animate-pulse">Show to Passenger</p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setShowPaymentModal(false);
+                    setPendingPoolStop(null);
+                  }}
+                  className="text-[10px] font-bold text-muted uppercase tracking-widest hover:text-primary transition-colors py-2"
+                >
+                  Cancel & Return
+                </button>
+              </div>
+           </div>
+        </div>
+      )}
 
       <CallModal 
         open={state.incoming || state.ringing || state.inCall || state.connecting}

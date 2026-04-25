@@ -59,8 +59,11 @@ module.exports = function setupSocket(httpServer) {
         });
 
         console.log("Ride service response:", res.data);
-
+        
+        // 📢 General broadcast to all online drivers (discovery)
         io.to("drivers").emit("ride.created", res.data);
+
+        // The ride_service already handles nearby driver broadcasts.
 
         ack?.(res.data);
       } catch (e) {
@@ -189,13 +192,22 @@ module.exports = function setupSocket(httpServer) {
 
     socket.on("cancelRide", async ({ rideId }, ack) => {
       try {
+        const isDriver = socket.user.activeRole === "driver";
+        const endpoint = isDriver ? `${urls.ride}/${rideId}/cancel-driver` : `${urls.ride}/${rideId}/cancel`;
+
         const { data } = await axios.post(
-          `${urls.ride}/${rideId}/cancel`,
+          endpoint,
           {},
           { headers: { Authorization: `Bearer ${socket.token}` } },
         );
 
-        // 🔥 THIS IS THE FIX
+        // 🔥 Notify ALL participants
+        io.to(`ride_${rideId}`).emit("ride.cancelled", { rideId, reason: isDriver ? "CANCELLED_BY_DRIVER" : "CANCELLED_BY_RIDER" });
+        io.to(`user_${data.riderId}`).emit("ride.cancelled", { rideId });
+        if (data.driverId) {
+          io.to(`user_${data.driverId}`).emit("ride.cancelled", { rideId });
+        }
+        
         io.to(`ride_${rideId}`).emit("ride.updated", data);
 
         ack?.(data);
@@ -254,11 +266,11 @@ module.exports = function setupSocket(httpServer) {
       }
     });
 
-    socket.on("updatePoolStop", async ({ rideId, order, otp }, ack) => {
+    socket.on("updatePoolStop", async ({ rideId, order, otp, paymentMethod }, ack) => {
       try {
         const { data } = await axios.post(
           `${urls.ride}/pool/update-stop`,
-          { rideId, order, otp },
+          { rideId, order, otp, paymentMethod },
           {
             headers: { Authorization: `Bearer ${socket.token}` },
           },

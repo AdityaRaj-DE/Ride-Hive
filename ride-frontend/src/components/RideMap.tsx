@@ -33,6 +33,7 @@ export default function RideMap({
   driverLocation,
   status,
   geometry,
+  route,
 }: any) {
   const [activePath, setActivePath] = useState<[number, number][] | null>(null);
   const lastUpdatePos = useRef<[number, number] | null>(null);
@@ -42,15 +43,16 @@ export default function RideMap({
     if (!target) return null;
     if (target.lat !== undefined && target.lng !== undefined) return [target.lat, target.lng];
     if (Array.isArray(target.coordinates)) return [target.coordinates[1], target.coordinates[0]];
+    if (target.location?.coordinates) return [target.location.coordinates[1], target.location.coordinates[0]];
     return null;
   };
 
   // Initialize path from provided geometry
   useEffect(() => {
-    if (geometry?.coordinates && !activePath) {
+    if (geometry?.coordinates) {
       setActivePath(geometry.coordinates.map((c: any) => [c[1], c[0]]));
     }
-  }, [geometry, activePath]);
+  }, [geometry]);
 
   // Real-time re-routing as driver moves
   useEffect(() => {
@@ -58,8 +60,22 @@ export default function RideMap({
       if (isRouting.current || !driverLocation) return;
       
       const currentPos: [number, number] = [driverLocation.lat, driverLocation.lng];
-      const targetData = (status === "DRIVER_ASSIGNED" || status === "DRIVER_ARRIVING") ? pickup : drop;
-      const targetCoords = getTargetCoords(targetData);
+      
+      // Determine logical next target
+      let targetCoords: [number, number] | null = null;
+
+      if (route && route.length > 0) {
+        // For POOL: Find first incomplete stop
+        // (This logic assumes backend keeps route updated or we have rider statuses)
+        // For simplicity here, we take the one marked as 'IN_PROGRESS' or similar if we had it,
+        // but since we only have the route array, let's just use the current pickup/drop logic
+        // mixed with route if available.
+        targetCoords = getTargetCoords(route.find((s: any) => s.status !== 'COMPLETED') || route[0]);
+      } else {
+        const targetData = (status === "DRIVER_ASSIGNED" || status === "DRIVER_ARRIVING") ? pickup : drop;
+        targetCoords = getTargetCoords(targetData);
+      }
+
       if (!targetCoords) return;
 
       // Throttle: only update if moved > 50 meters or first time
@@ -86,11 +102,23 @@ export default function RideMap({
     };
 
     fetchNewRoute();
-  }, [driverLocation, status, pickup, drop]);
+  }, [driverLocation, status, pickup, drop, route]);
 
   if (!pickup) return <div className="w-full h-[400px] flex items-center justify-center bg-white/5 rounded-xl border border-white/10 italic opacity-40">Initializing Navigation...</div>;
 
   const center = driverLocation || pickup || { lat: 26.8467, lng: 80.9462 };
+
+  const poolMarkers = route?.map((stop: any, i: number) => {
+    const coords = getTargetCoords(stop);
+    if (!coords) return null;
+    return (
+      <Marker 
+        key={`stop-${i}`} 
+        position={coords} 
+        opacity={0.6}
+      />
+    );
+  });
 
   return (
     <div className="w-full h-[400px] overflow-hidden rounded-xl ghost-border ambient-shadow relative z-0">
@@ -107,6 +135,9 @@ export default function RideMap({
 
         {pickup && <Marker position={[pickup.lat, pickup.lng]} />}
         {drop && <Marker position={[drop.lat, drop.lng]} />}
+        
+        {poolMarkers}
+
         {driverLocation && (
           <Marker position={[driverLocation.lat, driverLocation.lng]} />
         )}

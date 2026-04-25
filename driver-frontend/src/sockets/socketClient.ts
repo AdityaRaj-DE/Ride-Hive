@@ -3,11 +3,16 @@ import { io, Socket } from "socket.io-client";
 let socket: Socket | null = null;
 
 export const connectDriverSocket = (token: string) => {
+  if (socket && (socket as any)._lastToken !== token) {
+     disconnectDriverSocket();
+  }
+
   if (!socket) {
     socket = io(import.meta.env.VITE_API_URL || "http://localhost:3000", {
-      auth: { token },
-      // transports: ["websocket"],
+       auth: { token },
+       // transports: ["websocket"],
     });
+    (socket as any)._lastToken = token;
 
     socket.on("connect", () => {
       console.log("Driver socket connected:", socket?.id);

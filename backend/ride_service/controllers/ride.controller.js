@@ -5,6 +5,8 @@ const { getRoute } = require("../services/route.service");
 const { calculatePrice } = require("../services/pricing.service");
 const { findNearbyDrivers } = require("../services/driver.service");
 const { generateOtp } = require("../services/otp.service");
+const { optimizePoolRoute } = require("../services/route_optimization.service");
+
 
 const { serializeRide } = require("../serializers/ride.serializer");
 const axios = require("axios");
@@ -23,11 +25,25 @@ async function notifyAdminOtp(type, target, code) {
   }
 }
 
+async function fetchRiderName(userId) {
+  try {
+    const { data: riderInfo } = await axios.get(
+      `${process.env.RIDER_SERVICE_URL}/by-user/${userId}`
+    );
+    if (riderInfo && riderInfo.rider) {
+      return `${riderInfo.rider.name.first} ${riderInfo.rider.name.last}`;
+    }
+  } catch (err) {
+    console.warn(`Failed to fetch rider name for ${userId}:`, err.message);
+  }
+  return "Passenger";
+}
+
 exports.getRouteGeometry = async (req, res) => {
   try {
     const { start, end } = req.body;
     if (!start || !end) return res.status(400).json({ error: "start and end required" });
-    const route = await getRoute(start, end);
+    const route = await getRoute([start, end]);
     res.json(route);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -36,7 +52,7 @@ exports.getRouteGeometry = async (req, res) => {
 
 exports.createRide = async (req, res) => {
   try {
-    const { pickup, drop } = req.body;
+    const { pickup, drop, passengers = 1 } = req.body;
 
     if (!pickup || !drop) {
       return res.status(400).json({ error: "pickup/drop required" });
@@ -65,24 +81,38 @@ exports.createRide = async (req, res) => {
     }
 
     // 2) Create new ride
-    const route = await getRoute(pickup, drop);
+    const route = await getRoute([pickup, drop]);
 
     const priceEstimate = calculatePrice({
       distance: route.distance,
       duration: route.duration,
+      passengers: parseInt(req.body.passengers) || 1,
     });
+
+    const riderName = await fetchRiderName(req.user.id);
 
     const ride = await Ride.create({
       riderId: req.user.id,
+      riderName,
 
-      pickup: { type: "Point", coordinates: [pickup.lng, pickup.lat] },
-      drop: { type: "Point", coordinates: [drop.lng, drop.lat] },
+      pickup: { 
+        type: "Point", 
+        coordinates: [pickup.lng, pickup.lat],
+        label: pickup.label || null
+      },
+      drop: { 
+        type: "Point", 
+        coordinates: [drop.lng, drop.lat],
+        label: drop.label || null
+      },
 
       distance: route.distance,
       duration: route.duration,
       routeGeometry: route.geometry,
 
-      priceEstimate,
+      passengers: Number(passengers) || 1,
+      price: priceEstimate,
+      priceEstimate: priceEstimate,
 
       status: "SEARCHING",
       requestedAt: new Date(),
@@ -92,46 +122,43 @@ exports.createRide = async (req, res) => {
     const io = req.app.get("io");
 
     if (io) {
-      const nearbyDrivers = await findNearbyDrivers(pickup);
-
-      let riderName = "Incoming Passenger";
-      try {
-        const { data: riderInfo } = await axios.get(
-          `${process.env.RIDER_SERVICE_URL}/by-user/${req.user.id}`
-        );
-        if (riderInfo && riderInfo.rider) {
-          riderName = `${riderInfo.rider.name.first} ${riderInfo.rider.name.last}`;
-        }
-      } catch (err) {
-        console.warn("Failed to fetch rider name for broadcast:", err.message);
-      }
+      const nearbyDrivers = await findNearbyDrivers(pickup, 3000, passengers);
 
       const payload = {
         rideId: ride._id,
-        pickup,
-        drop,
+        pickup: {
+          lat: ride.pickup.coordinates[1],
+          lng: ride.pickup.coordinates[0],
+          label: ride.pickup.label || pickup.label || "Pickup"
+        },
+        drop: {
+          lat: ride.drop.coordinates[1],
+          lng: ride.drop.coordinates[0],
+          label: ride.drop.label || drop.label || "Dropoff"
+        },
         distance: ride.distance,
         duration: ride.duration,
-        price: ride.priceEstimate,
-        riderName,
+        price: priceEstimate,
+        fare: priceEstimate,
+        priceEstimate: priceEstimate,
+        riderName: ride.riderName,
+        passengers: Number(passengers) || 1,
       };
 
       nearbyDrivers.forEach((driver) => {
-        io.to(`user_${driver._id}`).emit("ride.created", payload);
+        io.to(`user_${driver.userId}`).emit("ride.created", payload);
       });
 
       // 🆙 Increment offers in driver service
-      const driverUserIds = nearbyDrivers.map(d => d._id);
+      const driverUserIds = nearbyDrivers.map(d => d.userId);
       if (driverUserIds.length > 0) {
         axios.post(`${process.env.DRIVER_SERVICE_URL}/internal/increment-offers`, { userIds: driverUserIds })
           .catch(err => console.error("Failed to increment driver offers:", err.message));
       }
     }
 
-    return res.status(201).json({
-      rideId: ride._id,
-      status: ride.status,
-    });
+    const { serializeRide } = require("../serializers/ride.serializer");
+    return res.status(201).json(serializeRide(ride));
   } catch (err) {
     console.error("createRide error:", err.message);
     return res.status(500).json({ error: "Server error" });
@@ -173,7 +200,8 @@ exports.acceptRide = async (req, res) => {
   if (!ride) return res.status(409).json({ error: "Ride already taken" });
 
   // ⭐ SYNC OTP
-  notifyAdminOtp("RIDE_START", ride.riderId, otp);
+  const adminTargetId = ride.rideType === "POOL" ? ride.riders[0]?.riderId : ride.riderId;
+  notifyAdminOtp("RIDE_START", adminTargetId, otp);
 
   // 🆙 Increment accepted count in driver service
   axios.post(`${process.env.DRIVER_SERVICE_URL}/internal/increment-accepted`, { userId: req.user.id })
@@ -189,30 +217,9 @@ exports.acceptRide = async (req, res) => {
       code: "SUBSCRIPTION_REQUIRED",
     });
   }
-
   const { data: driver } = await axios.get(
     `${process.env.DRIVER_SERVICE_URL}/by-user/${req.user.id}`,
   );
-
-  let riders = [];
-  if (ride.rideType === "POOL") {
-    // Fetch all rider profiles for pool
-    const riderPromises = ride.riders.map((r) =>
-      axios.get(`${process.env.RIDER_SERVICE_URL}/by-user/${r.riderId}`).then(res => res.data).catch(() => null)
-    );
-    riders = (await Promise.all(riderPromises)).filter(r => r !== null);
-  } else {
-    // Single rider for normal ride
-    const { data: singleRider } = await axios.get(
-      `${process.env.RIDER_SERVICE_URL}/by-user/${ride.riderId}`,
-    );
-    riders = [singleRider];
-  }
-
-  // Fallback for safety
-  if (riders.length === 0) {
-     return res.status(500).json({ error: "Failed to fetch rider details" });
-  }
 
   const payload = {
     ...serializeRide(ride),
@@ -231,28 +238,25 @@ exports.acceptRide = async (req, res) => {
 
     // First rider for backward compatibility
     rider: {
-      id: riders[0].rider.userId,
-      name: `${riders[0].rider.name.first} ${riders[0].rider.name.last}`,
+      id: ride.rideType === "POOL" ? (ride.riders[0]?.riderId || null) : ride.riderId,
+      name: ride.rideType === "POOL" ? (ride.riders[0]?.name || "Passenger") : ride.riderName,
       phone: null,
     },
 
-    // All riders for pool rides
-    allRiders: riders.map(r => ({
-      id: r.rider.userId,
-      name: `${r.rider.name.first} ${r.rider.name.last}`,
-      phone: null
-    })),
+    // All riders for pool rides (mapped from the model)
+    allRiders: ride.rideType === "POOL"
+      ? (ride.riders || []).map(r => ({ id: r.riderId, name: r.name, phone: null }))
+      : [{ id: ride.riderId, name: ride.riderName, phone: null }],
 
     rideStartOtp: {
-      code: ride.rideStartOtp.code,
+      code: ride.rideStartOtp?.code || otp,
     },
   };
-  console.log("DRIVER API RAW:", driver);
-  console.log("RIDER API RAW:", riders);
+
   const io = req.app.get("io");
   if (io) {
     if (ride.rideType === "POOL") {
-      ride.riders.forEach((r) => {
+      (ride.riders || []).forEach((r) => {
         io.to(`user_${r.riderId}`).emit("ride.assigned", payload);
       });
     } else {
@@ -261,8 +265,6 @@ exports.acceptRide = async (req, res) => {
     io.to(`user_${ride.driverId}`).emit("ride.assigned", payload);
   }
   console.log("EMITTING ride.updated", ride.status);
-
-  console.log("otp: ", ride.rideStartOtp.code);
 
   res.json(payload);
 };
@@ -313,17 +315,21 @@ exports.startRide = async (req, res) => {
     return res.status(400).json({ error: "OTP not generated" });
   }
 
-  if (ride.rideStartOtp.code !== otp) {
+  const providedOtp = (otp || "").toString().trim();
+  
+  if (ride.rideStartOtp.code !== providedOtp) {
+    console.error(`❌ OTP Mismatch for ride ${req.params.id}. Expected: ${ride.rideStartOtp.code}, Provided: ${providedOtp}`);
     return res.status(400).json({ error: "Invalid OTP" });
   }
 
-  if (ride.rideStartOtp.expiresAt < new Date()) {
+  if (ride.rideStartOtp.expiresAt && ride.rideStartOtp.expiresAt < new Date()) {
     return res.status(400).json({ error: "OTP expired" });
   }
 
   ride.status = "IN_PROGRESS";
   ride.startedAt = new Date();
   ride.rideStartOtp.verified = true;
+  ride.markModified("rideStartOtp");
 
   await ride.save();
 
@@ -368,11 +374,12 @@ exports.completeRide = async (req, res) => {
           lat: ride.pickup.coordinates[1],
           lng: ride.pickup.coordinates[0],
         };
-        const route = await getRoute(pickupLoc, currentLocation);
+        const route = await getRoute([pickupLoc, currentLocation]);
         
         const recalculatedPrice = calculatePrice({
           distance: route.distance,
           duration: route.duration,
+          passengers: ride.passengers,
         });
 
         // Cap at estimate (per requirements)
@@ -414,21 +421,36 @@ exports.completeRide = async (req, res) => {
 
     // 3. Trigger Payment Service (Background)
     try {
-      // We don't await here to avoid blocking a fast response, 
-      // but we catch errors to log them correctly.
-      axios.post(`${process.env.PAYMENT_SERVICE_URL}/internal/payments`, {
-        rideId: ride._id,
-        userId: ride.riderId,
-        driverId: ride.driverId,
-        amount: finalPrice,
-        paymentMethod: ride.paymentMethod
-      }, {
-        headers: { "x-internal-key": process.env.INTERNAL_SERVICE_KEY }
-      }).then(() => {
-        console.log(`💰 [Payment Sync] Success for ride ${ride._id}`);
-      }).catch(err => {
-        console.error("❌ [Payment Sync] Failed background call:", err.message);
-      });
+      const internalKey = process.env.INTERNAL_SERVICE_KEY;
+      const paymentUrl = `${process.env.PAYMENT_SERVICE_URL}/internal/payments`;
+
+      if (ride.rideType === "POOL") {
+        // Multi-rider payment loop
+        ride.riders.forEach((rider) => {
+           if (rider.status === "DROPPED") {
+              axios.post(paymentUrl, {
+                rideId: ride._id,
+                userId: rider.riderId,
+                driverId: ride.driverId,
+                amount: rider.fare || Math.round(finalPrice / ride.riders.length),
+                paymentMethod: req.body.paymentMethod || ride.paymentMethod || "WALLET"
+              }, {
+                headers: { "x-internal-key": internalKey }
+              }).catch(err => console.error(`❌ [Payment Sync] Failed for pool rider ${rider.riderId}:`, err.message));
+           }
+        });
+      } else {
+        // Solo ride payment
+        axios.post(paymentUrl, {
+          rideId: ride._id,
+          userId: ride.riderId,
+          driverId: ride.driverId,
+          amount: finalPrice,
+          paymentMethod: req.body.paymentMethod || ride.paymentMethod || "WALLET"
+        }, {
+          headers: { "x-internal-key": internalKey }
+        }).catch(err => console.error("❌ [Payment Sync] Failed solo payment call:", err.message));
+      }
     } catch (err) {
        console.error("❌ Failed to initiate payment sync block:", err.message);
     }
@@ -441,36 +463,112 @@ exports.completeRide = async (req, res) => {
 };
 
 exports.cancelByRider = async (req, res) => {
-  console.log("Cancel request:", {
-    rideId: req.params.id,
-    userId: req.user.id,
-  });
+  try {
+    const existing = await Ride.findById(req.params.id);
+    if (!existing) return res.status(404).json({ error: "Ride not found" });
 
-  const existing = await Ride.findById(req.params.id);
+    // Handle POOL Ride Cancellation
+    if (existing.rideType === "POOL") {
+       const riderIndex = existing.riders.findIndex(r => r.riderId === req.user.id);
+       if (riderIndex === -1) return res.status(404).json({ error: "Rider not part of this pool" });
 
-  if (!existing) {
-    return res.status(404).json({ error: "Ride not found" });
-  }
+       const rider = existing.riders[riderIndex];
+       
+       if (["PICKED", "DROPPED"].includes(rider.status)) {
+         return res.status(400).json({ error: "Cannot cancel after being picked up" });
+       }
 
-  // ❗ already cancelled → just return success
-  if (existing.status === "CANCELLED_BY_RIDER") {
+       // Mark individual rider as cancelled
+       rider.status = "CANCELLED";
+       
+       // Remove their stops from the route and re-order remaining
+       existing.route = existing.route.filter(s => s.riderId !== req.user.id);
+       existing.route.forEach((s, i) => s.order = i);
+
+       // Check if this was the last active rider
+       const activeRiders = existing.riders.filter(r => r.status === "WAITING" || r.status === "PICKED");
+       if (activeRiders.length === 0) {
+          existing.status = "CANCELLED_BY_RIDER";
+          existing.cancelledAt = new Date();
+       } else {
+          // Recalculate seats if they haven't been picked up
+          existing.availableSeats += 1;
+       }
+
+       await existing.save();
+
+       // Notify other participants
+       const io = req.app.get("io");
+       if (io) {
+         const payload = serializeRide(existing);
+         io.to(`ride_${existing._id}`).emit("ride.updated", payload);
+         if (existing.driverId) {
+            io.to(`user_${existing.driverId}`).emit("pool.updated", payload);
+         }
+       }
+
+       return res.json(existing);
+    }
+
+    // Handle NORMAL Ride Cancellation
+    if (["IN_PROGRESS", "COMPLETED"].includes(existing.status)) {
+      return res.status(400).json({ error: "Cannot cancel after ride started" });
+    }
+
+    existing.status = "CANCELLED_BY_RIDER";
+    existing.cancelledAt = new Date();
+    await existing.save();
+
+    const io = req.app.get("io");
+    if (io && existing.driverId) {
+      io.to(`user_${existing.driverId}`).emit("ride.cancelled", { rideId: existing._id });
+    }
+
     return res.json(existing);
+  } catch (err) {
+    console.error("cancelByRider error:", err.message);
+    res.status(500).json({ error: "Server error" });
   }
+};
 
-  // ❗ not allowed to cancel
-  if (["IN_PROGRESS", "COMPLETED"].includes(existing.status)) {
-    return res.status(400).json({
-      error: "Cannot cancel after ride started",
-    });
+exports.cancelByDriver = async (req, res) => {
+  try {
+    const existing = await Ride.findById(req.params.id);
+    if (!existing) return res.status(404).json({ error: "Ride not found" });
+
+    // Handle POOL Ride Cancellation (Driver Cancelling Entire Pool)
+    // In a real app, you might want to only remove the driver and re-assign,
+    // but here we'll follow "cancel the ride" requirement.
+    
+    if (["IN_PROGRESS", "COMPLETED"].includes(existing.status)) {
+      return res.status(400).json({ error: "Cannot cancel after ride started" });
+    }
+
+    if (existing.driverId !== req.user.id) {
+       return res.status(403).json({ error: "Unauthorized: You are not the driver of this ride" });
+    }
+
+    existing.status = "CANCELLED_BY_DRIVER";
+    existing.cancelledAt = new Date();
+    await existing.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      const payload = { rideId: existing._id, reason: "CANCELLED_BY_DRIVER" };
+      if (existing.rideType === "POOL") {
+        existing.riders.forEach(r => {
+          io.to(`user_${r.riderId}`).emit("ride.cancelled", payload);
+        });
+      } else {
+        io.to(`user_${existing.riderId}`).emit("ride.cancelled", payload);
+      }
+    }
+
+    return res.json(existing);
+  } catch (err) {
+    console.error("cancelByDriver error:", err.message);
+    res.status(500).json({ error: "Server error" });
   }
-
-  // ✅ perform cancel
-  existing.status = "CANCELLED_BY_RIDER";
-  existing.cancelledAt = new Date();
-
-  await existing.save();
-
-  return res.json(existing);
 };
 
 exports.getActiveRide = async (req, res) => {
@@ -513,12 +611,13 @@ exports.estimateRide = async (req, res) => {
     }
 
     // 1. Get route from OSRM
-    const route = await getRoute(pickup, drop);
+    const route = await getRoute([pickup, drop]);
 
     // 2. Calculate price
     const basePrice = calculatePrice({
       distance: route.distance,
       duration: route.duration,
+      passengers: parseInt(req.body.passengers) || 1,
     });
 
     return res.json({
@@ -544,7 +643,7 @@ exports.getRoutePolyline = async (req, res) => {
       return res.status(400).json({ error: "pickup/drop required" });
     }
 
-    const route = await getRoute(pickup, drop);
+    const route = await getRoute([pickup, drop]);
 
     res.json({
       distance: route.distance,
@@ -586,36 +685,8 @@ exports.createPoolRide = async (req, res) => {
       });
     }
 
-    // 🔥 SMART MATCHING: Find existing pools 
-    const matchingPool = await Ride.findOne({
-      rideType: "POOL",
-      status: { $in: ["SEARCHING", "DRIVER_ASSIGNED", "DRIVER_ARRIVING"] },
-      availableSeats: { $gt: 0 },
-      "route.location": {
-        $near: {
-          $geometry: {
-            type: "Point",
-            coordinates: [pickup.lng, pickup.lat],
-          },
-          $maxDistance: 15000, // 15km
-        },
-      },
-      // Ensure we match with pools that haven't picked anyone else yet or are still at start
-      "route.order": 0,
-    });
+    // prevention of multiple active rides handled above
 
-    if (matchingPool) {
-      // Auto-join existing pool
-      return await exports.addRiderToPool(
-        {
-          params: { rideId: matchingPool._id },
-          body: { pickup, drop },
-          user: req.user,
-          app: req.app,
-        },
-        res,
-      );
-    }
 
     const geoPickup = {
       type: "Point",
@@ -627,23 +698,83 @@ exports.createPoolRide = async (req, res) => {
       coordinates: [drop.lng, drop.lat],
     };
 
-    const routeData = await getRoute(pickup, drop);
+    const routeData = await getRoute([pickup, drop]);
     const basePrice = calculatePrice({
       distance: routeData.distance,
       duration: routeData.duration,
     });
+    const poolFare = Math.round(basePrice * 0.7);
+
+    // 🔥 AUTOMATIC POOL MATCHING
+    const matchingRides = await Ride.find({
+      rideType: "POOL",
+      status: { $in: ["SEARCHING", "DRIVER_ASSIGNED"] },
+      availableSeats: { $gt: 0 }
+    }).limit(10);
+
+    for (const candidate of matchingRides) {
+       try {
+          const startPos = candidate.route[0].location.coordinates;
+          const optimized = await optimizePoolRoute(
+            [
+              ...candidate.riders.map(r => ({
+                riderId: r.riderId,
+                pickup: { lng: r.pickup.coordinates[0], lat: r.pickup.coordinates[1] },
+                drop: { lng: r.drop.coordinates[0], lat: r.drop.coordinates[1] }
+              })),
+              { 
+                riderId: req.user.id, 
+                pickup, 
+                drop 
+              }
+            ],
+            { lng: startPos[0], lat: startPos[1] }
+          );
+
+          const fullRoute = await getRoute(optimized.map(s => ({ 
+            lng: s.location.coordinates[0], 
+            lat: s.location.coordinates[1] 
+          })));
+
+          const detour = fullRoute.duration - candidate.duration;
+          
+          if (detour <= 600) { // < 10 mins
+            console.log(`🌀 Found Match! Detour: ${Math.round(detour/60)}m. Joining ride ${candidate._id}`);
+            return await exports.addRiderToPool({ 
+              ...req, 
+              params: { rideId: candidate._id.toString() },
+              body: { pickup, drop }
+            }, res);
+          }
+       } catch (err) {
+          console.warn(`Matching attempt failed for ${candidate._id}:`, err.message);
+       }
+    }
+
 
     const poolOtp = generateOtp();
+    const riderName = await fetchRiderName(req.user.id);
+
     const ride = await Ride.create({
       rideType: "POOL",
 
       riders: [
         {
           riderId: req.user.id,
-          pickup: geoPickup,
-          drop: geoDrop,
+          name: riderName,
+          pickup: {
+            type: "Point",
+            coordinates: [pickup.lng, pickup.lat],
+            label: pickup.label || null
+          },
+          drop: {
+            type: "Point",
+            coordinates: [drop.lng, drop.lat],
+            label: drop.label || null
+          },
           status: "WAITING",
           otp: poolOtp,
+          fare: poolFare,
         },
       ],
 
@@ -665,7 +796,7 @@ exports.createPoolRide = async (req, res) => {
       maxSeats: 4,
       availableSeats: 3,
 
-      priceEstimate: Math.round(basePrice * 0.7),
+      priceEstimate: poolFare, // For new pools, top-level estimate = first passenger's fare
       distance: routeData.distance,
       duration: routeData.duration,
       routeGeometry: routeData.geometry,
@@ -680,28 +811,7 @@ exports.createPoolRide = async (req, res) => {
     // 🔥 NOTIFY NEARBY DRIVERS (Discovery)
     const io = req.app.get("io");
     if (io) {
-      let riderName = "Incoming Passenger";
-      try {
-        const { data: riderInfo } = await axios.get(
-          `${process.env.RIDER_SERVICE_URL}/by-user/${req.user.id}`
-        );
-        if (riderInfo && riderInfo.rider) {
-          riderName = `${riderInfo.rider.name.first} ${riderInfo.rider.name.last}`;
-        }
-      } catch (err) {
-        console.warn("Failed to fetch rider name for pool broadcast:", err.message);
-      }
-
-      const payload = {
-        _id: ride._id,
-        rideId: ride._id,
-        pickup: pickup,
-        drop: drop,
-        price: ride.priceEstimate,
-        rideType: "POOL",
-        availableSeats: ride.availableSeats,
-        riderName,
-      };
+      const payload = serializeRide(ride);
 
       const nearbyDrivers = await findNearbyDrivers(pickup);
       nearbyDrivers.forEach((driver) => {
@@ -759,33 +869,92 @@ exports.addRiderToPool = async (req, res) => {
       coordinates: [drop.lng, drop.lat],
     };
 
-    const baseOrder = ride.route.length;
     const riderOtp = generateOtp();
+    const riderName = await fetchRiderName(req.user.id);
+    const routeData = await getRoute([pickup, drop]);
+    const basePrice = calculatePrice({
+      distance: routeData.distance,
+      duration: routeData.duration,
+    });
+    const riderFare = Math.round(basePrice * 0.7);
 
     ride.riders.push({
       riderId: req.user.id,
-      pickup: geoPickup,
-      drop: geoDrop,
+      name: riderName,
+      pickup: {
+        type: "Point",
+        coordinates: [pickup.lng, pickup.lat],
+        label: pickup.label || null
+      },
+      drop: {
+        type: "Point",
+        coordinates: [drop.lng, drop.lat],
+        label: drop.label || null
+      },
       otp: riderOtp,
+      fare: riderFare,
     });
 
-    // append route (NO REORDERING)
-    ride.route.push({
-      type: "PICKUP",
-      riderId: req.user.id,
-      location: geoPickup,
-      order: baseOrder,
-    });
+    // 🔥 SMART REORDERING
+    try {
+      const startPos = { 
+        lng: ride.route[0].location.coordinates[0], 
+        lat: ride.route[0].location.coordinates[1] 
+      };
 
-    ride.route.push({
-      type: "DROP",
-      riderId: req.user.id,
-      location: geoDrop,
-      order: baseOrder + 1,
-    });
+      const optimizedRoute = await optimizePoolRoute(
+        ride.riders.map(r => ({
+          riderId: r.riderId,
+          pickup: { lng: r.pickup.coordinates[0], lat: r.pickup.coordinates[1] },
+          drop: { lng: r.drop.coordinates[0], lat: r.drop.coordinates[1] }
+        })),
+        startPos
+      );
+
+      const fullRoute = await getRoute(
+        optimizedRoute.map(s => ({ 
+          lng: s.location.coordinates[0], 
+          lat: s.location.coordinates[1] 
+        }))
+      );
+
+      const detour = fullRoute.duration - ride.duration;
+      console.log(`⏱️ Pool Detour: ${Math.round(detour/60)} mins (Total: ${Math.round(fullRoute.duration/60)} mins)`);
+
+      if (ride.riders.length > 1 && detour > 600) { // 10 minutes limit
+        throw new Error("DETOUR_TOO_HIGH");
+      }
+
+      ride.route = optimizedRoute;
+      ride.distance = fullRoute.distance;
+      ride.duration = fullRoute.duration;
+      ride.routeGeometry = fullRoute.geometry;
+
+
+    } catch (err) {
+      if (err.message === "DETOUR_TOO_HIGH") {
+        return res.status(400).json({ error: "Detour exceeds 10 minutes", code: "DETOUR_LIMIT" });
+      }
+      console.warn("Route optimization failed, falling back to simple append:", err.message);
+
+      const baseOrder = ride.route.length;
+      ride.route.push({
+        type: "PICKUP",
+        riderId: req.user.id,
+        location: geoPickup,
+        order: baseOrder,
+      });
+      ride.route.push({
+        type: "DROP",
+        riderId: req.user.id,
+        location: geoDrop,
+        order: baseOrder + 1,
+      });
+    }
 
     ride.availableSeats -= 1;
     await ride.save();
+
 
     // ⭐ SYNC OTP
     notifyAdminOtp("POOL_PICKUP", req.user.id, riderOtp);
@@ -888,7 +1057,7 @@ exports.updateStop = async (req, res) => {
     return res.status(400).json({ error: "Standard rides cannot use pool stop updates" });
   }
 
-  const stop = ride.route.find((s) => s.order === order);
+  const stop = ride.route.find((s) => Number(s.order) === Number(order));
   if (!stop) return res.status(404).json({ error: "Stop not found" });
 
   // Find the specific rider for this stop
@@ -901,6 +1070,7 @@ exports.updateStop = async (req, res) => {
       return res.status(400).json({ error: "Invalid or missing OTP for pickup" });
     }
     riderInPool.status = "PICKED";
+    ride.markModified("riders");
 
     // Global transition to IN_PROGRESS on the FIRST pickup
     if (ride.status !== "IN_PROGRESS") {
@@ -909,6 +1079,26 @@ exports.updateStop = async (req, res) => {
     }
   } else if (stop.type === "DROP") {
     riderInPool.status = "DROPPED";
+    ride.markModified("riders");
+
+    // 🔥 TRIGGER INDIVIDUAL PAYMENT
+    try {
+      const internalKey = process.env.INTERNAL_SERVICE_KEY;
+      const paymentUrl = `${process.env.PAYMENT_SERVICE_URL}/internal/payments`;
+      
+      axios.post(paymentUrl, {
+        rideId: ride._id,
+        userId: riderInPool.riderId,
+        driverId: ride.driverId,
+        amount: riderInPool.fare || Math.round(ride.priceEstimate / ride.riders.length),
+        paymentMethod: req.body.paymentMethod || ride.paymentMethod || "WALLET"
+      }, {
+        headers: { "x-internal-key": internalKey }
+      }).then(() => console.log(`💰 [Payment Pool] Success for rider ${riderInPool.riderId}`))
+        .catch(err => console.error(`❌ [Payment Pool] Failed for rider ${riderInPool.riderId}:`, err.message));
+    } catch (err) {
+      console.error("❌ Failed to initiate pool payment sync:", err.message);
+    }
     
     // Check if all riders are dropped
     const allDropped = ride.riders.every((r) => r.status === "DROPPED");
@@ -994,35 +1184,27 @@ exports.getRideDetails = async (req, res) => {
     }
 
     // Fetch Rider details
+    // Setup riders data from persisted fields
     let ridersData = [];
     if (ride.rideType === "POOL") {
-      const riderPromises = ride.riders.map(r => 
-        axios.get(`${process.env.RIDER_SERVICE_URL}/by-user/${r.riderId}`).then(res => res.data).catch(() => null)
-      );
-      ridersData = (await Promise.all(riderPromises))
-        .filter(r => r !== null)
-        .map(r => ({
-          id: r.rider.userId,
-          name: `${r.rider.name.first} ${r.rider.name.last}`,
-          phone: r.rider.phone || "N/A"
-        }));
+      ridersData = ride.riders.map(r => ({
+        id: r.riderId,
+        name: r.name,
+        phone: "N/A"
+      }));
     } else {
-      try {
-        const { data: rProfile } = await axios.get(`${process.env.RIDER_SERVICE_URL}/by-user/${ride.riderId}`);
-        ridersData = [{
-          id: rProfile.rider.userId,
-          name: `${rProfile.rider.name.first} ${rProfile.rider.name.last}`,
-          phone: rProfile.rider.phone || "N/A"
-        }];
-      } catch (err) {
-        console.warn("Failed to fetch rider details for history:", err.message);
-      }
+      ridersData = [{
+        id: ride.riderId,
+        name: ride.riderName || "Passenger",
+        phone: "N/A"
+      }];
     }
 
     const payload = {
       ...serializeRide(ride),
       driver: driverData,
       riders: ridersData,
+      allRiders: ridersData, 
       // For backward compatibility on frontend
       rider: ridersData[0] || null
     };

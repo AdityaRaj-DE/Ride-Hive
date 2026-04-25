@@ -42,6 +42,11 @@ export const initDriverRideListeners = (socket: Socket) => {
     console.log("Driver pool.updated:", ride);
     store.dispatch(setActiveRide(ride));
   });
+  
+  socket.on("pool.rider_added", (ride) => {
+    console.log("Driver pool.rider_added:", ride);
+    store.dispatch(setActiveRide(ride));
+  });
 
   socket.on("ride.updated", (ride: any) => {
     console.log("Driver ride.updated:", ride);
@@ -96,6 +101,15 @@ export const emitCompleteRide = (
   });
 };
 
+export const emitCancelRide = (rideId: string) => {
+  const socket = getDriverSocket();
+  if (!socket) return;
+
+  socket.emit("cancelRide", { rideId }, (ack: any) => {
+    console.log("cancelRide ack:", ack);
+  });
+};
+
 export const startDriverLocationTracking = (rideId: string) => {
   const socket = getDriverSocket();
   if (!socket) return;
@@ -111,11 +125,11 @@ export const startDriverLocationTracking = (rideId: string) => {
   });
 };
 
-export const emitUpdatePoolStop = (rideId: string, order: number, otp?: string) => {
+export const emitUpdatePoolStop = (rideId: string, order: number, otp?: string, paymentMethod?: string) => {
   const socket = getDriverSocket();
   if (!socket) return;
 
-  socket.emit("updatePoolStop", { rideId, order, otp }, (ack: any) => {
+  socket.emit("updatePoolStop", { rideId, order, otp, paymentMethod }, (ack: any) => {
     console.log("updatePoolStop ack:", ack);
   });
 };

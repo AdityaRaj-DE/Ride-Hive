@@ -3,12 +3,18 @@ import { io, Socket } from "socket.io-client";
 let socket: Socket | null = null;
 
 export const connectSocket = (token: string) => {
+  if (socket && (socket as any)._lastToken !== token) {
+     console.log("Token changed, reconnecting socket...");
+     disconnectSocket();
+  }
+
   if (!socket) {
     socket = io(import.meta.env.VITE_API_URL || "http://localhost:3000", {
       auth: { token },
       withCredentials: true,
       // transports: ["websocket"],
     });
+    (socket as any)._lastToken = token;
 
     socket.on("connect", () => {
       console.log("Socket connected:", socket?.id);

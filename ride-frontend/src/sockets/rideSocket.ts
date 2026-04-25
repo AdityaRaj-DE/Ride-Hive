@@ -65,6 +65,10 @@ export const initRideSocketListeners = (socket: Socket) => {
   socket.on("pool.assigned", (data) => {
     console.log("pool.assigned:", data);
     dispatchRide(data);
+    const id = data.rideId || data._id;
+    if (id) {
+      socket.emit("joinRide", { rideId: id });
+    }
   });
 
   socket.on("pool.updated", (data) => {
@@ -77,6 +81,7 @@ export const initRideSocketListeners = (socket: Socket) => {
 export const emitCreateRide = (payload: {
   pickup: { lat: number; lng: number };
   drop: { lat: number; lng: number };
+  passengers?: number;
 }) => {
   const socket = storeSocket();
   if (!socket) return;

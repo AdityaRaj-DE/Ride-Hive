@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { RootState, AppDispatch } from "../store";
 import NormalRideFlow from "../components/NormalRideFlow";
 import PoolRideFlow from "../components/PoolRideFlow";
-import RideMap from "../components/RIdeMap";
+import RideMap from "../components/RideMap";
 import RideCompleted from "../components/RideCompleted";
 import FeedbackModal from "../components/FeedbackModal";
 import { useEffect, useState } from "react";
@@ -55,6 +55,7 @@ export default function RideFlow() {
             driverLocation={ride.driverLocation}
             geometry={ride.geometry}
             status={ride.status}
+            route={ride.route}
           />
           <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-background/20 via-transparent to-background/40"></div>
       </div>

@@ -17,11 +17,14 @@ import {
   ChevronRight,
   Clock,
   Activity,
-  Zap,
   Target,
   Globe,
-  Fingerprint
+  Fingerprint,
+  Wallet,
+  Banknote,
+  QrCode
 } from 'lucide-react';
+import QRCode from "react-qr-code";
 
 export default function RidePool() {
   const dispatch = useDispatch();
@@ -66,15 +69,24 @@ export default function RidePool() {
   };
 
   const [showOtpModal, setShowOtpModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [otpInput, setOtpInput] = useState("");
   const [selectedStop, setSelectedStop] = useState<any>(null);
 
   const handleUpdateStop = async (stop: any) => {
+    setSelectedStop(stop);
     if (stop.type === "PICKUP") {
-      setSelectedStop(stop);
       setShowOtpModal(true);
     } else {
-      emitUpdatePoolStop(activeRide._id, stop.order);
+      setShowPaymentModal(true);
+    }
+  };
+
+  const handlePaymentSelect = (method: "CASH" | "WALLET") => {
+    if (activeRide && selectedStop) {
+      emitUpdatePoolStop(activeRide._id, selectedStop.order, undefined, method);
+      setShowPaymentModal(false);
+      setSelectedStop(null);
     }
   };
 
@@ -116,7 +128,7 @@ export default function RidePool() {
              <div className="lg:col-span-8 space-y-4 sm:space-y-8 relative">
                 <div className="absolute left-6 sm:left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-accent/20 via-border to-accent/20"></div>
                 
-                {activeRide.route.map((stop: any, idx: number) => {
+                {activeRide.route?.slice().sort((a: any, b: any) => a.order - b.order).map((stop: any, idx: number) => {
                   const riderNum = activeRide.riders.findIndex((r: any) => r.riderId === stop.riderId) + 1;
                   const rider = activeRide.riders.find((r: any) => r.riderId === stop.riderId);
                   const isCompleted = (stop.type === "PICKUP" && rider?.status !== "WAITING") || (stop.type === "DROP" && rider?.status === "DROPPED");
@@ -142,7 +154,7 @@ export default function RidePool() {
 
                             <div className="space-y-1">
                                <p className={`text-[10px] font-bold uppercase tracking-widest ${stop.type === "PICKUP" ? "text-accent" : "text-rose-500"}`}>{stop.type} HUB</p>
-                               <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-primary uppercase">Passenger #{riderNum}</h3>
+                               <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-primary uppercase">{rider?.name || `Passenger #${riderNum}`}</h3>
                                <p className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40 truncate max-w-[200px]">LOC: {stop.location.coordinates[1].toFixed(5)}, {stop.location.coordinates[0].toFixed(5)}</p>
                             </div>
                          </div>
@@ -217,6 +229,7 @@ export default function RidePool() {
         {/* OTP Verification Modal */}
         {showOtpModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/90 backdrop-blur-3xl animate-in fade-in duration-500">
+            {/* ... inner OTP content ... */}
             <div className="w-full max-w-2xl glass-card p-12 md:p-16 border-accent/10 shadow-2xl text-center relative overflow-hidden backdrop-blur-2xl animate-in zoom-in-95 duration-500">
                <div className="absolute top-0 left-0 w-full h-1.5 bg-accent"></div>
               
@@ -260,6 +273,66 @@ export default function RidePool() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Payment Selection Modal (Pool) */}
+        {showPaymentModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+             <div className="glass-card p-8 max-w-md w-full border-accent/20 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-[0.03] rotate-12 pointer-events-none">
+                   <QrCode className="w-24 h-24 text-accent" />
+                </div>
+
+                <div className="text-center mb-8">
+                   <h3 className="text-2xl font-bold text-primary mb-2">Collect Payment</h3>
+                   <p className="text-sm text-secondary font-medium uppercase tracking-widest text-[9px]">Select method for {activeRide.riders?.find((r: any) => r.riderId === selectedStop?.riderId)?.name || 'Passenger'}</p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 mb-8">
+                   <button
+                     onClick={() => handlePaymentSelect("WALLET")}
+                     className="h-24 rounded-2xl bg-accent/5 border border-accent/20 flex flex-col items-center justify-center gap-2 hover:bg-accent/10 transition-all group"
+                   >
+                      <Wallet className="w-6 h-6 text-accent group-hover:scale-110 transition-transform" />
+                      <div className="text-center">
+                         <p className="text-sm font-bold text-primary">In-App Wallet</p>
+                         <p className="text-[10px] text-muted uppercase tracking-widest font-bold">Standard Sync</p>
+                      </div>
+                   </button>
+
+                   <button
+                     onClick={() => handlePaymentSelect("CASH")}
+                     className="h-24 rounded-2xl bg-surface border border-border flex flex-col items-center justify-center gap-2 hover:bg-background transition-all group"
+                   >
+                      <Banknote className="w-6 h-6 text-emerald-500 group-hover:scale-110 transition-transform" />
+                      <div className="text-center">
+                         <p className="text-sm font-bold text-primary">Cash Payment</p>
+                         <p className="text-[10px] text-muted uppercase tracking-widest font-bold">Manual Handover</p>
+                      </div>
+                   </button>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center gap-4">
+                     <div className="p-3 bg-white rounded-xl shadow-lg">
+                        <QRCode 
+                          value={`ride_hive_pay_${activeRide._id}_stop_${selectedStop?.order}`} 
+                          size={120}
+                          level="L"
+                        />
+                     </div>
+                     <p className="text-[9px] font-bold text-accent uppercase tracking-widest animate-pulse">Request Payment Scan</p>
+                  </div>
+
+                  <button
+                    onClick={() => { setShowPaymentModal(false); setSelectedStop(null); }}
+                    className="text-[10px] font-bold text-muted uppercase tracking-widest hover:text-primary transition-colors py-2"
+                  >
+                    Cancel & Return
+                  </button>
+                </div>
+             </div>
           </div>
         )}
       </div>

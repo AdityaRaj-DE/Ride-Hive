@@ -57,7 +57,7 @@ module.exports.onboardBasic = async (req, res) => {
  */
 module.exports.onboardVehicle = async (req, res) => {
   const userId = req.user.id;
-  const { model, plateNumber, color, type } = req.body;
+  const { model, plateNumber, color, type, capacity } = req.body;
 
   if (!model || !plateNumber) {
     return res.status(400).json({ message: "model and plateNumber required" });
@@ -71,7 +71,13 @@ module.exports.onboardVehicle = async (req, res) => {
     return res.status(400).json({ message: `Invalid step. Current: ${driver.onboarding.step}` });
   }
 
-  driver.vehicleInfo = { model, plateNumber, color: color || "", type: type || "" };
+  driver.vehicleInfo = { 
+    model, 
+    plateNumber, 
+    color: color || "", 
+    type: type || "",
+    capacity: Number(capacity) || 4 
+  };
   driver.onboarding.step = "documents";
   await driver.save();
 
@@ -333,7 +339,7 @@ exports.updateDriverStatusByUserId = async (req, res) => {
 // ✅ Get nearby available drivers (used by Ride Service)
 exports.getNearbyDrivers = async (req, res) => {
   try {
-    const { lng, lat, radius = 3000 } = req.query;
+    const { lng, lat, radius = 3000, passengers = 1 } = req.query;
 
     if (!lng || !lat) {
       return res.status(400).json({ error: "lng/lat required" });
@@ -341,7 +347,8 @@ exports.getNearbyDrivers = async (req, res) => {
 
     const drivers = await Driver.find({
       isAvailable: true,
-      status: "approved", // IMPORTANT
+      status: "approved",
+      "vehicleInfo.capacity": { $gte: Number(passengers) },
       location: {
         $near: {
           $geometry: {
