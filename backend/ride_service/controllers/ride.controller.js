@@ -1110,9 +1110,20 @@ exports.updateStop = async (req, res) => {
 
   await ride.save();
 
-  // Populate driver and rider details for the frontend
-  // (In a real app, you'd use a more robust way to populate these)
-  // For now, we'll return the ride and the gateway will broadcast it.
+  // 🔥 NOTIFY FRONTEND (CRITICAL FOR POOL)
+  const io = req.app.get("io");
+  if (io) {
+    const { serializeRide } = require("../serializers/ride.serializer");
+    const payload = serializeRide(ride);
+    
+    // Notify all participants about updated manifesting/status
+    ride.riders.forEach((r) => {
+      io.to(`user_${r.riderId}`).emit("ride.updated", payload);
+    });
+    if (ride.driverId) {
+      io.to(`user_${ride.driverId}`).emit("ride.updated", payload);
+    }
+  }
 
   res.json(ride);
 };

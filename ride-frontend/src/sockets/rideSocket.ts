@@ -1,6 +1,6 @@
 import { Socket } from "socket.io-client";
 import { store } from "../store";
-import { setRideFromServer, setRideError } from "../store/rideSlice";
+import { setRideFromServer, setRideError, updateRideStatus } from "../store/rideSlice";
 import { setDriverLocation } from "../store/rideSlice";
 
 let initialized = false;
@@ -38,6 +38,11 @@ export const initRideSocketListeners = (socket: Socket) => {
   socket.on("ride.updated", (ride) => {
     console.log("ride.updated:", ride);
     dispatchRide(ride);
+  });
+
+  socket.on("ride.finishing", (data) => {
+    console.log("ride.finishing signal status:", data?.status);
+    store.dispatch(updateRideStatus(data?.status || "FINISHING"));
   });
 
   socket.on("ride.error", (err) => {

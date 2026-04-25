@@ -85,6 +85,9 @@ function normalizeRide(payload: RideServerPayload, userId?: string | null) {
     drop = payload.drop;
   }
 
+  let price = payload.price || payload.priceEstimate || null;
+  let finalPrice = payload.finalPrice || null;
+
   // 2. Try Pool Riders array (Pool Ride - find self)
   if (payload.rideType === "POOL" && payload.riders && userId) {
     const me = payload.riders.find((r: any) => r.riderId === userId);
@@ -97,6 +100,13 @@ function normalizeRide(payload: RideServerPayload, userId?: string | null) {
       }
       if (me.otp) {
         payload.rideStartOtp = { code: me.otp };
+      }
+      // Extract specific fare for this rider
+      if (me.fare) {
+        price = me.fare;
+      }
+      if (me.status === "DROPPED" && me.fare) {
+        finalPrice = me.fare;
       }
     }
   }
@@ -111,7 +121,8 @@ function normalizeRide(payload: RideServerPayload, userId?: string | null) {
     driverId: payload.driverId || null,
     driver: payload.driver || null,
     rideStartOtp: payload.rideStartOtp || null,
-    finalPrice: payload.finalPrice || null,
+    price,
+    finalPrice,
     paymentMethod: payload.paymentMethod || null,
     route: payload.route || null,
   };
@@ -143,9 +154,13 @@ const rideSlice = createSlice({
       state.driverId = normalized.driverId ?? state.driverId;
       state.driver = normalized.driver ?? state.driver;
       state.rideStartOtp = normalized.rideStartOtp ?? state.rideStartOtp;
+      state.price = normalized.price ?? state.price;
       state.finalPrice = normalized.finalPrice ?? state.finalPrice;
       state.paymentMethod = normalized.paymentMethod ?? state.paymentMethod;
       state.route = normalized.route ?? state.route;
+    },
+    setStatus(state, action: PayloadAction<string>) {
+      state.status = action.payload;
     },
     updateRideStatus(state, action: PayloadAction<string>) {
       state.status = action.payload;

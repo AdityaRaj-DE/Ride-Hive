@@ -16,12 +16,21 @@ export default function RideFlow() {
   const { user } = useSelector((s: RootState) => s.auth);
   const navigate = useNavigate();
   const [showFeedback, setShowFeedback] = useState(false);
-  const [showCompleted, setShowCompleted] = useState(false);
+  
+  // Initialize based on current status (in case we arrived here via redirect)
+  const isFinished = ride.status === "COMPLETED" || 
+                     ride.status === "FINISHING" ||
+                     ride.riders?.find((r: any) => r.riderId === user?.id)?.status === "DROPPED";
+                     
+  const [showCompleted, setShowCompleted] = useState(isFinished);
 
   useEffect(() => {
+    console.log("RideFlow Status Sync:", ride.status);
     const me = ride.riders?.find((r: { riderId: string }) => r.riderId === user?.id);
+    const myIndividualStatus = me?.status || "WAITING";
 
-    if ((ride.status === "COMPLETED" || (me && me.status === "DROPPED")) && !showFeedback) {
+    if ((ride.status === "COMPLETED" || ride.status === "FINISHING" || myIndividualStatus === "DROPPED") && !showFeedback && !showCompleted) {
+       console.log("🚀 Triggering RideCompleted Overlay - Reason:", ride.status);
        setShowCompleted(true);
        return;
     }
@@ -31,13 +40,14 @@ export default function RideFlow() {
       ride.status === "CANCELLED_BY_RIDER"
     ) {
       const timer = setTimeout(() => {
-        if (!ride.status) {
+        // Only navigate away if we are NOT showing the completion screen
+        if (!ride.status && !showCompleted && !showFeedback) {
           navigate("/book-ride");
         }
-      }, 500);
+      }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [ride.status, navigate, ride.riders, user, showFeedback]);
+  }, [ride.status, navigate, ride.riders, user, showFeedback, showCompleted]);
 
   const handleCloseFeedback = () => {
     setShowFeedback(false);

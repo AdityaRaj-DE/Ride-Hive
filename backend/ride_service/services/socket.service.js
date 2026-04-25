@@ -28,6 +28,11 @@ function setupSockets(io) {
       });
     });
 
+    socket.on("finishingTrip", ({ rideId }) => {
+      if (!rideId) return;
+      io.to(`ride_${rideId}`).emit("ride.finishing", { status: "FINISHING" });
+    });
+
     socket.on("disconnect", () => {
       console.log("❌ Disconnect:", socket.user.id);
     });

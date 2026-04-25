@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Login from "./pages/Login";
 import RiderOnboarding from "./pages/RiderOnboarding";
 import Dashboard from "./pages/Dashboard";
@@ -62,6 +62,25 @@ function RequireNotOnboarded({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RideRedirector() {
+  const navigate = useNavigate();
+  const ride = useSelector((s: RootState) => s.ride);
+  
+  useEffect(() => {
+    if (ride.rideId && ride.status) {
+       const activeStatuses = ["DRIVER_ASSIGNED", "DRIVER_ARRIVING", "IN_PROGRESS", "COMPLETED"];
+       if (activeStatuses.includes(ride.status)) {
+          const currentPath = window.location.pathname;
+          if (currentPath !== "/ride") {
+             navigate("/ride");
+          }
+       }
+    }
+  }, [ride.rideId, ride.status, navigate]);
+
+  return null;
+}
+
 export default function App() {
   const dispatch = useDispatch<AppDispatch>();
   const { token, user } = useSelector((s: RootState) => s.auth);
@@ -82,6 +101,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
+        <RideRedirector />
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />

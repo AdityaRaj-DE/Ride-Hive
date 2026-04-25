@@ -133,3 +133,9 @@ export const emitUpdatePoolStop = (rideId: string, order: number, otp?: string, 
     console.log("updatePoolStop ack:", ack);
   });
 };
+
+export const emitFinishingTrip = (rideId: string) => {
+  const socket = getDriverSocket();
+  if (!socket) return;
+  socket.emit("finishingTrip", { rideId });
+};

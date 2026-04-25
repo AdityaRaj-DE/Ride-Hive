@@ -5,6 +5,7 @@ import {
   emitCompleteRide,
   emitUpdatePoolStop,
   emitCancelRide,
+  emitFinishingTrip,
 } from "../sockets/driverRideSocket";
 import { getDriverSocket } from "../sockets/socketClient";
 import useRideCall from "../hooks/useRideCall";
@@ -20,6 +21,12 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
   
   const socket = getDriverSocket();
   const { startCall, hangup, acceptIncoming, rejectIncoming, toggleMute, state, timer } = useRideCall(socket, activeRide?.rideId || activeRide?._id);
+
+  const handleShowPayment = (stop?: any) => {
+    if (stop) setPendingPoolStop(stop);
+    setShowPaymentModal(true);
+    emitFinishingTrip(activeRide._id || activeRide.rideId);
+  };
 
   const handleFinishTrip = (paymentMethod: "CASH" | "WALLET") => {
     setIsProcessing(true);
@@ -181,8 +188,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                         ) : (
                           <button
                             onClick={() => {
-                               setPendingPoolStop(currentStop);
-                               setShowPaymentModal(true);
+                               handleShowPayment(currentStop);
                             }}
                             className="w-full h-16 rounded-xl bg-blue-500 text-white font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-blue-500/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
                           >
@@ -314,7 +320,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                           </button>
                         )}
                         <button
-                            onClick={() => setShowPaymentModal(true)}
+                            onClick={() => handleShowPayment()}
                             className="h-14 flex-1 rounded-xl bg-accent text-white font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-accent/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
                           >
                             <Check className="w-5 h-5" />
