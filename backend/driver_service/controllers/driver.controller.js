@@ -8,7 +8,7 @@ async function markDriverOnboardedInAuth(userId) {
   try {
     await authClient.patch(
       `/internal/users/${userId}/onboarding`,
-      { driver: true },
+      { driver: true, enableDriverRole: true },
       { headers: { "x-internal-key": process.env.INTERNAL_SERVICE_KEY } }
     );
   } catch (err) {

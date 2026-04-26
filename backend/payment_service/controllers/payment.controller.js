@@ -37,9 +37,9 @@ exports.createPayment = async (req, res) => {
       // Sync with Auth Service → update user wallet
       try {
         await axios.patch(
-          `${process.env.AUTH_SERVICE_URL}/users/wallet`,
+          `${process.env.AUTH_SERVICE_URL}/internal/wallet/${userId}`,
           { amount, action: "deduct" },
-          { headers: { Authorization: req.headers.authorization } }
+          { headers: { "x-internal-key": process.env.INTERNAL_SERVICE_KEY } }
         );
       } catch (err) {
         console.warn("⚠️ Wallet sync failed:", err.message);
@@ -47,7 +47,7 @@ exports.createPayment = async (req, res) => {
 
       // Sync with Driver Service → add earnings
       try {
-        await axios.patch(`${process.env.DRIVER_SERVICE_URL}/driver/${driverId}/earnings`, { amount });
+        await axios.patch(`${process.env.DRIVER_SERVICE_URL}/${driverId}/earnings`, { amount });
       } catch (err) {
         console.warn("⚠️ Driver payout sync failed:", err.message);
       }
@@ -157,7 +157,7 @@ exports.createPaymentInternal = async (req, res) => {
     // 📈 Sync with Driver Service (Record Earnings)
     // Even if CASH, we record for analytics
     try {
-      await axios.patch(`${process.env.DRIVER_SERVICE_URL}/driver/${driverId}/earnings`, { 
+      await axios.patch(`${process.env.DRIVER_SERVICE_URL}/${driverId}/earnings`, { 
         amount,
         isCash: paymentMethod === "CASH"
       });
