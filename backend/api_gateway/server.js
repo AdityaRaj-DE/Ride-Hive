@@ -9,21 +9,19 @@ const setupProxies = require("./routes/proxy");
 
 const app = express();
 app.use(morgan("dev"));
-const corsOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
-  : [
-      "http://localhost:5173", "https://localhost:5173",
-      "http://localhost:5174", "https://localhost:5174",
-      "http://localhost:5175", "https://localhost:5175"
-    ];
 
 app.use(cors({
   origin: (origin, callback) => {
+    // Log the configuration for debugging
     console.log("🛠️ [Gateway CORS] Origin:", origin);
+    const corsOrigins = process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(',').map(o => o.trim()).filter(o => o.length > 0)
+      : [];
+    
     if (!origin || corsOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.warn("🚫 [Gateway CORS] Forbidden Origin:", origin);
+      console.warn("🚫 [Gateway CORS] Forbidden Origin:", origin, "| Allowed:", corsOrigins);
       callback(new Error("Not allowed by CORS"));
     }
   },

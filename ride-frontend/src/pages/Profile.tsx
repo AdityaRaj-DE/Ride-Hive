@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import { Mail, Phone, Calendar, Edit2, LogOut, ShieldCheck, Award, Star, ArrowRight, User, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import api from '../api/axios';
 
 const Profile: React.FC = () => {
   const { user, token } = useSelector((s: RootState) => s.auth);
