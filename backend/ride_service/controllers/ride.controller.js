@@ -1192,7 +1192,7 @@ exports.getRideHistory = async (req, res) => {
     
     let query = { status: { $in: historyStatuses } };
     
-    if (role === "rider") {
+    if (role === "rider" || role === "admin") {
       query.$or = [{ riderId: userId }, { "riders.riderId": userId }];
     } else if (role === "driver") {
       query.driverId = userId;
