@@ -24,7 +24,8 @@
     "start:Driverfrontend": "cd driver-frontend && npm run dev -- --host",
     "start:Adminfrontend": "cd admin-frontend && npm run dev -- --host",
     "start:frontend": "concurrently \"npm run start:Riderfrontend\" \"npm run start:Driverfrontend\" \"npm run start:Adminfrontend\"",
-    "start:all": "concurrently \"npm run start:auth\" \"npm run start:rider\" \"npm run start:driver\" \"npm run start:ride\" \"npm run start:pool\" \"npm run start:admin\" \"npm run start:payment\" \"npm run start:notification\" \"npm run start:feedback\" \"npm run start:gateway\""
+    "start:all": "concurrently \"npm run start:auth\" \"npm run start:rider\" \"npm run start:driver\" \"npm run start:ride\" \"npm run start:pool\" \"npm run start:admin\" \"npm run start:payment\" \"npm run start:notification\" \"npm run start:feedback\" \"npm run start:gateway\"",
+    "dev": "concurrently \"npm run start:all\" \"npm run start:frontend\""
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
