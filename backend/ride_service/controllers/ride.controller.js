@@ -135,47 +135,21 @@ exports.createRide = async (req, res) => {
       requestedAt: new Date(),
     });
 
-    // 3) Broadcast to drivers
-    const io = req.app.get("io");
+    // 3) Targeted broadcast logic return for Gateway
+    const nearbyDrivers = await findNearbyDrivers(pickup, 50000, passengers);
 
-    if (io) {
-      const nearbyDrivers = await findNearbyDrivers(pickup, 3000, passengers);
-
-      const payload = {
-        rideId: ride._id,
-        pickup: {
-          lat: ride.pickup.coordinates[1],
-          lng: ride.pickup.coordinates[0],
-          label: ride.pickup.label || pickup.label || "Pickup"
-        },
-        drop: {
-          lat: ride.drop.coordinates[1],
-          lng: ride.drop.coordinates[0],
-          label: ride.drop.label || drop.label || "Dropoff"
-        },
-        distance: ride.distance,
-        duration: ride.duration,
-        price: priceEstimate,
-        fare: priceEstimate,
-        priceEstimate: priceEstimate,
-        riderName: ride.riderName,
-        passengers: Number(passengers) || 1,
-      };
-
-      nearbyDrivers.forEach((driver) => {
-        io.to(`user_${driver.userId}`).emit("ride.created", payload);
-      });
-
-      // 🆙 Increment offers in driver service
-      const driverUserIds = nearbyDrivers.map(d => d.userId);
-      if (driverUserIds.length > 0) {
-        axios.post(`${process.env.DRIVER_SERVICE_URL}/internal/increment-offers`, { userIds: driverUserIds })
-          .catch(err => console.error("Failed to increment driver offers:", err.message));
-      }
+    // 🆙 Increment offers in driver service
+    const driverUserIds = nearbyDrivers.map(d => d.userId || d._id);
+    if (driverUserIds.length > 0) {
+      axios.post(`${process.env.DRIVER_SERVICE_URL}/internal/increment-offers`, { userIds: driverUserIds })
+        .catch(err => console.error("Failed to increment driver offers:", err.message));
     }
 
     const { serializeRide } = require("../serializers/ride.serializer");
-    return res.status(201).json(serializeRide(ride));
+    return res.status(201).json({
+      ...serializeRide(ride),
+      nearbyDrivers: driverUserIds
+    });
   } catch (err) {
     console.error("createRide error:", err.message);
     return res.status(500).json({ error: "Server error" });
@@ -270,17 +244,9 @@ exports.acceptRide = async (req, res) => {
     },
   };
 
-  const io = req.app.get("io");
-  if (io) {
-    if (ride.rideType === "POOL") {
-      (ride.riders || []).forEach((r) => {
-        io.to(`user_${r.riderId}`).emit("ride.assigned", payload);
-      });
-    } else {
-      io.to(`user_${ride.riderId}`).emit("ride.assigned", payload);
-    }
-    io.to(`user_${ride.driverId}`).emit("ride.assigned", payload);
-  }
+  // Internal broadcasting logic removed - handled by Gateway after HTTP response
+  // if (io) { ... }
+
   
   // 🔔 NOTIFY RIDER
   if (ride.rideType === "POOL") {
@@ -310,17 +276,8 @@ exports.driverArriving = async (req, res) => {
 
   const payload = serializeRide(ride);
 
-  const io = req.app.get("io");
-  if (io) {
-    if (ride.rideType === "POOL") {
-      ride.riders.forEach((r) => {
-        io.to(`user_${r.riderId}`).emit("ride.updated", payload);
-      });
-    } else {
-      io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
-    }
-    io.to(`user_${ride.driverId}`).emit("ride.updated", payload);
-  }
+  // Sockets handled by Gateway
+
 
   // 🔔 NOTIFY RIDER
   if (ride.rideType === "POOL") {
@@ -369,18 +326,8 @@ exports.startRide = async (req, res) => {
   await ride.save();
 
   const payload = serializeRide(ride);
-  const io = req.app.get("io");
+  // Sockets handled by Gateway
 
-  if (io) {
-    if (ride.rideType === "POOL") {
-      ride.riders.forEach((r) => {
-        io.to(`user_${r.riderId}`).emit("ride.updated", payload);
-      });
-    } else {
-      io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
-    }
-    io.to(`user_${ride.driverId}`).emit("ride.updated", payload);
-  }
 
   res.json(payload);
 };
@@ -441,18 +388,8 @@ exports.completeRide = async (req, res) => {
 
     // 2. Notify Frontend Immediately
     const payload = serializeRide(ride);
-    const io = req.app.get("io");
-    if (io) {
-      if (ride.rideType === "POOL") {
-        ride.riders.forEach((r) => {
-          io.to(`user_${r.riderId}`).emit("ride.updated", payload);
-        });
-      } else {
-        io.to(`user_${ride.riderId}`).emit("ride.updated", payload);
-      }
-      io.to(`user_${ride.driverId}`).emit("ride.updated", payload);
-    console.log(`📡 [Socket] Ride completed broadcast sent for ${ride._id}`);
-  }
+  // Sockets handled by Gateway
+
 
   // 🔔 NOTIFY COMPLETION
   if (ride.rideType === "POOL") {
@@ -511,7 +448,6 @@ exports.completeRide = async (req, res) => {
 
     res.json(payload);
   } catch (err) {
-    console.error("completeRide error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
 };
@@ -551,16 +487,7 @@ exports.cancelByRider = async (req, res) => {
 
        await existing.save();
 
-       // Notify other participants
-       const io = req.app.get("io");
-       if (io) {
-         const payload = serializeRide(existing);
-         io.to(`ride_${existing._id}`).emit("ride.updated", payload);
-         if (existing.driverId) {
-            io.to(`user_${existing.driverId}`).emit("pool.updated", payload);
-         }
-       }
-
+       // Sockets handled by Gateway
        return res.json(existing);
     }
 
@@ -573,10 +500,7 @@ exports.cancelByRider = async (req, res) => {
     existing.cancelledAt = new Date();
     await existing.save();
 
-    const io = req.app.get("io");
-    if (io && existing.driverId) {
-      io.to(`user_${existing.driverId}`).emit("ride.cancelled", { rideId: existing._id });
-    }
+    // Sockets handled by Gateway
 
     return res.json(existing);
   } catch (err) {
@@ -606,17 +530,8 @@ exports.cancelByDriver = async (req, res) => {
     existing.cancelledAt = new Date();
     await existing.save();
 
-    const io = req.app.get("io");
-    if (io) {
-      const payload = { rideId: existing._id, reason: "CANCELLED_BY_DRIVER" };
-      if (existing.rideType === "POOL") {
-        existing.riders.forEach(r => {
-          io.to(`user_${r.riderId}`).emit("ride.cancelled", payload);
-        });
-      } else {
-        io.to(`user_${existing.riderId}`).emit("ride.cancelled", payload);
-      }
-    }
+    // Sockets handled by Gateway
+
 
     return res.json(existing);
   } catch (err) {
@@ -862,25 +777,19 @@ exports.createPoolRide = async (req, res) => {
     // ⭐ SYNC OTP
     notifyAdminOtp("POOL_PICKUP", req.user.id, poolOtp);
 
-    // 🔥 NOTIFY NEARBY DRIVERS (Discovery)
-    const io = req.app.get("io");
-    if (io) {
-      const payload = serializeRide(ride);
-
-      const nearbyDrivers = await findNearbyDrivers(pickup);
-      nearbyDrivers.forEach((driver) => {
-        io.to(`user_${driver._id}`).emit("ride.created", payload);
-      });
-
-      // 🆙 Increment offers in driver service
-      const driverUserIds = nearbyDrivers.map(d => d._id);
-      if (driverUserIds.length > 0) {
-        axios.post(`${process.env.DRIVER_SERVICE_URL}/internal/increment-offers`, { userIds: driverUserIds })
-          .catch(err => console.error("Failed to increment driver offers (pool):", err.message));
-      }
+    // 🔥 FIND NEARBY DRIVERS
+    const nearbyDrivers = await findNearbyDrivers(pickup, 50000);
+    const driverUserIds = nearbyDrivers.map(d => d.userId || d._id);
+    
+    if (driverUserIds.length > 0) {
+      axios.post(`${process.env.DRIVER_SERVICE_URL}/internal/increment-offers`, { userIds: driverUserIds })
+        .catch(err => console.error("Failed to increment driver offers (pool):", err.message));
     }
 
-    return res.json(ride);
+    return res.json({
+      ...ride.toObject(),
+      nearbyDrivers: driverUserIds
+    });
   } catch (err) {
     console.error("createPoolRide error:", err.message);
     return res.status(500).json({ error: "Server error" });
@@ -1019,21 +928,8 @@ exports.addRiderToPool = async (req, res) => {
     }
 
     // 🔥 SOCKET BROADCAST (CRITICAL)
-    const io = req.app.get("io");
+    // Sockets handled by Gateway
 
-    if (io) {
-      const payload = ride.toObject();
-
-      // notify all riders
-      ride.riders.forEach((r) => {
-        io.to(`user_${r.riderId}`).emit("pool.rider_added", payload);
-      });
-
-      // notify assigned driver
-      if (ride.driverId) {
-        io.to(`user_${ride.driverId}`).emit("pool.rider_added", payload);
-      }
-    }
 
     return res.json(ride);
   } catch (err) {
@@ -1071,13 +967,8 @@ const _internalAssignDriverToPool = async (ride, io) => {
 
     await ride.save();
 
-    if (io) {
-      const payload = ride.toObject();
-      io.to(`user_${driver._id}`).emit("pool.assigned", payload);
-      ride.riders.forEach((r) => {
-        io.to(`user_${r.riderId}`).emit("pool.assigned", payload);
-      });
-    }
+    // Sockets handled by Gateway
+
   } catch (err) {
     console.error("_internalAssignDriverToPool error:", err.message);
   }
@@ -1386,17 +1277,8 @@ exports.triggerSos = async (req, res) => {
     console.warn(`🚨 [SOS] Emergency alert triggered by ${role} ${userId} for ride ${rideId}`);
 
     // Notify Admin via Socket (if IO is attached)
-    const io = req.app.get("io");
-    if (io) {
-      io.to("admin_room").emit("admin.sos_alert", {
-        sosId: sos._id,
-        rideId,
-        userId,
-        role,
-        location,
-        timestamp: sos.createdAt,
-      });
-    }
+    // Sockets handled by Gateway
+
 
     res.status(201).json({
       message: "SOS alert recorded. Help is on the way.",

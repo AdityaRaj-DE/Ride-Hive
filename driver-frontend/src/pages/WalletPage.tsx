@@ -145,10 +145,24 @@ const WalletPage: React.FC = () => {
                        </div>
                     </div>
                     
-                    <button className="h-14 px-8 rounded-xl bg-white border border-border text-primary font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-accent hover:text-white hover:border-accent transition-all flex items-center justify-center gap-4 active:scale-95 shadow-xl">
-                       <CreditCard className="w-5 h-5 opacity-70" />
-                       Node Linkage
-                    </button>
+                     <button 
+                       onClick={async () => {
+                         const amount = prompt("Enter amount to add (₹):", "500");
+                         if (amount && !isNaN(Number(amount))) {
+                           try {
+                             await api.post("/driver/wallet/add-funds", { amount: Number(amount) });
+                             alert(`₹${amount} Added Successfully!`);
+                             window.location.reload();
+                           } catch (err) {
+                             alert("Failed to add funds");
+                           }
+                         }
+                       }}
+                       className="h-14 px-8 rounded-xl bg-white border border-border text-primary font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-accent hover:text-white hover:border-accent transition-all flex items-center justify-center gap-4 active:scale-95 shadow-xl"
+                     >
+                        <CreditCard className="w-5 h-5 opacity-70" />
+                        Add Funds
+                     </button>
                  </div>
                </div>
             </div>
@@ -181,11 +195,39 @@ const WalletPage: React.FC = () => {
                   )}
                </div>
 
-               <button className="w-full mt-16 h-14 rounded-xl bg-accent text-white font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-accent/90 transition-all shadow-2xl shadow-accent/40 flex items-center justify-center gap-4 active:scale-95">
-                  <span>OVERRIDE PLAN</span>
-                  <Activity className="w-4 h-4" />
-               </button>
-            </div>
+                <button 
+                   onClick={async () => {
+                     try {
+                       await api.post("/driver/subscription/subscribe", { planName: "Monthly" });
+                       alert("Clearance Upgraded Successfully!");
+                       window.location.reload();
+                     } catch (err: any) {
+                       alert(err.response?.data?.message || "Purchase failed");
+                     }
+                   }}
+                   className="w-full mt-16 h-14 rounded-xl bg-accent text-white font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-accent/90 transition-all shadow-2xl shadow-accent/40 flex items-center justify-center gap-4 active:scale-95"
+                >
+                   <span>PURCHASE MONTHLY (₹500)</span>
+                   <Activity className="w-4 h-4" />
+                </button>
+                
+                {/* Test Mode: Add Credits */}
+                <button 
+                   onClick={async () => {
+                     try {
+                       await api.post("/driver/wallet/add-funds", { amount: 1000 });
+                       alert("₹1000 Credits Injected!");
+                       window.location.reload();
+                     } catch (err: any) {
+                       alert("Simulation failed");
+                     }
+                   }}
+                   className="w-full mt-4 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold uppercase tracking-[0.2em] text-[8px] hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-3 active:scale-95"
+                >
+                   <span>DEBUG: INJECT ₹1000</span>
+                   <Zap className="w-3 h-3 fill-current" />
+                </button>
+             </div>
           </div>
         </div>
 

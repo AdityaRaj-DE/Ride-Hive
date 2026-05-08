@@ -53,7 +53,8 @@ export const fetchDriverProfile = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       return (await api.get("/driver/me")).data;
-    } catch {
+    } catch (e: any) {
+      if (e.response?.status === 404) return null;
       return rejectWithValue("Failed to fetch driver");
     }
   }
@@ -75,6 +76,18 @@ export const toggleAvailability = createAsyncThunk(
   }
 );
 
+// update location
+export const updateLocation = createAsyncThunk(
+  "driver/updateLocation",
+  async (payload: { lat: number; lng: number }, { rejectWithValue }) => {
+    try {
+      return (await api.put("/driver/location", payload)).data;
+    } catch (e: any) {
+      return rejectWithValue(e.response?.data?.message || "Failed to update location");
+    }
+  }
+);
+
 const driverSlice = createSlice({
   name: "driver",
   initialState,
@@ -92,7 +105,7 @@ const driverSlice = createSlice({
         (a): a is any => a.type.startsWith("driver/") && a.type.endsWith("/fulfilled"),
         (s, a) => {
           s.loading = false;
-          if (a.type === "driver/fetchProfile/fulfilled" || a.type === "driver/toggleAvailability/fulfilled") {
+          if (a.type === "driver/fetchProfile/fulfilled" || a.type === "driver/toggleAvailability/fulfilled" || a.type === "driver/updateLocation/fulfilled") {
             s.profile = (a.payload as any).driver || a.payload;
           }
         }

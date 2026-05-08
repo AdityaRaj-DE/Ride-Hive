@@ -33,13 +33,9 @@ export default function RideStarted() {
                <div>
                  <p className="text-xs text-muted font-medium mb-0.5">Destination</p>
                  <p className="text-sm font-bold text-primary truncate max-w-[200px]">
-                   Ongoing Journey
+                   {ride.drop?.label || "Ongoing Journey"}
                  </p>
                </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-muted font-medium mb-0.5">OTP</p>
-              <p className="text-sm font-bold text-accent">{ride.rideStartOtp?.code}</p>
             </div>
           </div>
 

@@ -3,6 +3,11 @@ const urls = require("../utils/serviceUrls");
 const { authenticate, requireRider, requireDriver, requireAdmin } = require("../middleware/auth");
 
 module.exports = function setupProxies(app) {
+    // 🔍 Debug logging for all proxied requests
+    app.use((req, res, next) => {
+      console.log(`🌐 [Gateway Proxy] ${req.method} ${req.originalUrl} → Target: ?`);
+      next();
+    });
 
     app.use(
         "/auth",
@@ -82,9 +87,12 @@ module.exports = function setupProxies(app) {
         createProxyMiddleware({
           target: urls.driver,
           changeOrigin: true,
-          pathRewrite: { "^/driver": "" },
+          pathRewrite: {
+            "^/driver": "/",
+          },
           on: {
             proxyReq: (proxyReq, req, res) => {
+              console.log(`🚗 [Driver Proxy] Routing ${req.method} ${req.originalUrl} → ${proxyReq.path}`);
               const auth = req.headers.authorization || req.headers.Authorization;
               if (auth) proxyReq.setHeader("Authorization", auth);
             }

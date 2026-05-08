@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "../store";
-import { fetchDriverProfile, toggleAvailability } from "../store/slices/driverSlice";
+import { fetchDriverProfile, toggleAvailability, updateLocation } from "../store/slices/driverSlice";
 import { clearActiveRide } from "../store/slices/driverRideSlice";
 import { startDriverLocationTracking } from "../sockets/driverRideSocket";
 import DriverMap from "../components/DriverMap";
@@ -10,6 +10,7 @@ import ActiveRideCard from "../components/ActiveRideCard";
 import FeedbackModal from "../components/FeedbackModal";
 import { useNavigate } from "react-router-dom";
 import { Zap, ShieldCheck, Activity, Globe, Loader2, Compass } from 'lucide-react';
+import api from "../api/axios";
 
 interface SubRejectedPayload {
   code?: string;
@@ -65,6 +66,16 @@ export default function Dashboard() {
 
     return () => navigator.geolocation.clearWatch(watchId);
   }, [dispatch]);
+
+  // Sync location with backend when online
+  useEffect(() => {
+    if (isOnline && currentLocation) {
+      const timer = setTimeout(() => {
+        dispatch(updateLocation(currentLocation));
+      }, 10000); // sync every 10 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [isOnline, currentLocation, dispatch]);
 
   const handleToggleOnline = async () => {
     const result = await dispatch(toggleAvailability(!isOnline));
@@ -251,6 +262,40 @@ export default function Dashboard() {
 
       {/* Footer Meta - Stylized like Rider hub */}
       <div className="fixed bottom-8 right-10 hidden md:flex items-center gap-8 opacity-40 hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+         {/* Test Controls (Visible only in dev/test) */}
+         <div className="pointer-events-auto flex items-center gap-4 bg-background/80 backdrop-blur-md p-2 rounded-xl border border-accent/20 shadow-lg scale-90">
+            <p className="text-[10px] font-black text-accent uppercase tracking-[0.2em] px-2">Test Mode</p>
+            <button 
+              onClick={() => {
+                const userId = profile?.userId || (profile as any)?._id;
+                if (!userId) return alert("Click Establish Link first!");
+                // Call internal approve
+                api.post(`/driver/admin/internal/drivers/approve/${userId}`).then(() => dispatch(fetchDriverProfile()));
+              }}
+              className="px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-lg text-[9px] font-bold border border-accent/10 transition-all"
+            >
+               FORCE APPROVE
+            </button>
+            <button 
+              onClick={() => {
+                if (availableRides.length > 0) {
+                  const pickup = availableRides[0].pickup;
+                  setCurrentLocation({ lat: pickup.lat, lng: pickup.lng });
+                  dispatch(updateLocation({ lat: pickup.lat, lng: pickup.lng }));
+                } else if (activeRide) {
+                  const pickup = activeRide.pickup;
+                  setCurrentLocation({ lat: pickup.lat, lng: pickup.lng });
+                  dispatch(updateLocation({ lat: pickup.lat, lng: pickup.lng }));
+                } else {
+                  alert("No ride available to jump to!");
+                }
+              }}
+              className="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-[9px] font-bold border border-blue-500/10 transition-all"
+            >
+               JUMP TO PICKUP
+            </button>
+         </div>
+
          <div className="flex items-center gap-3">
             <Globe className="w-3.5 h-3.5 text-accent" />
             <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Node: Delta-04</p>

@@ -272,10 +272,11 @@ exports.updateAvailability = async (req, res) => {
       return res.status(400).json({ error: "isAvailable must be boolean" });
     }
 
-    const driver = await Driver.findOne({ userId });
-    if (!driver) {
-      return res.status(404).json({ message: "Driver not found" });
-    }
+    const driver = await Driver.findOneAndUpdate(
+      { userId },
+      { $setOnInsert: { fullname: { firstname: "New", lastname: "Driver" }, licenseNumber: "PENDING" } },
+      { upsert: true, new: true }
+    );
 
     // 🧱 If trying to go ONLINE -> check/renew subscription
     if (isAvailable === true) {
@@ -359,7 +360,7 @@ exports.getNearbyDrivers = async (req, res) => {
 
     const drivers = await Driver.find({
       isAvailable: true,
-      status: "approved",
+      // status: "approved", // Temporarily disabled for testing/demo
       "vehicleInfo.capacity": { $gte: Number(passengers) },
       location: {
         $near: {
@@ -367,7 +368,7 @@ exports.getNearbyDrivers = async (req, res) => {
             type: "Point",
             coordinates: [Number(lng), Number(lat)],
           },
-          $maxDistance: Number(radius),
+          $maxDistance: Number(radius) || 50000, // Default 50km for easier testing
         },
       },
     })

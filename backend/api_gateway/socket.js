@@ -60,10 +60,15 @@ module.exports = function setupSocket(httpServer) {
 
         console.log("Ride service response:", res.data);
         
-        // 📢 General broadcast to all online drivers (discovery)
-        io.to("drivers").emit("ride.created", res.data);
-
-        // The ride_service already handles nearby driver broadcasts.
+        // 📢 Targeted broadcast to nearby drivers
+        if (res.data.nearbyDrivers && Array.isArray(res.data.nearbyDrivers)) {
+          console.log(`📡 Broadcasting ride ${res.data.rideId} to ${res.data.nearbyDrivers.length} nearby drivers`);
+          res.data.nearbyDrivers.forEach(driverId => {
+            io.to(`user_${driverId}`).emit("ride.created", res.data);
+          });
+        } else {
+          console.log(`⚠️ No nearby drivers found for ride ${res.data.rideId}`);
+        }
 
         ack?.(res.data);
       } catch (e) {
@@ -227,12 +232,17 @@ module.exports = function setupSocket(httpServer) {
 
         socket.join(`ride_${data._id}`);
 
-        // Notify all drivers about the new pool discovery
-        io.to("drivers").emit("ride.created", {
-          ...data,
-          rideId: data._id,
-          rideType: "POOL"
-        });
+        // 📢 Targeted broadcast to nearby drivers (discovery)
+
+        if (data.nearbyDrivers && Array.isArray(data.nearbyDrivers)) {
+          data.nearbyDrivers.forEach(driverId => {
+            io.to(`user_${driverId}`).emit("ride.created", {
+              ...data,
+              rideId: data._id,
+              rideType: "POOL"
+            });
+          });
+        }
 
         io.to(`ride_${data._id}`).emit("pool.updated", data);
 
@@ -258,6 +268,15 @@ module.exports = function setupSocket(httpServer) {
 
         // 🔥 notify ALL users in ride room
         io.to(`ride_${rideId}`).emit("pool.updated", data);
+
+        // If driver was assigned automatically, notify them specifically
+        if (data.status === "DRIVER_ASSIGNED" && data.driverId) {
+          io.to(`user_${data.driverId}`).emit("pool.assigned", data);
+          // And notify riders again with the 'assigned' event for UI transition
+          data.riders.forEach(r => {
+             io.to(`user_${r.riderId}`).emit("pool.assigned", data);
+          });
+        }
 
         ack?.(data);
       } catch (e) {
