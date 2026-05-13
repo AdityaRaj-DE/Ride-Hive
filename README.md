@@ -1,546 +1,263 @@
-# Ride-Sharing Application - Documentation
+# Ride-Hive: Microservices-Based Urban Mobility Ecosystem
 
-A microservices-based ride sharing application with separate frontends for riders and drivers.
+![Ride-Hive Hero Banner](file:///C:/Users/rajba/.gemini/antigravity/brain/a8016d54-7122-4c89-b149-95e6b7377bbe/ride_hive_hero_1778694009081.png)
 
----
+## Overview
+Ride-Hive is a distributed, microservices-based ride-sharing platform designed for high scalability, real-time event orchestration, and premium user interaction. The system leverages a decentralized architecture to handle authentication, ride lifecycles, payment processing, and real-time notifications across specialized service boundaries.
 
-## 📋 Table of Contents
-
-1. [Backend Microservices](#1-backend-microservices)
-2. [Key API Routes](#2-key-api-routes-in-each-service)
-3. [MongoDB Entities/Collections](#3-mongodb-entitiescollections)
-4. [Request/Response Flow](#4-requestresponse-flow)
-5. [Client-Side Modules](#5-client-side-modules)
+The platform features a futuristic Glassmorphism-based UI/UX across three distinct frontends: Rider, Driver (Tactical Command Center), and Admin.
 
 ---
 
-## 1. Backend Microservices
-
-### **auth-service** (Port: 3001)
-- **Purpose**: Handles user and driver authentication, authorization, and user management
-- **Responsibilities**:
-  - User registration and login
-  - Driver registration and login
-  - JWT token generation and validation
-  - User profile management
-  - Email/OTP verification
-  - Wallet balance management for users
-  - User ratings
-- **Database**: Uses MongoDB (shared instance)
-- **Collections**: `users`, `captains` (drivers), `blacklisttokens`
-
-### **rider-service** (Port: 3002)
-- **Purpose**: Manages rider-specific data and ride requests 
-- **Responsibilities**:
-  - Rider profile creation and management
-  - Ride request creation
-  - Ride history for riders
-  - Saved locations management
-- **Database**: Uses MongoDB (shared instance)
-- **Collections**: `riders`, `riderequests`
-note that this service is not using most of things as it now none of it features is used so don't include it anywhere
-
-### **driver-service** (Port: 3003)
-- **Purpose**: Manages driver-specific operations and data
-- **Responsibilities**:
-  - Driver profile management
-  - Driver availability status
-  - Location updates
-  - Nearby driver lookup
-  - Wallet and subscription management
-  - Driver earnings and statistics
-  - Driver ratings
-- **Database**: Uses MongoDB (shared instance)
-- **Collections**: `drivers`
-- **Shared APIs**: Used by `ride-service` for driver lookups and status updates
-
-### **ride-service** (Port: 3004)
-- **Purpose**: Core ride management and orchestration
-- **Responsibilities**:
-  - Ride creation and lifecycle management
-  - Ride acceptance, start, completion, cancellation
-  - Real-time communication via WebSockets (Socket.io)
-  - Fare calculation
-  - Route calculation
-  - OTP generation and verification
-  - Ride history for users and drivers
-  - Rating system (driver and rider)
-- **Database**: Uses MongoDB (shared instance)
-- **Collections**: `rides`
-- **Integrations**: 
-  - Calls `driver-service` for nearby drivers and status updates
-  - Calls `payment-service` to create payments on ride completion
-  - Uses Socket.io for real-time updates
-
-### **payment-service** (Port: 3005)
-- **Purpose**: Handles payment processing and transactions
-- **Responsibilities**:
-  - Payment creation
-  - Payment status tracking
-  - Payment refunds
-  - Integration with wallet systems (syncs with auth-service and driver-service)
-- **Database**: Uses MongoDB (shared instance)
-- **Collections**: `payments`
-- **Shared APIs**: Called by `ride-service` when a ride is completed
-
-### **notification-service** (Port: 3007)
-- **Purpose**: Manages notifications for users
-- **Responsibilities**:
-  - Sending notifications (email, push)
-  - Notification history
-  - Mark notifications as read
-- **Database**: Uses MongoDB (shared instance)
-- **Collections**: `notifications`
-
-### **api-gateway** (Port: 3000)
-- **Purpose**: Single entry point for all client requests
-- **Responsibilities**:
-  - Routes requests to appropriate microservices
-  - Handles CORS
-  - Request proxying
-  - WebSocket proxying for ride-service
-- **Database**: None (stateless proxy)
-
-### **analytic-service**
-- **Purpose**: Analytics and reporting (structure exists, implementation may vary)
-- **Database**: Uses MongoDB (shared instance)
+## Table of Contents
+1. [System Architecture](#system-architecture)
+2. [Core Microservices](#core-microservices)
+3. [Technical Workflows](#technical-workflows)
+4. [API Reference](#api-reference)
+5. [Data Dictionary](#data-dictionary)
+6. [Client-Side Architecture](#client-side-architecture)
+7. [Design System](#design-system)
+8. [Installation and Execution](#installation-and-execution)
 
 ---
 
-## 2. Key API Routes in Each Service
+## System Architecture
+The Ride-Hive ecosystem is composed of 11 independent microservices that communicate via a combination of RESTful APIs and asynchronous WebSockets.
 
-### **Auth Service** (`/auth` via api gateway)
-
-#### User Routes (`/auth/users` or `/auth/user`)
-- `POST /register` - Register new user
-- `POST /login` - User login
-- `GET /profile` - Get user profile (authenticated)
-- `GET /logout` - Logout user (authenticated)
-- `PATCH /update-profile` - Update user profile (authenticated)
-- `DELETE /delete` - Delete user account (authenticated)
-- `POST /verify/request` - Request email verification OTP (authenticated)
-- `POST /verify` - Verify email with OTP (authenticated)
-- `GET /wallet` - Get wallet balance (authenticated)
-- `PATCH /wallet` - Update wallet balance (authenticated)
-- `PATCH /:id/rating` - Update user rating
-
-#### Driver Routes (`/auth/drivers` or `/auth/captain`)
-- `POST /register` - Register new driver
-- `POST /login` - Driver login
-- `GET /profile` - Get driver profile (authenticated)
-- `GET /logout` - Logout driver (authenticated)
-
-### **Rider Service** (`/rider` via gateway)
-- `POST /profile` - Create/update rider profile (authenticated)
-- `GET /profile` - Get rider profile (authenticated)
-- `POST /request` - Create ride request (authenticated)
-- `GET /myrides` - Get rider's ride history (authenticated)
-note all these are handle by auth and ride service as it is close now
-
-### **Driver Service** (`/driver` via gateway)
-- `POST /register` - Create/update driver profile (authenticated)
-- `GET /profile` - Get driver profile (authenticated)
-- `PUT /availability` - Update driver availability status (authenticated)
-- `PUT /location` - Update driver location (authenticated)
-- `GET /wallet` - Get driver wallet balance (authenticated)
-- `POST /wallet/add-funds` - Add funds to driver wallet (authenticated)
-- `POST /subscription/subscribe` - Subscribe to a plan (authenticated)
-- `GET /subscription/status` - Get own subscription status (authenticated)
-- `GET /subscription-status/:userId` - Get subscription status for a user (internal)
-- `GET /earnings/:driverId` - Get driver earnings (authenticated)
-- `GET /history/:driverId` - Get driver ride history (authenticated)
-- `GET /trip-summary` - Get trip summary (authenticated)
-- `GET /nearby` - Get nearby drivers (public, used by ride-service)
-- `GET /by-user/:userId` - Get driver by auth userId (internal)
-- `PATCH /:userId/status` - Update driver status by userId (internal)
-- `PATCH /:id/rating` - Update driver rating
-
-### **Ride Service** (`/ride` via gateway)
-- `POST /request` - Create ride request (authenticated, rider)
-- `GET /active` - Get active ride for logged-in user/driver (authenticated)
-- `POST /accept/:rideId` - Driver accepts a ride (authenticated, driver)
-- `POST /start/:rideId` - Driver starts ride (authenticated, driver)
-- `POST /complete/:rideId` - Driver completes ride (authenticated, driver)
-- `POST /cancel/:rideId` - Cancel ride (authenticated, rider/driver)
-- `GET /:rideId` - Get ride details (authenticated)
-- `GET /history/user/:userId` - Get user ride history (authenticated)
-- `GET /history/driver/:driverId` - Get driver ride history (authenticated)
-- `POST /:rideId/rating/driver` - Rate driver (authenticated, rider)
-- `POST /:rideId/rating/rider` - Rate rider (authenticated, driver)
-
-### **Payment Service** (`/payment` via gateway)
-- `POST /create` - Create payment record
-- `GET /status/:paymentId` - Get payment status
-- `PATCH /refund/:paymentId` - Refund a payment
-
-### **Notification Service** (`/notification` via gateway)
-- `POST /send` - Send notification
-- `GET /:userId` - Get notifications for user
-- `PUT /:id/read` - Mark notification as read
+### Infrastructure Components
+- **API Gateway**: Orchestrates request routing and WebSocket proxying.
+- **Service Discovery**: Internal service-to-service communication managed via environment-defined URLs.
+- **Real-time Layer**: Socket.io for bi-directional event streaming.
+- **Database Layer**: Per-service MongoDB collections for data isolation.
 
 ---
 
-## 3. MongoDB Entities/Collections
+## Core Microservices
 
-### **User** (auth-service)
-- **Collection**: `users`
-- **Key Fields**:
-  - `fullname.firstname`, `fullname.lastname` - User's name
-  - `email` - Unique email address
-  - `password` - Hashed password (not selected by default)
-  - `socketId` - WebSocket connection ID
-  - `isVerified` - Email verification status
-  - `otp`, `otpExpires` - OTP for verification
-  - `walletBalance` - Current wallet balance
-  - `rating` - Average rating
-  - `totalRatings` - Total number of ratings
-  - `createdAt`, `updatedAt` - Timestamps
+### 1. API Gateway (Port: 3000)
+- **Purpose**: Single entry point for all client requests.
+- **Responsibilities**: Request proxying, CORS management, and WebSocket orchestration for the Ride Service.
 
-### **Driver (Auth)** (auth-service)
-- **Collection**: `captains`
-- **Key Fields**:
-  - `fullname.firstname`, `fullname.lastname` - Driver's name
-  - `email` - Unique email address
-  - `mobileNumber` - Unique mobile number
-  - `password` - Hashed password
-  - `licenseNumber` - Driver's license number
-  - `vehicle.color`, `vehicle.plate`, `vehicle.capacity`, `vehicle.vehicleType` - Vehicle information
-  - `socketId` - WebSocket connection ID
+### 2. Auth Service (Port: 3001)
+- **Purpose**: Identity and Access Management (IAM).
+- **Responsibilities**: JWT issuance, user/driver registration, session management, and wallet balance initialization.
 
-### **Driver** (driver-service)
-- **Collection**: `drivers`
-- **Key Fields**:
-  - `userId` - Reference to auth-service driver ID
-  - `fullname.firstname`, `fullname.lastname` - Driver's name
-  - `mobileNumber` - Unique mobile number
-  - `vehicleInfo.model`, `vehicleInfo.plateNumber`, `vehicleInfo.color` - Vehicle details
-  - `licenseNumber` - Driver's license number
-  - `rating` - Average rating
-  - `totalRatings` - Total number of ratings
-  - `totalRides` - Total completed rides
-  - `totalEarnings` - Total earnings
-  - `isAvailable` - Availability status
-  - `location.lat`, `location.lng` - Current location coordinates
-  - `walletBalance` - Driver's wallet balance
-  - `subscription.isActive` - Subscription status
-  - `subscription.plan.name`, `subscription.plan.durationDays`, `subscription.plan.price` - Subscription plan details
-  - `subscription.startedAt`, `subscription.expiresAt` - Subscription dates
-  - `reviews[]` - Array of review objects (rideId, userId, rating, comment, createdAt)
-  - `createdAt`, `updatedAt` - Timestamps
+### 3. Rider Service (Port: 3002)
+- **Purpose**: Rider-specific data management.
+- **Responsibilities**: Rider profile lifecycle and historical data persistence.
 
-### **Rider** (rider-service)
-- **Collection**: `riders`
-- **Key Fields**:
-  - `userId` - Reference to auth-service user ID
-  - `rating` - Average rating
-  - `totalRides` - Total completed rides
-  - `preferredPayment` - Preferred payment method (default: "cash")
-  - `savedLocations[]` - Array of saved locations (name, coordinates.lat, coordinates.lng)
-  - `createdAt`, `updatedAt` - Timestamps
+### 4. Driver Service (Port: 3003)
+- **Purpose**: Driver operations and availability management.
+- **Responsibilities**: Real-time location tracking, availability status, subscription management, and driver-specific financial tracking.
 
-### **RideRequest** (rider-service)
-- **Collection**: `riderequests`
-- **Key Fields**:
-  - `riderId` - Reference to Rider document
-  - `pickup` - Pickup location (string)
-  - `drop` - Drop location (string)
-  - `status` - Status enum: "pending", "accepted", "completed", "cancelled"
-  - `fareEstimate` - Estimated fare
-  - `createdAt`, `updatedAt` - Timestamps
+### 5. Ride Service (Port: 3004)
+- **Purpose**: Core business logic and ride orchestration.
+- **Responsibilities**: Ride lifecycle management (Request, Accept, Start, Complete), fare calculation, and OTP verification.
 
-### **Ride** (ride-service)
-- **Collection**: `rides`
-- **Key Fields**:
-  - `riderId` - Rider's user ID (string)
-  - `driverId` - Driver's user ID (string, nullable)
-  - `driverServiceId` - Driver service ID (string, nullable)
-  - `pickup` - GeoJSON Point (type: "Point", coordinates: [lng, lat])
-  - `destination` - GeoJSON Point (type: "Point", coordinates: [lng, lat])
-  - `distanceKm` - Distance in kilometers
-  - `durationMin` - Duration in minutes
-  - `fare` - Calculated fare
-  - `fareBreakdown` - Detailed fare breakdown object
-  - `status` - Status enum: "REQUESTED", "ACCEPTED", "STARTED", "COMPLETED", "CANCELLED"
-  - `otp` - 4-digit OTP for ride verification
-  - `otpVerified` - OTP verification status
-  - `driverRating.rating`, `driverRating.review` - Driver rating by rider
-  - `riderRating.rating`, `riderRating.review` - Rider rating by driver
-  - `startedAt` - Ride start timestamp
-  - `completedAt` - Ride completion timestamp
-  - `cancelledAt` - Ride cancellation timestamp
-  - `cancellationReason` - Reason for cancellation
-  - `paymentStatus` - Payment status enum: "PENDING", "PAID", "REFUNDED"
-  - `createdAt`, `updatedAt` - Timestamps
+### 6. Payment Service (Port: 3005)
+- **Purpose**: Transactional integrity and financial processing.
+- **Responsibilities**: Payment creation, wallet synchronization, and transaction history tracking.
 
-### **Payment** (payment-service)
-- **Collection**: `payments`
-- **Key Fields**:
-  - `rideId` - Reference to ride ID
-  - `userId` - Rider's user ID
-  - `driverId` - Driver's user ID
-  - `amount` - Payment amount
-  - `status` - Status enum: "PENDING", "SUCCESS", "FAILED", "REFUNDED"
-  - `paymentMethod` - Payment method enum: "WALLET", "RAZORPAY", "CASH", "STRIPE"
-  - `transactionId` - Unique transaction ID
-  - `createdAt`, `updatedAt` - Timestamps
+### 7. Feedback Service (Port: 3006)
+- **Purpose**: Rating and review aggregation.
+- **Responsibilities**: Managing bi-directional ratings between riders and drivers.
 
-### **Notification** (notification-service)
-- **Collection**: `notifications`
-- **Key Fields**:
-  - `userId` - User ID who receives notification
-  - `type` - Notification type enum: "ride", "payment", "system", "promo"
-  - `title` - Notification title
-  - `message` - Notification message
-  - `isRead` - Read status
-  - `createdAt` - Timestamp
+### 8. Notification Service (Port: 3007)
+- **Purpose**: Communication orchestration.
+- **Responsibilities**: Sending system alerts, ride status updates, and transactional notifications via Email and Push channels.
 
-### **BlacklistToken** (auth-service)
-- **Collection**: `blacklisttokens`
-- **Key Fields**:
-  - `token` - JWT token string
-  - `expiresAt` - Token expiration timestamp
+### 9. Pool Service (Port: 3008)
+- **Purpose**: Multi-passenger ride optimization.
+- **Responsibilities**: Logic for ride-sharing, route overlapping, and collaborative fare calculation.
+
+### 10. Admin Service (Port: 3009)
+- **Purpose**: Operational oversight and analytics.
+- **Responsibilities**: System-wide monitoring, user management, and high-level financial reporting.
 
 ---
 
-## 4. Request/Response Flow
+## Technical Workflows
 
-### **Rider Requests Ride**
+### 1. Ride Request Lifecycle
+1. **Initiation**: Rider submits a request via `POST /ride/request` with GeoJSON coordinates.
+2. **Orchestration**: The Ride Service calculates distance, duration, and fare using internal routing utilities.
+3. **Discovery**: The Ride Service queries the Driver Service (`GET /nearby`) for drivers within a specific radius.
+4. **Broadcast**: The Ride Service emits a `ride_broadcast` event via the API Gateway to all available drivers.
+5. **Acceptance**: A driver accepts the ride via `POST /ride/accept/:rideId`, which updates the ride status to `ACCEPTED` and toggles driver availability.
 
-1. **Rider creates ride request**:
-   - **Endpoint**: `POST /ride/request`
-   - **Request Body**: `{ pickup: { lat, lng }, destination: { lat, lng } }`
-   - **Process**:
-     - Ride service calculates route (distance, duration) using `getRoute()`
-     - Calculates fare using `calculateFare()`
-     - Generates 4-digit OTP
-     - Creates Ride document with status "REQUESTED"
-     - Fetches nearby drivers from driver-service (`GET /drivers/nearby`)
-     - Broadcasts ride request to all drivers via Socket.io (`ride_broadcast` event)
-   - **Response**: `{ rideId, distanceKm, durationMin, fare, otp, message }`
+### 2. Real-time Location Updates
+Drivers emit location updates to the Driver Service via `PUT /driver/location`. During an active ride, these coordinates are proxied in real-time to the Rider App via WebSockets for live tracking on the tactical map.
 
-2. **Driver receives broadcast**:
-   - All drivers in "drivers" room receive `ride_broadcast` event via Socket.io
-   - Event includes: `rideId`, `pickup`, `destination`, `distanceKm`, `durationMin`, `fare`, `nearbyDrivers`
-
-### **Driver Accepts Ride**
-
-1. **Driver accepts ride**:
-   - **Endpoint**: `POST /ride/accept/:rideId`
-   - **Process**:
-     - Validates ride exists and status is "REQUESTED"
-     - Checks driver subscription status (must be active)
-     - Updates Ride: sets `driverId`, changes status to "ACCEPTED"
-     - Updates driver availability to `false` in driver-service
-     - Fetches full driver profile from driver-service
-     - Emits Socket.io events:
-       - `ride_accepted` to rider room (`rider_{riderId}`)
-       - `ride_accepted` to driver room (`driver_{driverId}`)
-   - **Response**: `{ success: true, message: "Ride accepted", driver: {...} }`
-
-2. **State Changes**:
-   - Ride status: `REQUESTED` → `ACCEPTED`
-   - Driver `isAvailable`: `true` → `false`
-   - Ride `driverId` is set
-
-### **Location Updates**
-
-1. **Driver location updates**:
-   - **Endpoint**: `PUT /driver/location`
-   - **Request Body**: `{ lat, lng }`
-   - **Process**:
-     - Updates driver's location in driver-service
-     - Location is stored in `driver.location.lat` and `driver.location.lng`
-   - **Frequency**: Updated whenever driver moves (typically via frontend location tracking)
-
-2. **Real-time location sharing**:
-   - During active rides, location updates are shared via Socket.io
-   - Driver location is broadcast to rider in real-time
-   - Used for live map tracking
-
-### **Payment Object Created**
-
-1. **When payment is created**:
-   - **Trigger**: When ride status changes to "COMPLETED"
-   - **Endpoint**: `POST /payment/create` (called internally by ride-service)
-   - **Request Body**: 
-     ```json
-     {
-       "rideId": "...",
-       "userId": "...",
-       "driverId": "...",
-       "amount": 150,
-       "paymentMethod": "WALLET"
-     }
-     ```
-
-2. **Payment creation process**:
-   - Payment service creates Payment document with status "PENDING"
-   - Generates unique `transactionId` (format: `TXN-{timestamp}`)
-   - After 2 seconds (simulated processing), payment status changes to "SUCCESS"
-   - Syncs with auth-service: Deducts amount from rider's wallet
-   - Syncs with driver-service: Adds amount to driver's earnings
-   - Updates ride `paymentStatus` to "PAID"
-
-3. **What's stored in Payment**:
-   - `rideId` - Links payment to ride
-   - `userId` - Rider who pays
-   - `driverId` - Driver who receives payment
-   - `amount` - Payment amount
-   - `status` - Payment status
-   - `paymentMethod` - How payment was made
-   - `transactionId` - Unique transaction identifier
-   - Timestamps
-
-### **Ride Start Flow**
-
-1. **Driver starts ride**:
-   - **Endpoint**: `POST /ride/start/:rideId`
-   - **Request Body**: `{ driverLocation: { lat, lng }, otp: "1234" }`
-   - **Process**:
-     - Validates driver is assigned to ride
-     - Validates ride status is "ACCEPTED"
-     - Calculates distance between driver location and pickup point
-     - Verifies OTP matches ride's OTP
-     - Updates ride: `otpVerified = true`, status → "STARTED", sets `startedAt`
-     - Emits `ride_started` event to rider via Socket.io
-   - **Response**: `{ success: true, message: "Ride started" }`
-
-### **Ride Completion Flow**
-
-1. **Driver completes ride**:
-   - **Endpoint**: `POST /ride/complete/:rideId`
-   - **Request Body**: `{ distanceMeters, durationSec }` (optional)
-   - **Process**:
-     - Validates ride status is "STARTED"
-     - Recalculates fare based on actual distance/duration
-     - Updates ride: status → "COMPLETED", sets `completedAt`
-     - Marks driver as available again (`isAvailable = true`)
-     - Creates payment via payment-service
-     - Emits `ride_completed` event via Socket.io
-   - **Response**: `{ success: true, message: "Ride completed", data: {...} }`
+### 3. Payment and Completion
+Upon ride completion (`POST /ride/complete/:rideId`), the Ride Service triggers the Payment Service to create a transaction record, deduct funds from the rider's wallet, and add earnings to the driver's profile.
 
 ---
 
-## 5. Client-Side Modules
+## API Reference
 
-### **Rider Frontend** (`ride-frontend/`)
+The system endpoints are exposed through the API Gateway on port `3000`. Authentication is handled via JWT in the `Authorization` header (`Bearer <token>`).
 
-#### **Pages** (`src/pages/`)
-- **Dashboard.tsx** - Main rider dashboard with:
-  - Ride request interface
-  - Map integration for pickup/destination selection
-  - Active ride tracking
-  - Ride history
-- **Login.tsx** - User login page
-- **Register.tsx** - User registration page
-- **Profile.tsx** - User profile management
+### Auth Service (via `/auth`)
+- `POST /otp/send`: Initiates OTP delivery to a mobile number.
+- `POST /otp/verify`: Validates OTP and processes Login/Registration. Returns JWT and user profile.
+- `POST /refresh`: Rotates refresh tokens and issues a new access token.
+- `POST /logout`: Invalidates the current session and revokes refresh tokens.
+- `GET /me`: Returns the authenticated user's profile and active role.
+- `POST /role/activate`: Switches the user's `activeRole` between `rider` and `driver`.
 
-#### **Components** (`src/components/`)
-- **RideMap.tsx** - Interactive map component for ride requests and tracking
+### Rider Service (via `/rider`)
+- `POST /onboard`: Initial profile setup for new riders.
+- `PATCH /profile`: Modifies existing rider profile attributes.
+- `GET /profile`: Retrieves the rider's specific data and preferences.
 
-#### **Services** (`src/services/`)
-- **axios.ts** - Axios instance configuration
-- **routerService.ts** - Route calculation service
-- **socket.ts** - Socket.io client connection
+### Driver Service (via `/driver`)
+- `POST /onboard/basic`: Captures basic identity and contact information.
+- `POST /onboard/vehicle`: Captures vehicle specifications (Model, Plate, Color).
+- `POST /onboard/documents`: Processes legal documents (License, Insurance).
+- `GET /me`: Returns the comprehensive driver profile.
+- `PATCH /me`: Updates driver-specific information.
+- `PUT /availability`: Manages the driver's online/offline status for ride matching.
+- `PUT /location`: Real-time GPS coordinate updates for the tactical map.
+- `GET /wallet`: Retrieves current earnings, balance, and transaction history.
+- `POST /wallet/add-funds`: Processes fund additions to the driver wallet.
+- `POST /subscription/subscribe`: Enrolls the driver in a subscription plan.
+- `GET /subscription/status`: Returns current plan validity and expiry.
 
-#### **Store** (`src/store/`)
-- **authSlice.ts** - Redux slice for authentication state
-- **rideSlice.ts** - Redux slice for ride state management
-- **index.ts** - Redux store configuration
+### Ride Service (via `/ride`)
+- `POST /`: Creates a new ride request (Rider-side).
+- `GET /active`: Fetches the currently active ride session for the user.
+- `GET /available`: Returns available ride requests for scanning drivers.
+- `POST /:id/accept`: Driver acceptance of a pending ride request.
+- `POST /:id/arriving`: Alerts the rider that the driver is reaching the pickup point.
+- `POST /:id/start`: Transitions ride to `STARTED` state (Requires 4-digit OTP).
+- `POST /:id/complete`: Finalizes the ride and initiates the payment cycle.
+- `POST /:id/cancel`: Rider-initiated cancellation of a request or active ride.
+- `POST /:id/cancel-driver`: Driver-initiated cancellation of an accepted ride.
+- `GET /history`: Returns historical ride logs for the authenticated user.
+- `GET /:id`: Retrieves full details and status of a specific ride.
+- `POST /sos`: Triggers an emergency SOS alert to the Admin console.
+- `POST /estimate`: Provides fare and ETA estimates for a prospective route.
+- `POST /route`: Returns GeoJSON geometry for map rendering.
 
-#### **Utils** (`src/utils/`)
-- **types.ts** - TypeScript type definitions
+#### Pooling Operations (via `/ride/pool`)
+- `POST /create`: Initializes a new shared-ride pool.
+- `POST /:rideId/add`: Adds a secondary rider to an existing pool.
+- `POST /update-stop`: Recalculates route and stops for a multi-passenger ride.
+- `GET /available`: Lists active pools eligible for matching.
+
+### Payment Service (via `/payment`)
+- `POST /create`: Generates a new transaction record for a completed ride.
+- `GET /status/:paymentId`: Queries real-time transaction status.
+- `PATCH /refund/:paymentId`: Initiates a refund for a failed or disputed ride.
+- `GET /driver/:driverId`: Fetches payout and earning history for a driver.
+
+### Notification Service (via `/notification`)
+- `POST /send`: Dispatches a system-generated notification.
+- `GET /:userId`: Retrieves the notification inbox for a specific user.
+- `PUT /:id/read`: Updates the read status of a notification.
+
+### Feedback Service (via `/feedback`)
+- `POST /submit`: Submits a rating and written review for a completed ride.
+- `GET /target/:targetId`: Fetches aggregated reviews for a user or driver.
+
+### Admin Service (via `/admin`)
+- `POST /otps`: Internal endpoint for syncing OTP logs (Internal Service Key required).
+- `GET /otps`: Accesses global OTP logs for debugging.
+- `GET /drivers/pending`: Lists drivers awaiting document verification.
+- `POST /drivers/:userId/approve`: Grants operational approval to a driver.
+- `GET /db/:collection`: Administrative database explorer for auditing.
+- `PUT /db/:collection/:id`: Direct record manipulation for support operations.
+- `GET /analytics`: Aggregated platform metrics (Revenue, Active Users, System Health).
 
 ---
 
-### **Driver Frontend** (`driver-frontend/`)
+## Internal Service APIs
 
-#### **Pages** (`src/pages/`)
-- **Dashboard.tsx** - Main driver dashboard with:
-  - Ride request notifications
-  - Active ride management
-  - Location tracking
-  - Earnings display
-- **Login.tsx** - Driver login page
-- **Register.tsx** - Driver registration page
-- **DriverProfile.tsx** - Driver profile management
-- **WalletPage.tsx** - Wallet balance and transaction history
+These endpoints are strictly for service-to-service communication and are protected by the `x-internal-key` header.
 
-#### **Components** (`src/components/`)
-- **RideMap.tsx** - Interactive map component for ride navigation
-- **driver/ProtectedDriverRoute.tsx** - Route protection for authenticated drivers
-- **driver/SubscriptionCard.tsx** - Subscription plan display and management
-- **driver/WalletCard.tsx** - Wallet balance card component
+### Auth Internal
+- `PATCH /internal/users/:userId/onboarding`: Syncs onboarding status from other services.
+- `GET /internal/users/:userId`: Fetches full user entity (Mobile, Roles, Wallet).
+- `PATCH /internal/wallet/:userId`: Modifies wallet balance (Add/Deduct).
 
-#### **Services** (`src/services/`)
-- **axiosInstance.ts** - Axios instance configuration
-- **routeService.ts** - Route calculation service
-- **socket.ts** - Socket.io client connection
-
-#### **Store** (`src/store/`)
-- **slices/driverAuthSlice.ts** - Redux slice for driver authentication
-- **slices/driverLocationSlice.ts** - Redux slice for location tracking
-- **slices/driverRideSlice.ts** - Redux slice for ride state management
-- **slices/driverWalletSlice.ts** - Redux slice for wallet state
-- **index.ts** - Redux store configuration
+### Driver Internal
+- `GET /subscription-status/:userId`: Validates driver eligibility for ride matching.
+- `GET /by-user/:userId`: Resolves a User ID to a Driver entity.
+- `PATCH /:userId/status`: Internal status updates.
+- `PATCH /:id/earnings`: Updates driver earning ledger.
 
 ---
 
-## 🚀 Getting Started
+## Data Dictionary
+
+### User Entity (Auth Service)
+- `mobileNumber`: Primary identifier.
+- `roles`: Boolean mapping (rider, driver, admin).
+- `activeRole`: Current operational mode.
+- `onboarding`: Object tracking progress across services.
+- `walletBalance`: Current financial standing.
+
+### Driver Entity (Driver Service)
+- `userId`: Reference to Auth User.
+- `vehicleInfo`: Specifications for the active vehicle.
+- `location`: Current GeoJSON `Point`.
+- `isAvailable`: Operational availability flag.
+- `subscription`: Current active plan and expiry.
+- `rating`: Running average of feedback scores.
+
+### Ride Entity (Ride Service)
+- `riderId` / `driverId`: Reference pointers.
+- `pickup` / `destination`: Geographic coordinates.
+- `fare`: Total calculated price.
+- `status`: Lifecycle state (REQUESTED, ACCEPTED, STARTED, COMPLETED, CANCELLED).
+- `otp`: Secure 4-digit code for ride verification.
+- `paymentStatus`: Financial state (PENDING, PAID, REFUNDED).
+
+---
+
+## Client-Side Architecture
+
+### Driver App: Tactical Command Center
+- **Scanning Mode**: Optimized state for receiving and evaluating ride offers.
+- **Tactical View**: Interactive map navigation that activates upon ride start.
+- **Dual Mode Support**: Capability to handle both standard and pool requests.
+
+### Rider App: Seamless Booking
+- **Map Selection**: Interactive pickup and drop-off pinning.
+- **Live Tracking**: Real-time visualization of the assigned driver's approach.
+- **Glassmorphism UI**: High-blur, minimalist interface for a premium experience.
+
+---
+
+## Design System
+The project implements a **Glassmorphism SaaS** design philosophy:
+- **Visuals**: Depth through `backdrop-blur-xl` and 1px borders.
+- **Theming**: Integrated support for dark and light modes with semantic tokens.
+- **Typography**: Optimized system-font stack for readability.
+
+---
+
+## Installation and Execution
 
 ### Prerequisites
-- Node.js and npm
-- MongoDB running on `localhost:27017`
-- Environment variables configured for each service
+- Node.js (v18.0.0 or higher)
+- MongoDB (v6.0 or higher)
+- npm (v9.0 or higher)
 
-### Running the Application
-
-1. **Start all backend services**:
+### Setup and Execution
+1. **Repository Initialization**:
    ```bash
-   npm run start:all
+   git clone https://github.com/AdityaRaj-DE/Ride-Hive.git
+   cd Ride-Hive
+   npm install
    ```
-
-2. **Start frontends**:
+2. **Environment Configuration**: Configure `.env` files in each `backend/` service directory.
+3. **Launch Ecosystem**:
    ```bash
-   npm run start:frontend
+   npm run dev
    ```
-
-   Or individually:
-   ```bash
-   npm run start:Riderfrontend  # Port 5173
-   npm run start:Driverfrontend  # Port 5174
-   ```
-
-### Service Ports
-- API Gateway: `3000`
-- Auth Service: `3001`
-- Rider Service: `3002`
-- Driver Service: `3003`
-- Ride Service: `3004`
-- Payment Service: `3005`
-- Notification Service: `3007`
-- Rider Frontend: `5173`
-- Driver Frontend: `5174`
 
 ---
 
-## 📝 Notes
-
-- All services connect to the same MongoDB instance but use different collections
-- JWT tokens are used for authentication across services
-- Socket.io is used for real-time communication (ride broadcasts, status updates)
-- The API Gateway acts as a single entry point and routes requests to appropriate services
-- Driver subscription is required to accept rides
-- OTP verification is required to start a ride
-
----
-
-## 🔧 Technology Stack
-
-- **Backend**: Node.js, Express.js
-- **Database**: MongoDB with Mongoose
-- **Real-time**: Socket.io
-- **Frontend**: React, TypeScript, Redux Toolkit
-- **Maps**: Integration with mapping services
-- **Authentication**: JWT tokens
+**System Architecture and Technical Documentation maintained by Aditya Raj.**
 

@@ -8,8 +8,10 @@ import DriverMap from "../components/DriverMap";
 import IncomingRequestCard from "../components/IncomingRequestCard";
 import ActiveRideCard from "../components/ActiveRideCard";
 import FeedbackModal from "../components/FeedbackModal";
+import HubFeatureGrid from "../components/HubFeatureGrid";
+import RideTypeToggles from "../components/RideTypeToggles";
 import { useNavigate } from "react-router-dom";
-import { Zap, ShieldCheck, Activity, Globe, Loader2, Compass } from 'lucide-react';
+import { Zap, ShieldCheck, Activity, Globe, Loader2, Compass, Radio, Map as MapIcon, LayoutGrid } from 'lucide-react';
 import api from "../api/axios";
 
 interface SubRejectedPayload {
@@ -31,6 +33,9 @@ export default function Dashboard() {
   const [lastRideId, setLastRideId] = useState<string | null>(null);
   const [lastRiderId, setLastRiderId] = useState<string | null>(null);
   
+  // Hub States
+  const [normalMode, setNormalMode] = useState(true);
+  const [poolMode, setPoolMode] = useState(true);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
  
   useEffect(() => {
@@ -91,130 +96,190 @@ export default function Dashboard() {
       if (lat && lng) window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
   };
 
+  const isRideAccepted = !!activeRide && activeRide.status !== "PENDING" && activeRide.status !== "COMPLETED";
+
   return (
-    <div className="relative w-full h-[calc(100vh-64px)] overflow-hidden text-primary">
-      {/* Map Backdrop */}
-      <div className="absolute inset-0 z-0">
-        <DriverMap 
-          driverLocation={currentLocation}
-          pickup={activeRide?.pickup || availableRides[0]?.pickup || activeRide?.route?.[0]?.location || availableRides[0]?.route?.[0]?.location}
-          drop={activeRide?.drop || availableRides[0]?.drop || activeRide?.route?.[activeRide.route?.length - 1]?.location || availableRides[0]?.route?.[availableRides[0]?.route?.length - 1]?.location}
-          status={activeRide?.status}
-        />
-        {/* Darkening Overlay for Map */}
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-background/60 via-transparent to-background/90 transition-opacity duration-700"></div>
-      </div>
-
-      {/* Driver Control Overlay */}
-      <div className="absolute top-6 inset-x-6 z-40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pointer-events-none">
-        {/* Connection Status & Profile Quick Stats */}
-        <div className="flex items-center gap-4 pointer-events-auto">
-          <div className="glass-card py-3 px-6 flex items-center gap-4 border-accent/10 shadow-2xl">
-            <div className="relative">
-              <div className={`w-3 h-3 rounded-full transition-all duration-500 ${isOnline ? "bg-accent shadow-[0_0_15px_rgba(59,130,246,0.6)]" : "bg-muted"}`}></div>
-              {isOnline && <div className="absolute inset-0 bg-accent rounded-full animate-ping opacity-40"></div>}
-            </div>
-            <div className="flex flex-col">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted leading-tight">System Status</p>
-              <h2 className="text-sm font-bold text-primary">
-                {isOnline ? (activeRide ? "Active Mission" : "Intercepting...") : "Terminal Offline"}
-              </h2>
-            </div>
-            <div className="w-px h-8 bg-border/50 mx-2"></div>
-            <div className="flex flex-col">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted leading-tight">Efficiency</p>
-              <h2 className="text-sm font-bold text-accent">98%</h2>
-            </div>
-          </div>
-        </div>
-
-        {/* Global Action Button */}
-        <div className="w-full sm:w-auto pointer-events-auto">
-          <button 
-            onClick={handleToggleOnline}
-            className={`w-full sm:w-auto h-14 px-8 rounded-2xl font-bold uppercase tracking-[0.2em] text-xs transition-all flex items-center justify-center gap-4 active:scale-95 group relative overflow-hidden ${
-              isOnline 
-                ? "bg-accent text-white shadow-2xl shadow-accent/20 border border-white/10" 
-                : "glass-card text-primary border-accent/20 hover:border-accent/40 shadow-xl"
-            }`}
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Zap className={`w-5 h-5 ${isOnline ? "fill-current" : "text-accent"}`} />
-            )}
-            <span>{isOnline ? "Deactivate Link" : "Establish Link"}</span>
-            
-            {/* Inner glow for online state */}
-            {isOnline && <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>}
-          </button>
-        </div>
-      </div>
-
-      {/* Scanning State Overlay - Elevated Design */}
-      {!activeRide && availableRides.length === 0 && isOnline && (
-         <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none animate-in fade-in duration-1000">
-            {/* Background Decorative Blurs */}
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-[120px] animate-pulse"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/5 rounded-full blur-[120px] animate-pulse delay-700"></div>
-
-            <div className="flex flex-col items-center gap-12 relative">
-               <div className="relative h-72 w-72 flex items-center justify-center">
-                  {/* Decorative Rings */}
-                  <div className="absolute inset-0 border border-accent/10 rounded-full animate-[spin_15s_linear_infinite]"></div>
-                  <div className="absolute inset-4 border border-accent/5 rounded-full animate-[spin_20s_linear_infinite_reverse]"></div>
-                  <div className="absolute inset-8 border border-accent/20 rounded-full animate-[spin_10s_linear_infinite] border-dashed opacity-50"></div>
-                  
-                  {/* Radar Scan Effect */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-accent/0 via-accent/5 to-accent/20 rounded-full animate-[spin_4s_linear_infinite]"></div>
-                  
-                  <div className="relative z-10 h-28 w-28 glass-card rounded-3xl flex items-center justify-center border-accent/30 shadow-[0_0_50px_rgba(59,130,246,0.15)] bg-background/40">
-                     <Compass className="w-12 h-12 text-accent animate-spin-slow" />
-                  </div>
-               </div>
-               
-               <div className="glass-card px-10 py-8 text-center shadow-2xl space-y-3 max-w-sm border-accent/10 relative overflow-hidden group">
-                  <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-accent to-transparent animate-scan text-[0px]">.</div>
-                  <div className="flex items-center justify-center gap-3 text-accent mb-1">
-                     <Activity className="w-4 h-4 animate-pulse" />
-                     <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Quantum Grid Scan</p>
-                  </div>
-                  <h3 className="text-2xl font-bold tracking-tight text-primary">Awaiting Traversal Requests</h3>
-                  <p className="text-secondary text-sm font-medium opacity-70">
-                    Proprietary algorithms are filtering optimal nodes for your current vector.
-                  </p>
-               </div>
-            </div>
-         </div>
-      )}
-
-      {/* Action Panels */}
-      <div className="absolute bottom-12 inset-x-4 sm:inset-x-8 z-40 pointer-events-none">
-        <div className="max-w-2xl mx-auto pointer-events-auto flex flex-col gap-8">
+    <div className="relative w-full h-[calc(100vh-64px)] overflow-hidden text-primary bg-background">
+      {/* 
+          TACTICAL VIEW (Map Mode) 
+          Only visible when a ride is accepted
+      */}
+      {isRideAccepted && (
+        <div className="absolute inset-0 z-0 animate-in fade-in zoom-in-95 duration-700">
+          <DriverMap 
+            driverLocation={currentLocation}
+            pickup={activeRide?.pickup}
+            drop={activeRide?.drop}
+            status={activeRide?.status}
+          />
+          {/* HUD Overlay */}
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-background/40 via-transparent to-background/80"></div>
           
-          {/* New Trip Requests */}
-          {!activeRide && availableRides.length > 0 && (
-             <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-               <div className="mb-4 flex items-center gap-3 px-6">
-                  <div className="w-2 h-2 rounded-full bg-accent animate-ping"></div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent">Neural Intercept: Detected</p>
-               </div>
-               <IncomingRequestCard ride={availableRides[0]} />
-             </div>
-          )}
+          {/* Tactical Header */}
+          <div className="absolute top-6 inset-x-6 z-40 flex items-center justify-between">
+            <div className="glass-card px-4 py-2 flex items-center gap-3 border-accent/20">
+               <div className="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
+               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">Active Tactical Link</p>
+            </div>
+            <button 
+              onClick={() => dispatch(clearActiveRide())} // Debug/Fallback
+              className="glass-card p-2 text-muted hover:text-primary transition-colors"
+            >
+               <LayoutGrid className="w-5 h-5" />
+            </button>
+          </div>
 
-          {/* Active Trip */}
-          {activeRide && (
-             <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+          {/* Active Trip Panel */}
+          <div className="absolute bottom-10 inset-x-4 sm:inset-x-8 z-40">
+             <div className="max-w-2xl mx-auto">
                <ActiveRideCard 
                   activeRide={activeRide} 
                   onNavigateToPickup={() => openMapsUrl(activeRide.pickup?.lat, activeRide.pickup?.lng)}
                   onNavigateToDrop={() => openMapsUrl(activeRide.drop?.lat, activeRide.drop?.lng)}
                />
              </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* 
+          HUB VIEW (Command Center)
+          Visible when NOT in a ride
+      */}
+      {!isRideAccepted && (
+        <div className="absolute inset-0 z-10 overflow-y-auto custom-scrollbar pt-24 pb-32 px-6">
+          <div className="max-w-5xl mx-auto space-y-12">
+            
+            {/* Header Section */}
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+               <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent border border-accent/20">
+                        <Radio className="w-5 h-5 animate-pulse" />
+                     </div>
+                     <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-accent">Hive Node Delta-04</p>
+                  </div>
+                  <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-primary">
+                    Command <span className="text-accent">Center</span>
+                  </h1>
+               </div>
+
+               <div className="flex items-center gap-4">
+                  <button 
+                    onClick={handleToggleOnline}
+                    className={`h-16 px-10 rounded-2xl font-bold uppercase tracking-[0.2em] text-xs transition-all flex items-center justify-center gap-4 active:scale-95 group relative overflow-hidden ${
+                      isOnline 
+                        ? "bg-accent text-white shadow-2xl shadow-accent/20 border border-white/10" 
+                        : "glass-card text-primary border-border hover:border-accent/40 shadow-xl"
+                    }`}
+                  >
+                    {loading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Zap className={`w-5 h-5 ${isOnline ? "fill-current" : "text-accent"}`} />
+                    )}
+                    <span>{isOnline ? "Go Offline" : "Establish Link"}</span>
+                  </button>
+               </div>
+            </header>
+
+            {/* Feature Shortcuts */}
+            <section className="space-y-6">
+               <div className="flex items-center gap-3 opacity-50">
+                  <LayoutGrid className="w-4 h-4 text-accent" />
+                  <h2 className="text-[10px] font-bold uppercase tracking-[0.3em]">Grid Access</h2>
+               </div>
+               <HubFeatureGrid />
+            </section>
+
+            {/* Ride Mode Toggles */}
+            <section className="space-y-6">
+               <div className="flex items-center gap-3 opacity-50">
+                  <Activity className="w-4 h-4 text-accent" />
+                  <h2 className="text-[10px] font-bold uppercase tracking-[0.3em]">Interception Config</h2>
+               </div>
+               <RideTypeToggles 
+                  normalMode={normalMode}
+                  poolMode={poolMode}
+                  onToggleNormal={() => setNormalMode(!normalMode)}
+                  onTogglePool={() => setPoolMode(!poolMode)}
+                  isOnline={isOnline}
+               />
+            </section>
+
+            {/* Scanning / Request Area - High Prominence */}
+            <section className="pt-8 relative">
+               {isOnline ? (
+                  <div className="space-y-8">
+                    {/* Persistent Radar Header */}
+                    <div className="flex items-center justify-between px-2">
+                       <div className="flex items-center gap-3">
+                          <div className="relative">
+                             <div className="w-3 h-3 rounded-full bg-accent shadow-[0_0_15px_rgba(59,130,246,0.6)]"></div>
+                             <div className="absolute inset-0 bg-accent rounded-full animate-ping opacity-40"></div>
+                          </div>
+                          <h2 className="text-[10px] font-bold uppercase tracking-[0.4em] text-accent animate-pulse">Neural Intercept Link: Active</h2>
+                       </div>
+                       <div className="flex items-center gap-2 text-muted text-[10px] font-bold uppercase tracking-[0.2em]">
+                          <Activity className="w-3 h-3 text-accent" />
+                          <span>Scan Rate: 124ms</span>
+                       </div>
+                    </div>
+
+                    {availableRides.length > 0 ? (
+                      <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+                         <div className="flex items-center gap-3 px-2">
+                            <div className="w-2 h-2 rounded-full bg-accent animate-ping"></div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Neural Intercepts: {availableRides.length} Nodes Detected</p>
+                         </div>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {availableRides.map((ride: any) => (
+                               <IncomingRequestCard key={ride.rideId || ride._id} ride={ride} />
+                            ))}
+                         </div>
+                      </div>
+                    ) : (
+                      <div className="glass-card p-20 text-center border-accent/20 relative overflow-hidden group shadow-[0_0_50px_rgba(59,130,246,0.05)]">
+                         {/* Radar Sweep Effect */}
+                         <div className="absolute inset-0 bg-gradient-to-tr from-accent/0 via-accent/5 to-accent/10 rounded-full animate-[spin_4s_linear_infinite] origin-center scale-150"></div>
+                         
+                         <div className="relative z-10 space-y-8">
+                            <div className="relative h-32 w-32 mx-auto flex items-center justify-center">
+                               <div className="absolute inset-0 border border-accent/10 rounded-full animate-[spin_15s_linear_infinite]"></div>
+                               <div className="absolute inset-4 border border-accent/5 rounded-full animate-[spin_20s_linear_infinite_reverse]"></div>
+                               <Compass className="w-12 h-12 text-accent animate-pulse" />
+                            </div>
+                            
+                            <div className="space-y-3">
+                               <h3 className="text-2xl font-bold text-primary tracking-tighter uppercase">Constant Grid Scan</h3>
+                               <p className="text-sm text-muted max-w-sm mx-auto leading-relaxed">
+                                 The Hive network is currently analyzing local spatial nodes for optimal intercept opportunities.
+                               </p>
+                            </div>
+
+                            {/* Scanning Progress Bar */}
+                            <div className="w-48 h-1 bg-border/30 mx-auto rounded-full overflow-hidden">
+                               <div className="h-full bg-accent animate-[scan_2s_linear_infinite]"></div>
+                            </div>
+                         </div>
+                      </div>
+                    )}
+                  </div>
+               ) : (
+                  <div className="glass-card p-16 text-center border-dashed border-border flex flex-col items-center gap-6">
+                     <div className="w-20 h-20 rounded-full bg-surface flex items-center justify-center text-muted opacity-20">
+                        <Zap className="w-10 h-10" />
+                     </div>
+                     <div className="space-y-2">
+                        <h3 className="text-2xl font-bold text-muted uppercase tracking-tighter">System Idle</h3>
+                        <p className="text-sm text-muted/60">Connect to the Hive network to begin interception.</p>
+                     </div>
+                  </div>
+               )}
+            </section>
+          </div>
+        </div>
+      )}
 
       {/* Subscription Modal Overlay */}
       {showSubModal && (
@@ -260,50 +325,19 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Footer Meta - Stylized like Rider hub */}
-      <div className="fixed bottom-8 right-10 hidden md:flex items-center gap-8 opacity-40 hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-         {/* Test Controls (Visible only in dev/test) */}
-         <div className="pointer-events-auto flex items-center gap-4 bg-background/80 backdrop-blur-md p-2 rounded-xl border border-accent/20 shadow-lg scale-90">
-            <p className="text-[10px] font-black text-accent uppercase tracking-[0.2em] px-2">Test Mode</p>
+      {/* Test Controls (Fixed at bottom right) */}
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-4 opacity-40 hover:opacity-100 transition-opacity">
+         <div className="flex items-center gap-3 bg-background/80 backdrop-blur-md p-2 rounded-xl border border-accent/20 shadow-lg scale-90">
             <button 
               onClick={() => {
                 const userId = profile?.userId || (profile as any)?._id;
                 if (!userId) return alert("Click Establish Link first!");
-                // Call internal approve
                 api.post(`/driver/admin/internal/drivers/approve/${userId}`).then(() => dispatch(fetchDriverProfile()));
               }}
               className="px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-lg text-[9px] font-bold border border-accent/10 transition-all"
             >
                FORCE APPROVE
             </button>
-            <button 
-              onClick={() => {
-                if (availableRides.length > 0) {
-                  const pickup = availableRides[0].pickup;
-                  setCurrentLocation({ lat: pickup.lat, lng: pickup.lng });
-                  dispatch(updateLocation({ lat: pickup.lat, lng: pickup.lng }));
-                } else if (activeRide) {
-                  const pickup = activeRide.pickup;
-                  setCurrentLocation({ lat: pickup.lat, lng: pickup.lng });
-                  dispatch(updateLocation({ lat: pickup.lat, lng: pickup.lng }));
-                } else {
-                  alert("No ride available to jump to!");
-                }
-              }}
-              className="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-[9px] font-bold border border-blue-500/10 transition-all"
-            >
-               JUMP TO PICKUP
-            </button>
-         </div>
-
-         <div className="flex items-center gap-3">
-            <Globe className="w-3.5 h-3.5 text-accent" />
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Node: Delta-04</p>
-         </div>
-         <div className="w-[1px] h-4 bg-border/50"></div>
-         <div className="flex items-center gap-3">
-            <Activity className="w-3.5 h-3.5 text-accent" />
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Hive Integrity: 100%</p>
          </div>
       </div>
     </div>
