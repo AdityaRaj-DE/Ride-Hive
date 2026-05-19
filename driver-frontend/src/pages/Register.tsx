@@ -131,17 +131,17 @@ export default function Register() {
         <header className="mb-16 text-center lg:text-left flex flex-col lg:flex-row items-center justify-between gap-8">
           <div className="space-y-4">
              <div className="flex items-center justify-center lg:justify-start gap-3">
-                <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center text-accent border border-accent/20">
-                   <Globe className="w-6 h-6" />
+                <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent border border-accent/20">
+                   <Globe className="w-5 h-5" />
                 </div>
                 <div className="px-4 py-1.5 rounded-full bg-accent/5 border border-accent/10 text-accent text-[10px] font-bold uppercase tracking-widest">
                    Partner Onboarding v2.4
                 </div>
              </div>
-             <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold tracking-tight text-primary leading-tight">
-               Join the <span className="text-accent">Fleet</span>
-             </h1>
-             <p className="text-secondary text-base md:text-xl font-medium max-w-2xl mx-auto lg:mx-0 opacity-60 leading-relaxed">
+              <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-primary leading-tight">
+                Join the <span className="text-accent">Fleet</span>
+              </h1>
+             <p className="text-secondary text-sm md:text-xl font-medium max-w-2xl mx-auto lg:mx-0 opacity-60 leading-relaxed">
                Start your journey as a professional driver partner. Complete the enrollment below.
              </p>
           </div>
@@ -183,7 +183,7 @@ export default function Register() {
         </div>
 
         <main className="grid grid-cols-1 gap-12">
-            <form onSubmit={handleSubmit} className="glass-card p-10 md:p-16 border-accent/10 shadow-2xl relative overflow-hidden flex flex-col justify-center min-h-[500px]">
+            <form onSubmit={handleSubmit} className="glass-card p-6 sm:p-16 border-accent/10 shadow-2xl relative overflow-hidden flex flex-col justify-center min-h-[400px] sm:min-h-[500px]">
               <div className="absolute top-0 right-0 p-12 opacity-[0.02] pointer-events-none rotate-12">
                  <ShieldCheck className="w-64 h-64 text-accent" />
               </div>
@@ -191,7 +191,7 @@ export default function Register() {
               {step === 0 && (
                 <div className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-700">
                   <div className="space-y-2">
-                     <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-primary uppercase">Profile <span className="text-accent">Information</span></h2>
+                     <h2 className="text-lg sm:text-3xl font-bold tracking-tight text-primary uppercase">Profile <span className="text-accent">Information</span></h2>
                      <p className="text-sm text-secondary font-medium opacity-60">Establish your professional identity in our network.</p>
                   </div>
 
@@ -205,7 +205,7 @@ export default function Register() {
                         value={form.firstname}
                         placeholder="e.g. John"
                         onChange={handleChange}
-                        className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-semibold text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10"
+                        className="w-full px-6 py-3 sm:py-4 bg-surface border border-border rounded-xl font-semibold text-base sm:text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10"
                         required
                       />
                     </div>
@@ -218,7 +218,7 @@ export default function Register() {
                         value={form.lastname}
                         placeholder="e.g. Doe"
                         onChange={handleChange}
-                        className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-semibold text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10"
+                        className="w-full px-6 py-3 sm:py-4 bg-surface border border-border rounded-xl font-semibold text-base sm:text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10"
                         required
                       />
                     </div>
@@ -234,7 +234,7 @@ export default function Register() {
                       value={form.email}
                       placeholder="john@example.com"
                       onChange={handleChange}
-                      className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-semibold text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10"
+                      className="w-full px-6 py-3 sm:py-4 bg-surface border border-border rounded-xl font-semibold text-base sm:text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10"
                       required
                     />
                   </div>
@@ -248,7 +248,7 @@ export default function Register() {
                       value={form.mobileNumber}
                       placeholder="9876543210"
                       onChange={handleChange}
-                      className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-bold tracking-[0.1em] text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10"
+                      className="w-full px-6 py-3 sm:py-4 bg-surface border border-border rounded-xl font-bold tracking-[0.1em] text-base sm:text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10"
                       required
                     />
                   </div>
@@ -271,7 +271,7 @@ export default function Register() {
                       value={form.licenseNumber}
                       placeholder="DL-0000-0000-0000"
                       onChange={handleChange}
-                      className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-bold text-lg text-accent outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 uppercase tracking-widest"
+                      className="w-full px-6 py-3 sm:py-4 bg-surface border border-border rounded-xl font-bold text-base sm:text-lg text-accent outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 uppercase tracking-widest"
                       required
                     />
                   </div>
@@ -311,7 +311,7 @@ export default function Register() {
                       value={form.plate}
                       placeholder="TS-00-AA-0000"
                       onChange={handleChange}
-                      className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-bold text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 uppercase tracking-widest"
+                      className="w-full px-6 py-3 sm:py-4 bg-surface border border-border rounded-xl font-bold text-base sm:text-lg text-primary outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 uppercase tracking-widest"
                       required
                     />
                   </div>
@@ -327,7 +327,7 @@ export default function Register() {
                         min={1}
                         value={form.capacity}
                         onChange={handleChange}
-                        className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-bold text-lg text-primary outline-none focus:border-accent/40 transition-all"
+                        className="w-full px-6 py-3 sm:py-4 bg-surface border border-border rounded-xl font-bold text-base sm:text-lg text-primary outline-none focus:border-accent/40 transition-all"
                         required
                       />
                     </div>
@@ -340,7 +340,7 @@ export default function Register() {
                           name="vehicleType"
                           value={form.vehicleType}
                           onChange={handleChange}
-                          className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-bold text-base text-primary outline-none focus:border-accent/40 transition-all appearance-none cursor-pointer"
+                          className="w-full px-6 py-3 sm:py-4 bg-surface border border-border rounded-xl font-bold text-sm sm:text-base text-primary outline-none focus:border-accent/40 transition-all appearance-none cursor-pointer"
                           required
                         >
                           <option value="car">Sedan / Hatchback</option>
@@ -373,7 +373,7 @@ export default function Register() {
                       value={form.password}
                       placeholder="••••••••"
                       onChange={handleChange}
-                      className="w-full px-8 py-5 bg-surface border border-border rounded-2xl font-bold text-2xl text-center tracking-[0.4em] outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 shadow-inner"
+                      className="w-full px-6 sm:px-8 py-4 sm:py-5 bg-surface border border-border rounded-2xl font-bold text-xl sm:text-2xl text-center tracking-[0.4em] outline-none focus:border-accent/40 transition-all placeholder:text-muted/10 shadow-inner"
                       required
                     />
                   </div>
@@ -402,10 +402,10 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={prevStep}
-                    className="h-14 px-8 rounded-xl border border-border text-[10px] font-bold uppercase tracking-widest hover:bg-surface transition-all flex items-center gap-3 active:scale-95 italic"
+                    className="h-12 sm:h-14 px-6 sm:px-8 rounded-xl border border-border text-[9px] sm:text-[10px] font-bold uppercase tracking-widest hover:bg-surface transition-all flex items-center gap-2 sm:gap-3 active:scale-95 italic"
                   >
-                    <ArrowLeft className="w-4 h-4" />
-                    Previous Step
+                    <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    Previous
                   </button>
                 ) : (
                   <div className="hidden sm:block">
@@ -419,16 +419,16 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="h-14 px-10 rounded-xl bg-accent text-white text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3"
+                    className="h-12 sm:h-14 px-6 sm:px-10 rounded-xl bg-accent text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 sm:gap-3"
                   >
-                    Continue to Next
-                    <ArrowRight className="w-4 h-4" />
+                    Next Step
+                    <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                 ) : (
                   <button
                     type="submit"
                     disabled={loading}
-                    className="h-14 px-10 rounded-xl bg-accent text-white text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-4"
+                    className="h-12 sm:h-14 px-6 sm:px-10 rounded-xl bg-accent text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 sm:gap-4"
                   >
                     {loading ? (
                       <div className="flex items-center gap-3">

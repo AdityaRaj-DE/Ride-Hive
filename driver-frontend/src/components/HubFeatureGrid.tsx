@@ -15,19 +15,19 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon: Icon, title, subtitle, 
   return (
     <button 
       onClick={() => navigate(path)}
-      className="glass-card p-6 flex flex-col items-start gap-4 hover:border-accent/50 transition-all group relative overflow-hidden"
+      className="glass-card p-4 sm:p-6 flex flex-col items-start gap-3 sm:gap-4 hover:border-accent/50 transition-all group relative overflow-hidden"
     >
       <div className={`absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none rotate-12 group-hover:rotate-0 transition-transform duration-700`}>
         <Icon className={`w-24 h-24 text-${color}`} />
       </div>
       
-      <div className={`w-12 h-12 rounded-xl bg-surface border border-border flex items-center justify-center text-${color} group-hover:scale-110 transition-transform`}>
-        <Icon className="w-6 h-6" />
+      <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-surface border border-border flex items-center justify-center text-${color} group-hover:scale-110 transition-transform`}>
+        <Icon className="w-4 h-4 sm:w-6 h-6" />
       </div>
       
       <div className="text-left">
         <p className={`text-[10px] font-bold uppercase tracking-[0.2em] text-${color} mb-1 opacity-70`}>{subtitle}</p>
-        <h3 className="text-lg font-bold text-primary tracking-tight">{title}</h3>
+        <h3 className="text-base sm:text-lg font-bold text-primary tracking-tight">{title}</h3>
       </div>
       
       <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-border to-transparent opacity-50"></div>

@@ -21,19 +21,19 @@ const RideTypeToggles: React.FC<RideTypeTogglesProps> = ({
       <button
         onClick={onToggleNormal}
         disabled={!isOnline}
-        className={`flex-1 glass-card p-6 flex items-center justify-between transition-all relative overflow-hidden group ${
+        className={`flex-1 glass-card p-4 sm:p-6 flex items-center justify-between transition-all relative overflow-hidden group ${
           !isOnline ? 'opacity-50 grayscale cursor-not-allowed' : ''
         } ${normalMode ? 'border-accent/40 bg-accent/5 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'border-border'}`}
       >
-        <div className="flex items-center gap-4 relative z-10">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+        <div className="flex items-center gap-3 sm:gap-4 relative z-10">
+          <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transition-all ${
             normalMode ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'bg-surface text-muted'
           }`}>
-            <Zap className={`w-6 h-6 ${normalMode ? 'fill-current' : ''}`} />
+            <Zap className={`w-5 h-5 sm:w-6 sm:h-6 ${normalMode ? 'fill-current' : ''}`} />
           </div>
           <div className="text-left">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted">Intercept Mode</p>
-            <h3 className="text-lg font-bold text-primary tracking-tight uppercase">Single Target</h3>
+            <h3 className="text-base sm:text-lg font-bold text-primary tracking-tight uppercase">Single Target</h3>
           </div>
         </div>
         
@@ -49,19 +49,19 @@ const RideTypeToggles: React.FC<RideTypeTogglesProps> = ({
       <button
         onClick={onTogglePool}
         disabled={!isOnline}
-        className={`flex-1 glass-card p-6 flex items-center justify-between transition-all relative overflow-hidden group ${
+        className={`flex-1 glass-card p-3 sm:p-6 flex items-center justify-between transition-all relative overflow-hidden group ${
           !isOnline ? 'opacity-50 grayscale cursor-not-allowed' : ''
         } ${poolMode ? 'border-blue-500/40 bg-blue-500/5 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'border-border'}`}
       >
-        <div className="flex items-center gap-4 relative z-10">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+        <div className="flex items-center gap-3 sm:gap-4 relative z-10">
+          <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transition-all ${
             poolMode ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-surface text-muted'
           }`}>
-            <Users className={`w-6 h-6 ${poolMode ? 'fill-current' : ''}`} />
+            <Users className={`w-5 h-5 sm:w-6 sm:h-6 ${poolMode ? 'fill-current' : ''}`} />
           </div>
           <div className="text-left">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted">Intercept Mode</p>
-            <h3 className="text-lg font-bold text-primary tracking-tight uppercase">Multi Target</h3>
+            <h3 className="text-base sm:text-lg font-bold text-primary tracking-tight uppercase">Multi Target</h3>
           </div>
         </div>
 

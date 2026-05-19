@@ -73,23 +73,23 @@ const Profile: React.FC = () => {
 
   return (
     <div className="min-h-screen text-primary pb-24">
-      <div className="max-w-6xl mx-auto px-6 pt-16 relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="max-w-6xl mx-auto p-mobile-safe relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-20">
           <div className="space-y-4">
              <div className="flex items-center gap-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_15px_rgba(59,130,246,0.6)] animate-pulse"></div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent">Partner Executive Profile</p>
              </div>
-             <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold tracking-tight text-primary leading-tight">
+             <h1 className="text-3xl sm:text-6xl md:text-8xl font-bold tracking-tight text-primary leading-tight">
                Hive <span className="text-accent">Partner</span>
              </h1>
           </div>
           <Link 
             to="/driver/profile/edit"
-            className="h-16 px-10 rounded-2xl bg-surface border border-border flex items-center justify-center gap-4 text-primary hover:bg-background hover:border-accent/40 transition-all active:scale-95 shadow-xl group border-accent/10"
+            className="h-12 sm:h-16 px-6 sm:px-10 rounded-2xl bg-surface border border-border flex items-center justify-center gap-4 text-primary hover:bg-background hover:border-accent/40 transition-all active:scale-95 shadow-xl group border-accent/10"
           >
             <Edit2 className="w-5 h-5 text-accent group-hover:scale-110 transition-transform" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Synchronize Profile</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Sync Profile</span>
           </Link>
         </header>
 
@@ -100,9 +100,9 @@ const Profile: React.FC = () => {
                <div className="absolute top-0 left-0 w-full h-[6px] bg-gradient-to-r from-accent/0 via-accent to-accent/0 opacity-50"></div>
               
               <div className="relative mb-12 flex justify-center">
-                <div className="w-44 h-44 bg-surface rounded-[3rem] flex items-center justify-center border-2 border-accent/10 shadow-inner overflow-hidden relative group transition-all duration-500 hover:scale-[1.02]">
+                <div className="w-32 h-32 sm:w-44 sm:h-44 bg-surface rounded-[2rem] sm:rounded-[3rem] flex items-center justify-center border-2 border-accent/10 shadow-inner overflow-hidden relative group transition-all duration-500 hover:scale-[1.02]">
                   <div className="absolute inset-0 bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <span className="text-accent text-7xl font-bold transition-transform duration-500 group-hover:scale-110">
+                  <span className="text-accent text-5xl sm:text-7xl font-bold transition-transform duration-500 group-hover:scale-110">
                     {displayName?.charAt(0) || 'D'}
                   </span>
                 </div>
@@ -114,7 +114,7 @@ const Profile: React.FC = () => {
               </div>
               
               <div className="space-y-3 mb-12 text-center">
-                 <h2 className="text-4xl font-bold tracking-tighter text-primary uppercase leading-tight">{displayName}</h2>
+                  <h2 className="text-2xl sm:text-4xl font-bold tracking-tighter text-primary uppercase leading-tight">{displayName}</h2>
                  <div className="flex flex-col items-center gap-3">
                     <span className="px-5 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-accent text-[9px] font-bold uppercase tracking-[0.3em]">{profile?.status || "Partner Hub"}</span>
                     <span className="text-[9px] font-bold text-muted uppercase tracking-[0.3em] opacity-40">Operational Node: Regional-04</span>
@@ -139,10 +139,10 @@ const Profile: React.FC = () => {
                        <Star className="w-6 h-6 fill-current" />
                        <span className="text-3xl font-bold text-primary tracking-tighter">{(profile?.rating || 0).toFixed(2)}</span>
                     </div>
-                    <div className="text-right">
-                       <p className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40">System Score</p>
-                       <p className="text-xs font-bold text-accent">Elite Tier</p>
-                    </div>
+                     <div className="text-right">
+                        <p className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40">Score</p>
+                        <p className="text-xs font-bold text-accent">Elite</p>
+                     </div>
                  </div>
                  
                  <div className="grid grid-cols-2 gap-4">
@@ -255,7 +255,7 @@ const Profile: React.FC = () => {
                         <Award className="w-12 h-12" />
                      </div>
                      <div className="space-y-1">
-                        <p className="text-6xl font-bold tracking-tighter text-accent leading-none">₹{profile?.totalEarnings || 0}</p>
+                         <p className="text-4xl sm:text-6xl font-bold tracking-tighter text-accent leading-none">₹{profile?.totalEarnings || 0}</p>
                         <p className="text-[10px] font-bold text-muted uppercase tracking-[0.3em] opacity-40 italic">Aggregated Grid Yield</p>
                      </div>
                   </div>
@@ -275,12 +275,12 @@ const Profile: React.FC = () => {
                  <Globe className="w-4 h-4 text-accent" />
                  Global Locale
                </button>
-               <button 
-                 className="w-full h-16 rounded-2xl border border-rose-500/20 bg-rose-500/5 text-rose-500 font-bold text-[10px] tracking-[0.3em] uppercase hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-4 active:scale-95 shadow-lg shadow-rose-500/10 group"
-               >
-                 <LogOut className="w-4 h-4 group-hover:-translate-x-2 transition-transform" />
-                 Sever Partner Link
-               </button>
+                <button 
+                  className="w-full h-14 sm:h-16 rounded-2xl border border-rose-500/20 bg-rose-500/5 text-rose-500 font-bold text-[10px] tracking-[0.3em] uppercase hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-4 active:scale-95 shadow-lg shadow-rose-500/10 group"
+                >
+                  <LogOut className="w-4 h-4 group-hover:-translate-x-2 transition-transform" />
+                  Sever Link
+                </button>
             </div>
           </div>
         </div>

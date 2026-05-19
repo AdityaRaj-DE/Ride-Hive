@@ -42,19 +42,19 @@ export default function Login() {
 
   return (
     <div className="min-h-screen text-primary flex items-center justify-center p-6 sm:p-10">
-      <div className="w-full max-w-6xl relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <div className="w-full max-w-6xl relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700 grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-16 items-center">
         {/* Information Side */}
         <div className="space-y-10 text-center lg:text-left">
            <div className="space-y-6">
               <div className="flex items-center justify-center lg:justify-start gap-3 mb-6">
-                 <div className="w-16 h-16 bg-accent rounded-2xl flex items-center justify-center text-white shadow-lg shadow-accent/20 transition-transform hover:rotate-6">
-                    <Zap className="w-8 h-8 fill-current" />
+                 <div className="w-12 h-12 sm:w-16 sm:h-16 bg-accent rounded-2xl flex items-center justify-center text-white shadow-lg shadow-accent/20 transition-transform hover:rotate-6">
+                    <Zap className="w-6 h-6 sm:w-8 sm:h-8 fill-current" />
                  </div>
                  <div className="px-4 py-2 rounded-full bg-accent/5 border border-accent/10 text-accent text-[10px] font-bold uppercase tracking-widest">
                     Driver Partner Network
                  </div>
               </div>
-              <h1 className="text-6xl md:text-8xl font-bold tracking-tight text-primary leading-tight">
+              <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold tracking-tight text-primary leading-tight">
                 Partner <span className="text-accent text-glow">Access</span>
               </h1>
               <p className="text-secondary text-base md:text-xl font-medium max-w-lg mx-auto lg:mx-0 opacity-60 leading-relaxed">
@@ -79,7 +79,7 @@ export default function Login() {
         </div>
 
         {/* Login Card */}
-        <div className="glass-card p-10 md:p-16 border-accent/10 shadow-2xl relative overflow-hidden flex flex-col justify-center">
+        <div className="glass-card p-6 sm:p-16 border-accent/10 shadow-2xl relative overflow-hidden flex flex-col justify-center">
            <div className="absolute top-0 right-0 p-12 opacity-[0.02] pointer-events-none rotate-12">
               <ShieldCheck className="w-64 h-64 text-accent" />
            </div>
@@ -152,7 +152,7 @@ export default function Login() {
                   <input
                     type="text"
                     placeholder="      OTP"
-                    className="w-full px-6 py-6 bg-surface border border-border rounded-xl outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/10 transition-all font-bold text-4xl text-center tracking-[0.4em] text-accent placeholder:text-muted/10"
+                    className="w-full px-6 py-4 sm:py-6 bg-surface border border-border rounded-xl outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/10 transition-all font-bold text-2xl sm:text-4xl text-center tracking-[0.4em] text-accent placeholder:text-muted/10"
                     onChange={(e) => setOtp(e.target.value)}
                     maxLength={6}
                     required

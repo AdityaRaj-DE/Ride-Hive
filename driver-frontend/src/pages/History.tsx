@@ -79,27 +79,27 @@ export default function History() {
 
   return (
     <div className="min-h-screen text-primary pb-24">
-      <div className="max-w-5xl mx-auto px-6 pt-16 relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-10 mb-20">
+      <div className="max-w-5xl mx-auto p-mobile-safe relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 sm:gap-10 mb-12 sm:mb-20">
           <div className="space-y-4">
              <div className="flex items-center gap-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_15px_rgba(59,130,246,0.6)] animate-pulse"></div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent">Mission Archives</p>
              </div>
-             <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold tracking-tight text-primary leading-tight">
+             <h1 className="text-3xl sm:text-6xl md:text-8xl font-bold tracking-tight text-primary leading-tight">
                Ride <span className="text-accent">History</span>
              </h1>
-             <p className="text-secondary text-base font-medium max-w-xl opacity-70">
+             <p className="text-secondary text-xs sm:text-base font-medium max-w-xl opacity-70">
                Comprehensive log of all traversal operations and grid yields.
              </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-surface/50 p-1.5 rounded-2xl border border-border self-start backdrop-blur-md">
+          <div className="flex items-center gap-2 bg-surface/50 p-1.5 rounded-2xl border border-border self-start backdrop-blur-md overflow-x-auto no-scrollbar max-w-full">
              {['all', 'COMPLETED', 'CANCELLED_BY_RIDER'].map((f) => (
                <button
                  key={f}
                  onClick={() => setFilter(f)}
-                 className={`px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                 className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[8px] sm:text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
                    filter === f ? 'bg-accent text-white shadow-xl' : 'text-muted hover:text-primary hover:bg-surface'
                  }`}
                >
@@ -110,12 +110,12 @@ export default function History() {
         </header>
 
         {filteredRides.length === 0 ? (
-          <div className="glass-card p-24 text-center space-y-6 border-accent/10">
+          <div className="glass-card p-12 sm:p-24 text-center space-y-6 border-accent/10">
              <div className="w-24 h-24 bg-accent/5 rounded-[2rem] flex items-center justify-center text-accent mx-auto border border-accent/20 shadow-inner">
                 <HistoryIcon size={48} />
              </div>
              <div className="space-y-2">
-                <h3 className="text-3xl font-bold text-primary tracking-tight">Archives Empty</h3>
+                <h3 className="text-xl sm:text-3xl font-bold text-primary tracking-tight">Archives Empty</h3>
                 <p className="text-secondary text-sm max-w-xs mx-auto opacity-60 font-medium">
                   No operational data found for the current filter parameters.
                 </p>
@@ -126,14 +126,14 @@ export default function History() {
             {filteredRides.map((ride, idx) => (
               <div 
                 key={ride.rideId || ride._id || idx} 
-                className="glass-card p-8 border-accent/10 hover:border-accent/30 transition-all group overflow-hidden relative backdrop-blur-xl"
+                className="glass-card p-5 sm:p-8 border-accent/10 hover:border-accent/30 transition-all group overflow-hidden relative backdrop-blur-xl"
                 style={{ animationDelay: `${idx * 50}ms` }}
               >
                 <div className="absolute top-0 right-0 p-10 opacity-[0.015] group-hover:opacity-[0.04] transition-opacity duration-500 pointer-events-none">
                    <HistoryIcon size={180} />
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-10 relative z-10">
+                <div className="flex flex-col md:flex-row gap-6 sm:gap-10 relative z-10">
                   <div className="flex-1 space-y-8">
                     <div className="flex items-center justify-between">
                        <div className="flex items-center gap-4">
@@ -182,8 +182,8 @@ export default function History() {
                   <div className="flex md:flex-col justify-between items-end md:w-64 pt-8 md:pt-0 border-t md:border-t-0 md:border-l border-border md:pl-10">
                      <div className="text-right space-y-3">
                         <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-muted opacity-60">Yield Captured</p>
-                        <div className="flex items-center justify-end gap-2 text-4xl font-bold text-primary tracking-tighter">
-                           <IndianRupee size={24} className="text-accent mt-1" />
+                        <div className="flex items-center justify-end gap-2 text-2xl sm:text-4xl font-bold text-primary tracking-tighter">
+                           <IndianRupee size={18} className="text-accent mt-1" />
                            <span>{ride.status.includes('CANCELLED') ? '0' : (ride.finalPrice || ride.price || ride.priceEstimate || 0)}</span>
                         </div>
                         {ride.isReduced && (

@@ -24,8 +24,8 @@ export default function Basic() {
   };
 
   return (
-    <div className="min-h-screen text-primary flex items-center justify-center p-6 sm:p-10">
-      <div className="w-full max-w-4xl relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+    <div className="text-primary p-mobile-safe">
+      <div className="w-full max-w-4xl mx-auto relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <header className="mb-12 text-center space-y-4">
            <div className="flex items-center justify-center gap-3">
               <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center text-accent border border-accent/20 shadow-sm backdrop-blur-md">
@@ -35,7 +35,7 @@ export default function Basic() {
                  Step 1: Driver Profile
               </div>
            </div>
-           <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-primary leading-tight">
+           <h1 className="text-4xl sm:text-7xl font-bold tracking-tight text-primary leading-tight">
              Basic <span className="text-accent">Details</span>
            </h1>
            <p className="text-secondary text-base font-medium max-w-2xl mx-auto opacity-60">
@@ -43,7 +43,7 @@ export default function Basic() {
            </p>
         </header>
 
-        <div className="glass-card p-8 md:p-12 border-accent/10 shadow-xl relative overflow-hidden">
+        <div className="glass-card p-6 sm:p-12 border-accent/10 shadow-xl relative overflow-hidden">
            <div className="absolute top-0 right-0 p-12 opacity-[0.02] pointer-events-none rotate-12">
               <ShieldCheck className="w-64 h-64 text-accent" />
            </div>
@@ -57,7 +57,7 @@ export default function Basic() {
                   </label>
                   <input
                     placeholder="e.g. John"
-                    className="w-full px-6 py-4 bg-surface border border-border rounded-xl outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/10 transition-all font-semibold text-lg text-primary placeholder:text-muted/20"
+                    className="w-full px-6 py-3 sm:py-4 bg-surface border border-border rounded-xl outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/10 transition-all font-semibold text-base sm:text-lg text-primary placeholder:text-muted/20"
                     onChange={e => setFirst(e.target.value)}
                     required
                   />
@@ -70,7 +70,7 @@ export default function Basic() {
                   </label>
                   <input
                     placeholder="e.g. Doe"
-                    className="w-full px-6 py-4 bg-surface border border-border rounded-xl outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/10 transition-all font-semibold text-lg text-primary placeholder:text-muted/20"
+                    className="w-full px-6 py-3 sm:py-4 bg-surface border border-border rounded-xl outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/10 transition-all font-semibold text-base sm:text-lg text-primary placeholder:text-muted/20"
                     onChange={e => setLast(e.target.value)}
                     required
                   />
@@ -85,7 +85,7 @@ export default function Basic() {
                 <div className="relative">
                   <input
                     placeholder="DL-0000-0000-0000"
-                    className="w-full px-6 py-5 bg-surface border border-border rounded-xl outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/10 transition-all font-bold text-2xl tracking-[0.2em] text-accent placeholder:text-muted/10 uppercase"
+                    className="w-full px-6 py-4 sm:py-5 bg-surface border border-border rounded-xl outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/10 transition-all font-bold text-lg sm:text-2xl tracking-[0.1em] sm:tracking-[0.2em] text-accent placeholder:text-muted/10 uppercase"
                     onChange={e => setLicense(e.target.value)}
                     required
                   />
@@ -97,7 +97,7 @@ export default function Basic() {
               </div>
 
               <button
-                className="btn-primary w-full h-16 text-sm gap-4"
+                className="btn-primary w-full h-14 sm:h-16 text-xs sm:text-sm gap-3 sm:gap-4"
               >
                 <span>Continue to Vehicle Details</span>
                 <ArrowRight className="w-5 h-5" />
@@ -106,7 +106,7 @@ export default function Basic() {
         </div>
       </div>
       
-      <footer className="fixed bottom-8 left-1/2 -translate-x-1/2 text-center opacity-20 w-full px-6">
+      <footer className="mt-20 text-center opacity-20 w-full px-6">
          <p className="text-[9px] font-bold uppercase tracking-widest text-muted">Hive OS • Trust & Safety Protocol</p>
       </footer>
     </div>

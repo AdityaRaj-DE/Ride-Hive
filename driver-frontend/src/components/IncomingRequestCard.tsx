@@ -5,7 +5,7 @@ export default function IncomingRequestCard({ ride }: { ride: any }) {
   if (!ride) return null;
 
   return (
-    <div className="w-full glass-card p-6 sm:p-8 border-accent/20 shadow-xl backdrop-blur-xl relative overflow-hidden group hover:border-accent/40 transition-all animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="w-full glass-card p-5 sm:p-8 border-accent/20 shadow-xl backdrop-blur-xl relative overflow-hidden group hover:border-accent/40 transition-all animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent via-emerald-400 to-accent animate-gradient"></div>
       
       {/* Background Ornament */}
@@ -20,7 +20,7 @@ export default function IncomingRequestCard({ ride }: { ride: any }) {
             </div>
             <div>
                <p className="text-[9px] font-bold uppercase tracking-widest text-accent">Neural Intercept</p>
-               <h3 className="text-lg font-bold tracking-tight text-primary">{ride.riderName || "Incoming Passenger"}</h3>
+               <h3 className="text-base sm:text-lg font-bold tracking-tight text-primary">{ride.riderName || "Incoming Passenger"}</h3>
             </div>
          </div>
          
@@ -58,7 +58,7 @@ export default function IncomingRequestCard({ ride }: { ride: any }) {
             <div className="space-y-0.5">
                <p className="text-[9px] font-bold uppercase tracking-widest text-muted">Yield Estimate</p>
                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold tracking-tight text-accent">₹{ride.price || ride.fare || ride.priceEstimate}</span>
+                  <span className="text-2xl sm:text-3xl font-bold tracking-tight text-accent">₹{ride.price || ride.fare || ride.priceEstimate}</span>
                </div>
             </div>
             <div className="flex flex-col items-end gap-1 text-muted-foreground opacity-50 text-[8px] font-bold uppercase tracking-widest">
@@ -74,7 +74,7 @@ export default function IncomingRequestCard({ ride }: { ride: any }) {
 
       <button
         onClick={() => emitAcceptRide(ride.rideId || ride._id)}
-        className="h-14 bg-accent hover:bg-accent/90 text-white rounded-xl w-full flex items-center justify-center font-bold uppercase tracking-[0.2em] text-xs transition-all active:scale-95 group shadow-lg shadow-accent/20"
+        className="h-12 sm:h-14 bg-accent hover:bg-accent/90 text-white rounded-xl w-full flex items-center justify-center font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs transition-all active:scale-95 group shadow-lg shadow-accent/20"
       >
         <span>Accept Request</span>
         <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />

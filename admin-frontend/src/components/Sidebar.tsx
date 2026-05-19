@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   ShieldCheck, 
@@ -19,6 +19,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -60,19 +61,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         </div>
 
       <nav className="flex-1 px-4 py-6 space-y-2">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) => 
-              `sidebar-link ${isActive ? 'active' : ''}`
-            }
-            onClick={() => { if (window.innerWidth < 1024) onClose(); }}
-          >
-            <item.icon size={20} />
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
+        {navItems.map((item) => {
+          const isActive = pathname === item.path;
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={`sidebar-link ${isActive ? 'active' : ''}`}
+              onClick={() => { if (window.innerWidth < 1024) onClose(); }}
+            >
+              <item.icon size={20} />
+              <span>{item.label}</span>
+            </NavLink>
+          );
+        })}
       </nav>
 
       <div className="p-4 border-t border-border">

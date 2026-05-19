@@ -36,13 +36,13 @@ const Services: React.FC = () => {
 
   return (
     <div className="min-h-screen text-primary pb-24">
-      <div className="max-w-7xl mx-auto px-6 pt-16 relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="max-w-7xl mx-auto p-mobile-safe relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <header className="mb-20 space-y-4 text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-3">
              <div className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
              <p className="text-[10px] font-bold uppercase tracking-widest text-accent">Interface Parameters</p>
           </div>
-          <h1 className="text-5xl md:text-8xl font-bold tracking-tight text-primary leading-tight">
+          <h1 className="text-3xl sm:text-5xl md:text-8xl font-bold tracking-tight text-primary leading-tight">
             Pilot <span className="text-accent underline decoration-4 underline-offset-14">Settings</span>
           </h1>
           <p className="text-secondary text-base md:text-xl font-medium max-w-4xl mx-auto md:mx-0 opacity-60 leading-relaxed uppercase tracking-tight">
@@ -54,28 +54,28 @@ const Services: React.FC = () => {
           <div className="xl:col-span-8 space-y-16">
             {sections.map((section, sIdx) => (
               <div key={sIdx} className="space-y-8">
-                <div className="px-4">
-                   <h2 className="text-3xl font-bold tracking-tight text-primary uppercase mb-2">
-                     {section.title}
-                   </h2>
-                   <p className="text-sm text-secondary font-medium opacity-40 uppercase tracking-widest">{section.subtitle}</p>
-                </div>
+                 <div className="px-1 sm:px-4">
+                    <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-primary uppercase mb-2">
+                      {section.title}
+                    </h2>
+                    <p className="text-[10px] sm:text-sm text-secondary font-medium opacity-40 uppercase tracking-widest">{section.subtitle}</p>
+                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {section.items.map((item, iIdx) => (
-                    <div key={iIdx} className="glass-card p-10 border-accent/5 shadow-lg relative overflow-hidden group hover:border-accent/20 transition-all backdrop-blur-xl">
+                     <div key={iIdx} className="glass-card p-6 sm:p-10 border-accent/5 shadow-lg relative overflow-hidden group hover:border-accent/20 transition-all backdrop-blur-xl">
                       <div className="absolute top-0 right-0 p-8 opacity-[0.01] pointer-events-none group-hover:scale-110 transition-transform -rotate-12 translate-x-4">
                          <item.icon className="w-32 h-32 text-accent" />
                       </div>
 
                       <div className="flex items-center gap-6 relative z-10">
-                        <div className="w-16 h-16 rounded-2xl bg-accent/5 flex items-center justify-center text-accent border border-accent/10 shadow-sm group-hover:bg-accent group-hover:text-white transition-all">
-                          <item.icon className="w-7 h-7" />
+                         <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-accent/5 flex items-center justify-center text-accent border border-accent/10 shadow-sm group-hover:bg-accent group-hover:text-white transition-all">
+                          <item.icon className="w-6 h-6 sm:w-7 sm:h-7" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-xl font-bold tracking-tight uppercase leading-none mb-1">{item.label}</p>
-                            {typeof item.value === 'string' && <p className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40 italic">{item.value}</p>}
-                        </div>
+                         <div className="flex-1 min-w-0">
+                             <p className="text-lg sm:text-xl font-bold tracking-tight uppercase leading-none mb-1">{item.label}</p>
+                             {typeof item.value === 'string' && <p className="text-[9px] font-bold text-muted uppercase tracking-widest opacity-40 italic">{item.value}</p>}
+                         </div>
                       </div>
                       
                       <div className="mt-8 flex items-center justify-between relative z-10">
@@ -109,7 +109,7 @@ const Services: React.FC = () => {
 
           <div className="xl:col-span-4 space-y-12">
             {/* Incentive Hub */}
-            <div className="glass-card p-10 border-accent/10 shadow-xl relative overflow-hidden group backdrop-blur-xl">
+             <div className="glass-card p-6 sm:p-10 border-accent/10 shadow-xl relative overflow-hidden group backdrop-blur-xl">
                <div className="absolute top-0 right-0 p-10 opacity-[0.01] pointer-events-none rotate-12 translate-x-4">
                   <Crown className="w-48 h-48 text-accent" />
                </div>

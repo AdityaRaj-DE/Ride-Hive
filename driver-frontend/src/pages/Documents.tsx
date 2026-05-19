@@ -30,8 +30,8 @@ export default function Documents() {
   };
 
   return (
-    <div className="min-h-screen text-primary pb-24">
-      <div className="max-w-7xl mx-auto px-6 pt-16 relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+    <div className="text-primary p-mobile-safe">
+      <div className="max-w-5xl mx-auto relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <header className="mb-20 text-center md:text-left flex flex-col md:flex-row items-end justify-between gap-10">
           <div className="space-y-6">
              <div className="flex items-center justify-center md:justify-start gap-4">
@@ -43,9 +43,9 @@ export default function Documents() {
                    <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent">Phase 03: Document Authentication</span>
                 </div>
              </div>
-             <h1 className="text-5xl md:text-8xl font-bold tracking-tighter text-primary leading-tight uppercase">
-               Registration <span className="text-accent underline decoration-4 underline-offset-14 italic">Vault</span>
-             </h1>
+             <h1 className="text-3xl sm:text-5xl md:text-8xl font-bold tracking-tighter text-primary leading-tight uppercase">
+                Registration <span className="text-accent underline decoration-4 underline-offset-14 italic">Vault</span>
+              </h1>
              <p className="text-secondary text-base md:text-xl font-medium max-w-3xl mx-auto md:mx-0 opacity-60 leading-relaxed uppercase tracking-tight italic">
                Upload your professional credentials to the global logistics grid for multi-stage validation and final node authorization.
              </p>
@@ -70,16 +70,16 @@ export default function Documents() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
            {/* Sidebar Instructions */}
            <div className="lg:col-span-4 space-y-10 order-2 lg:order-1">
-              <div className="glass-card p-10 md:p-12 border-accent/10 shadow-2xl rounded-[2.5rem] backdrop-blur-2xl relative overflow-hidden group">
+              <div className="glass-card p-6 sm:p-12 border-accent/10 shadow-2xl rounded-[2rem] sm:rounded-[2.5rem] backdrop-blur-2xl relative overflow-hidden group">
                  <div className="absolute top-0 right-0 p-10 opacity-[0.015] pointer-events-none rotate-[25deg] transition-transform duration-1000 group-hover:rotate-0">
                     <ShieldQuestion className="w-64 h-64 text-accent" />
                  </div>
                  
-                 <header className="mb-10 flex items-center gap-5">
-                    <div className="w-14 h-14 rounded-2xl bg-accent text-white flex items-center justify-center shadow-2xl shadow-accent/20">
-                       <ShieldQuestion className="w-7 h-7" />
+                 <header className="mb-6 sm:mb-10 flex items-center gap-4 sm:gap-5">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-accent text-white flex items-center justify-center shadow-2xl shadow-accent/20">
+                       <ShieldQuestion className="w-6 h-6 sm:w-7 sm:h-7" />
                     </div>
-                    <h3 className="text-2xl font-bold uppercase tracking-tighter text-primary">Capture Protocol</h3>
+                    <h3 className="text-xl sm:text-2xl font-bold uppercase tracking-tighter text-primary">Capture Protocol</h3>
                  </header>
 
                  <div className="space-y-8 px-1 relative z-10">
@@ -113,66 +113,90 @@ export default function Documents() {
 
            {/* Form Card */}
            <div className="lg:col-span-8 order-1 lg:order-2">
-              <form onSubmit={submit} className="glass-card p-10 md:p-16 border-accent/10 shadow-2xl relative overflow-hidden flex flex-col justify-center rounded-[4rem] backdrop-blur-2xl">
+              <form onSubmit={submit} className="glass-card p-6 sm:p-16 border-accent/10 shadow-2xl relative overflow-hidden flex flex-col justify-center rounded-[2.5rem] sm:rounded-[4rem] backdrop-blur-2xl">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10 w-full">
                     <div className="space-y-4 group">
                       <label className="flex items-center gap-3 text-[10px] font-bold text-accent uppercase tracking-[0.3em] ml-1 opacity-70 group-focus-within:opacity-100 transition-opacity">
                         <FileText className="w-4 h-4" />
-                        Logistics License URL
+                        License Number 
                       </label>
                       <input
-                        placeholder="https://vault.storage/license-04.jpg"
-                        className="w-full px-8 py-5 bg-surface border border-border rounded-2xl font-bold text-sm text-primary outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all placeholder:text-muted/10 tracking-[0.2em] uppercase"
+                        placeholder="Enter License Number"
+                        className="w-full px-6 sm:px-8 py-4 sm:py-5 bg-surface border border-border rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm text-primary outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all placeholder:text-muted/10 tracking-[0.1em] sm:tracking-[0.2em] uppercase"
                         onChange={e => setDl(e.target.value)}
                         required
                       />
+                      <div className="mt-3">
+                        <button className="flex items-center gap-3 text-[10px] font-bold text-accent uppercase tracking-[0.3em] ml-1 opacity-70 group-focus-within:opacity-100 transition-opacity">
+                           
+                           verify
+                        </button>
+                      </div>
                     </div>
                     
                     <div className="space-y-4 group">
                       <label className="flex items-center gap-3 text-[10px] font-bold text-accent uppercase tracking-[0.3em] ml-1 opacity-70 group-focus-within:opacity-100 transition-opacity">
                         <FileText className="w-4 h-4" />
-                        Unit Registration URL
+                        Registration Number 
                       </label>
                       <input
-                        placeholder="https://vault.storage/rc-tag-88.jpg"
-                        className="w-full px-8 py-5 bg-surface border border-border rounded-2xl font-bold text-sm text-primary outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all placeholder:text-muted/10 tracking-[0.2em] uppercase"
+                        placeholder="Enter Registration Number"
+                        className="w-full px-6 sm:px-8 py-4 sm:py-5 bg-surface border border-border rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm text-primary outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all placeholder:text-muted/10 tracking-[0.1em] sm:tracking-[0.2em] uppercase"
                         onChange={e => setRc(e.target.value)}
                         required
                       />
+                      <div className="mt-3">
+                        <button className="flex items-center gap-3 text-[10px] font-bold text-accent uppercase tracking-[0.3em] ml-1 opacity-70 group-focus-within:opacity-100 transition-opacity">
+                           
+                           verify
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-4 group">
                       <label className="flex items-center gap-3 text-[10px] font-bold text-accent uppercase tracking-[0.3em] ml-1 opacity-70 group-focus-within:opacity-100 transition-opacity">
                          <ShieldCheck className="w-4 h-4" />
-                         Insurance Telemetry URL
+                         Insurance Number
                       </label>
                       <input
-                        placeholder="https://vault.storage/ins-alpha.jpg"
-                        className="w-full px-8 py-5 bg-surface border border-border rounded-2xl font-bold text-sm text-primary outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all placeholder:text-muted/10 tracking-[0.2em] uppercase"
+                        placeholder="Enter Insurance Number"
+                        className="w-full px-6 sm:px-8 py-4 sm:py-5 bg-surface border border-border rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm text-primary outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all placeholder:text-muted/10 tracking-[0.1em] sm:tracking-[0.2em] uppercase"
                         onChange={e => setIns(e.target.value)}
                         required
                       />
+                      <div className="mt-3">
+                        <button className="flex items-center gap-3 text-[10px] font-bold text-accent uppercase tracking-[0.3em] ml-1 opacity-70 group-focus-within:opacity-100 transition-opacity">
+                           
+                           verify
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-4 group">
                       <label className="flex items-center gap-3 text-[10px] font-bold text-accent uppercase tracking-[0.3em] ml-1 opacity-70 group-focus-within:opacity-100 transition-opacity">
                          <Camera className="w-4 h-4" />
-                         Sync Bio-ID URL
+                         Addhar Number
                       </label>
                       <input
-                        placeholder="https://vault.storage/profile-hex.jpg"
-                        className="w-full px-8 py-5 bg-surface border border-border rounded-2xl font-bold text-sm text-primary outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all placeholder:text-muted/10 tracking-[0.2em] uppercase"
+                        placeholder="Enter Addhar Number"
+                        className="w-full px-6 sm:px-8 py-4 sm:py-5 bg-surface border border-border rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm text-primary outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all placeholder:text-muted/10 tracking-[0.1em] sm:tracking-[0.2em] uppercase"
                         onChange={e => setPhoto(e.target.value)}
                         required
                       />
+                      <div className="mt-3">
+                        <button className="flex items-center gap-3 text-[10px] font-bold text-accent uppercase tracking-[0.3em] ml-1 opacity-70 group-focus-within:opacity-100 transition-opacity">
+                           
+                           verify
+                        </button>
+                      </div>
                     </div>
                  </div>
 
                  <button
-                    className="btn-primary w-full mt-16 h-20 text-[11px] font-bold tracking-[0.5em] gap-5 shadow-2xl shadow-accent/40 active:scale-95"
+                    className="btn-primary w-full mt-10 sm:mt-16 h-16 sm:h-20 text-[10px] sm:text-[11px] font-bold tracking-[0.3em] sm:tracking-[0.5em] gap-3 sm:gap-5 shadow-2xl shadow-accent/40 active:scale-95"
                  >
-                    <span>INITIATE GLOBAL GRID SYNC</span>
-                    <ArrowRight className="w-6 h-6" />
+                    <span>INITIATE GRID SYNC</span>
+                    <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
                  </button>
                  
                  <footer className="mt-16 pt-10 border-t border-border flex flex-col md:flex-row items-center justify-center gap-12 opacity-30 hover:opacity-100 transition-opacity">

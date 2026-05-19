@@ -96,16 +96,16 @@ export default function Dashboard() {
       if (lat && lng) window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
   };
 
-  const isRideAccepted = !!activeRide && activeRide.status !== "PENDING" && activeRide.status !== "COMPLETED";
+  const isRideAccepted = !!activeRide && !!activeRide._id && activeRide.status !== "PENDING" && activeRide.status !== "COMPLETED";
 
   return (
-    <div className="relative w-full h-[calc(100vh-64px)] overflow-hidden text-primary bg-background">
+    <div className="relative w-full min-h-[calc(100vh-5rem)] flex flex-col overflow-hidden text-primary bg-background">
       {/* 
           TACTICAL VIEW (Map Mode) 
           Only visible when a ride is accepted
       */}
       {isRideAccepted && (
-        <div className="absolute inset-0 z-0 animate-in fade-in zoom-in-95 duration-700">
+        <div className="absolute inset-0 z-0 animate-in fade-in zoom-in-95 duration-700 h-full">
           <DriverMap 
             driverLocation={currentLocation}
             pickup={activeRide?.pickup}
@@ -147,8 +147,8 @@ export default function Dashboard() {
           Visible when NOT in a ride
       */}
       {!isRideAccepted && (
-        <div className="absolute inset-0 z-10 overflow-y-auto custom-scrollbar pt-24 pb-32 px-6">
-          <div className="max-w-5xl mx-auto space-y-12">
+        <div className="w-full h-full overflow-y-auto custom-scrollbar p-mobile-safe relative z-10">
+          <div className="max-w-5xl mx-auto space-y-8 sm:space-y-12">
             
             {/* Header Section */}
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
@@ -159,7 +159,7 @@ export default function Dashboard() {
                      </div>
                      <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-accent">Hive Node Delta-04</p>
                   </div>
-                  <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-primary">
+                  <h1 className="text-3xl sm:text-6xl font-bold tracking-tight text-primary">
                     Command <span className="text-accent">Center</span>
                   </h1>
                </div>
@@ -167,7 +167,7 @@ export default function Dashboard() {
                <div className="flex items-center gap-4">
                   <button 
                     onClick={handleToggleOnline}
-                    className={`h-16 px-10 rounded-2xl font-bold uppercase tracking-[0.2em] text-xs transition-all flex items-center justify-center gap-4 active:scale-95 group relative overflow-hidden ${
+                    className={`h-12 sm:h-16 px-6 sm:px-10 rounded-2xl font-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs transition-all flex items-center justify-center gap-3 sm:gap-4 active:scale-95 group relative overflow-hidden ${
                       isOnline 
                         ? "bg-accent text-white shadow-2xl shadow-accent/20 border border-white/10" 
                         : "glass-card text-primary border-border hover:border-accent/40 shadow-xl"
@@ -178,7 +178,7 @@ export default function Dashboard() {
                     ) : (
                       <Zap className={`w-5 h-5 ${isOnline ? "fill-current" : "text-accent"}`} />
                     )}
-                    <span>{isOnline ? "Go Offline" : "Establish Link"}</span>
+                    <span>{isOnline ? "Go Offline" : (window.innerWidth < 640 ? "Connect" : "Establish Link")}</span>
                   </button>
                </div>
             </header>

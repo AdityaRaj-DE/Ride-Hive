@@ -2,6 +2,7 @@ import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet
 import { useEffect, useState, useRef } from "react";
 import L from "leaflet";
 import api from "../api/axios";
+import { useTheme } from "../context/ThemeContext";
 
 // Helper to calculate distance in meters
 function getDistance(p1: [number, number], p2: [number, number]) {
@@ -35,6 +36,7 @@ export default function RideMap({
   geometry,
   route,
 }: any) {
+  const { theme } = useTheme();
   const [activePath, setActivePath] = useState<[number, number][] | null>(null);
   const lastUpdatePos = useRef<[number, number] | null>(null);
   const isRouting = useRef(false);
@@ -65,11 +67,6 @@ export default function RideMap({
       let targetCoords: [number, number] | null = null;
 
       if (route && route.length > 0) {
-        // For POOL: Find first incomplete stop
-        // (This logic assumes backend keeps route updated or we have rider statuses)
-        // For simplicity here, we take the one marked as 'IN_PROGRESS' or similar if we had it,
-        // but since we only have the route array, let's just use the current pickup/drop logic
-        // mixed with route if available.
         targetCoords = getTargetCoords(route.find((s: any) => s.status !== 'COMPLETED') || route[0]);
       } else {
         const targetData = (status === "DRIVER_ASSIGNED" || status === "DRIVER_ARRIVING") ? pickup : drop;
@@ -104,7 +101,7 @@ export default function RideMap({
     fetchNewRoute();
   }, [driverLocation, status, pickup, drop, route]);
 
-  if (!pickup) return <div className="w-full h-[400px] flex items-center justify-center bg-white/5 rounded-xl border border-white/10 italic opacity-40">Initializing Navigation...</div>;
+  if (!pickup) return <div className="w-full h-full flex items-center justify-center bg-white/5 italic opacity-40">Initializing Navigation...</div>;
 
   const center = driverLocation || pickup || { lat: 26.8467, lng: 80.9462 };
 
@@ -121,7 +118,7 @@ export default function RideMap({
   });
 
   return (
-    <div className="w-full h-[400px] overflow-hidden rounded-xl ghost-border ambient-shadow relative z-0">
+    <div className="w-full h-full overflow-hidden ghost-border ambient-shadow relative z-0">
       <MapContainer
         center={[center.lat, center.lng]}
         zoom={14}
@@ -130,7 +127,10 @@ export default function RideMap({
       >
         <TileLayer
           attribution='&copy; <a href="https://carto.com/">Carto</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url={theme === 'dark' 
+            ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          }
         />
 
         {pickup && <Marker position={[pickup.lat, pickup.lng]} />}
@@ -145,7 +145,7 @@ export default function RideMap({
         {activePath && (
           <Polyline 
             positions={activePath} 
-            color="#8fd1d9" 
+            color={theme === 'dark' ? "#8fd1d9" : "#3b82f6"} 
             weight={4} 
             opacity={0.6}
             lineCap="round"
@@ -156,4 +156,4 @@ export default function RideMap({
       </MapContainer>
     </div>
   );
-}
+}

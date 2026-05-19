@@ -150,21 +150,31 @@ h1, h2, h3, h4, h5, h6 {
   animation: pulse-soft 3s ease-in-out infinite;
 }
 
-/* Custom Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+/* Mobile Layout Utilities */
+@utility h-safe-screen {
+  height: 100dvh;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+@utility p-mobile-safe {
+  @apply px-4 pt-6 pb-24 sm:px-6 sm:pt-8 sm:pb-32 lg:px-8 lg:py-12;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 10px;
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--color-accent);
+@utility bottom-sheet {
+  @apply bg-background/95 backdrop-blur-xl border-t border-border rounded-t-3xl shadow-2xl;
 }
 
+@layer base {
+  /* Prevent scrolling on body when layout is fixed */
+  .fixed-layout {
+    overflow: hidden;
+    height: 100dvh;
+  }
+}

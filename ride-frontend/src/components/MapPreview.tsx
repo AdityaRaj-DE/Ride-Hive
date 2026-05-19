@@ -4,6 +4,7 @@ import api from "../api/axios";
 import L from "leaflet";
 import { renderToString } from "react-dom/server";
 import { MapPin, Navigation } from "lucide-react";
+import { useTheme } from "../context/ThemeContext";
 
 type Location = {
   lat: number;
@@ -41,6 +42,7 @@ export default function MapPreview({
   drop?: Location | null;
 }) {
   const [route, setRoute] = useState<[number, number][]>([]);
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (!pickup || !drop) {
@@ -78,6 +80,7 @@ export default function MapPreview({
       <div className="absolute inset-0 bg-gradient-to-t from-bg-primary/20 to-transparent z-10 pointer-events-none"></div>
       
       <MapContainer
+        key={`${theme}-${center.lat}-${center.lng}`} // Key to force re-render on theme change
         center={[center.lat, center.lng]}
         zoom={14}
         style={{ height: "100%", width: "100%", zIndex: 0 }}
@@ -88,7 +91,10 @@ export default function MapPreview({
       >
         <TileLayer
           attribution='&copy; <a href="https://carto.com/">Carto</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url={theme === 'dark' 
+            ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          }
         />
 
         {pickup && <Marker position={[pickup.lat, pickup.lng]} icon={pickupIcon} />}
@@ -98,7 +104,7 @@ export default function MapPreview({
           <Polyline 
             positions={route} 
             pathOptions={{ 
-              color: '#38bdf8', 
+              color: theme === 'dark' ? '#38bdf8' : '#2563eb', 
               weight: 5, 
               opacity: 0.8,
               lineCap: 'round',
@@ -119,4 +125,4 @@ export default function MapPreview({
       </div>
     </div>
   );
-}
+}

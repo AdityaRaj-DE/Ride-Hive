@@ -67,7 +67,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
 
   return (
     <>
-      <div className="glass-card p-6 sm:p-10 border-accent/20 shadow-xl backdrop-blur-xl relative overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="glass-card p-5 sm:p-10 border-accent/20 shadow-xl backdrop-blur-xl relative overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
         <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none rotate-12">
            <Activity className="w-32 h-32 text-accent" />
         </div>
@@ -84,12 +84,12 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
            <div className="flex items-center gap-4">
               <div className="text-right hidden sm:block">
                  <p className="text-[9px] font-bold text-muted uppercase tracking-widest">Yield Estimate</p>
-                 <p className="text-2xl font-bold text-primary">₹{activeRide.price || activeRide.fare || activeRide.priceEstimate || (activeRide.rideType === 'POOL' ? (activeRide.riders?.reduce((acc: number, r: any) => acc + (r.fare || 0), 0)) : 0)}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-primary">₹{activeRide.price || activeRide.fare || activeRide.priceEstimate || (activeRide.rideType === 'POOL' ? (activeRide.riders?.reduce((acc: number, r: any) => acc + (r.fare || 0), 0)) : 0)}</p>
               </div>
 
-              <button 
+               <button 
                 onClick={() => startCall({ callerName: "Passenger" })}
-                className="h-12 px-5 rounded-xl bg-accent/10 border border-accent/20 text-accent hover:bg-accent hover:text-white transition-all flex items-center gap-3 active:scale-95 group"
+                className="h-10 sm:h-12 px-4 sm:px-5 rounded-xl bg-accent/10 border border-accent/20 text-accent hover:bg-accent hover:text-white transition-all flex items-center gap-3 active:scale-95 group"
               >
                 <Phone className="w-4 h-4 group-hover:rotate-12 transition-transform" />
                 <span className="text-[10px] font-bold uppercase tracking-widest">Contact</span>
@@ -102,7 +102,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                       emitCancelRide(activeRide._id || activeRide.rideId);
                     }
                   }}
-                  className="h-12 px-5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center gap-3 active:scale-95 group"
+                   className="h-10 sm:h-12 px-4 sm:px-5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center gap-3 active:scale-95 group"
                 >
                   <span className="text-[10px] font-bold uppercase tracking-widest">Cancel</span>
                 </button>
@@ -146,7 +146,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                         </div>
                         <div>
                            <p className="text-[10px] font-bold uppercase tracking-widest text-accent mb-0.5">Next Operation</p>
-                           <h3 className="text-xl font-bold text-primary">
+                           <h3 className="text-lg sm:text-xl font-bold text-primary">
                              {currentStop.type === "PICKUP" ? "Passenger Pickup" : "Passenger Drop"}
                            </h3>
                         </div>
@@ -171,7 +171,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                                   placeholder="OTP"
                                   value={otp}
                                   onChange={(e) => setOtp(e.target.value)}
-                                  className="w-full text-center text-4xl font-bold tracking-[0.5em] bg-surface text-accent py-6 rounded-xl border border-border outline-none focus:border-accent/50 transition-all shadow-inner"
+                                   className="w-full text-center text-3xl sm:text-4xl font-bold tracking-[0.5em] bg-surface text-accent py-5 sm:py-6 rounded-xl border border-border outline-none focus:border-accent/50 transition-all shadow-inner"
                                   maxLength={4}
                                 />
                              </div>
@@ -180,7 +180,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                                   emitUpdatePoolStop(activeRide._id || activeRide.rideId, currentStop.order, otp);
                                   setOtp("");
                                 }}
-                                className="btn-primary w-full h-16 text-sm uppercase tracking-widest gap-3"
+                                 className="btn-primary w-full h-14 sm:h-16 text-xs sm:text-sm uppercase tracking-widest gap-3"
                               >
                                 <Check className="w-5 h-5" /> Confirm Pickup
                               </button>
@@ -190,7 +190,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                             onClick={() => {
                                handleShowPayment(currentStop);
                             }}
-                            className="w-full h-16 rounded-xl bg-blue-500 text-white font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-blue-500/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
+                             className="w-full h-14 sm:h-16 rounded-xl bg-blue-500 text-white font-bold uppercase tracking-widest text-[9px] sm:text-[10px] shadow-lg shadow-blue-500/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
                           >
                             <Check className="w-5 h-5" /> Confirm Dropoff
                           </button>
@@ -232,7 +232,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
               {activeRide.status === "DRIVER_ASSIGNED" && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-700">
                   <div className="space-y-2">
-                    <h3 className="text-3xl font-bold tracking-tight text-primary">Heading to Pickup</h3>
+                   <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary">Heading to Pickup</h3>
                     <p className="text-sm font-medium text-secondary leading-relaxed max-w-md">
                       Follow the navigation terminal to reach the passenger's current location.
                     </p>
@@ -250,7 +250,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                         )}
                         <button
                           onClick={() => emitDriverArriving(activeRide._id || activeRide.rideId)}
-                          className="h-14 flex-1 rounded-xl bg-accent text-white font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-accent/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
+                           className="h-12 sm:h-14 flex-1 rounded-xl bg-accent text-white font-bold uppercase tracking-widest text-[9px] sm:text-[10px] shadow-lg shadow-accent/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
                         >
                           <Target className="w-5 h-5" />
                           Confirm Arrival
@@ -262,7 +262,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
               {activeRide.status === "DRIVER_ARRIVING" && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-700">
                   <div className="space-y-2 text-center sm:text-left">
-                    <h3 className="text-3xl font-bold tracking-tight text-accent">Arrived at Pickup</h3>
+                     <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-accent">Arrived at Pickup</h3>
                     <p className="text-sm font-medium text-secondary leading-relaxed max-w-md">
                       Verify the passenger's identity by entering the trip OTP below.
                     </p>
@@ -274,7 +274,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                         placeholder="ENTER OTP"
                         value={otp}
                         onChange={(e) => setOtp(e.target.value)}
-                        className="w-full text-center sm:text-left sm:pl-8 text-4xl font-bold tracking-[0.4em] bg-surface text-accent py-8 rounded-2xl border border-border outline-none focus:border-accent/50 transition-all placeholder:text-muted/20 shadow-inner"
+                         className="w-full text-center sm:text-left sm:pl-8 text-3xl sm:text-4xl font-bold tracking-[0.4em] bg-surface text-accent py-6 sm:py-8 rounded-2xl border border-border outline-none focus:border-accent/50 transition-all placeholder:text-muted/20 shadow-inner"
                         maxLength={4}
                         autoFocus
                       />
@@ -288,7 +288,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                           setOtp("");
                         }
                       }}
-                      className="w-full h-16 rounded-xl bg-accent text-white font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-accent/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
+                       className="w-full h-14 sm:h-16 rounded-xl bg-accent text-white font-bold uppercase tracking-widest text-[9px] sm:text-[10px] shadow-lg shadow-accent/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
                     >
                       <Zap className="w-5 h-5" />
                       Start Journey
@@ -303,7 +303,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                   </div>
                   
                   <div className="space-y-2">
-                    <h3 className="text-3xl font-bold tracking-tight text-primary">Trip in Progress</h3>
+                     <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary">Trip in Progress</h3>
                     <p className="text-sm font-medium text-secondary leading-relaxed max-w-md">
                       Transporting passenger to the designated drop-off destination.
                     </p>
@@ -321,7 +321,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                         )}
                         <button
                             onClick={() => handleShowPayment()}
-                            className="h-14 flex-1 rounded-xl bg-accent text-white font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-accent/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
+                            className="h-12 sm:h-14 flex-1 rounded-xl bg-accent text-white font-bold uppercase tracking-widest text-[9px] sm:text-[10px] shadow-lg shadow-accent/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
                           >
                             <Check className="w-5 h-5" />
                             Finish Trip

@@ -26,8 +26,8 @@ export default function Vehicle() {
   };
 
   return (
-    <div className="min-h-screen text-primary flex items-center justify-center p-6 sm:p-10 pb-24">
-      <div className="w-full max-w-5xl relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+    <div className="text-primary p-mobile-safe">
+      <div className="w-full max-w-5xl mx-auto relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
         <header className="mb-16 text-center space-y-6">
            <div className="flex items-center justify-center gap-4">
               <div className="w-14 h-14 bg-accent/10 rounded-2xl flex items-center justify-center text-accent border border-accent/20 shadow-2xl backdrop-blur-2xl">
@@ -38,7 +38,7 @@ export default function Vehicle() {
                  Phase 02: Logistics Registration
               </div>
            </div>
-           <h1 className="text-5xl md:text-8xl font-bold tracking-tighter text-primary leading-tight uppercase">
+           <h1 className="text-3xl sm:text-5xl md:text-8xl font-bold tracking-tighter text-primary leading-tight uppercase">
              Partner <span className="text-accent underline decoration-4 underline-offset-14">Unit</span>
            </h1>
            <p className="text-secondary text-base md:text-xl font-medium max-w-3xl mx-auto opacity-60 leading-relaxed uppercase tracking-tight italic px-4">
@@ -46,7 +46,7 @@ export default function Vehicle() {
            </p>
         </header>
 
-        <div className="glass-card p-10 md:p-16 border-accent/10 shadow-2xl relative overflow-hidden backdrop-blur-2xl rounded-[3rem]">
+        <div className="glass-card p-6 sm:p-16 border-accent/10 shadow-2xl relative overflow-hidden backdrop-blur-2xl rounded-[2rem] sm:rounded-[3rem]">
            <div className="absolute top-0 right-0 p-16 opacity-[0.02] pointer-events-none rotate-12 transition-transform duration-1000 group-hover:rotate-0">
               <Activity className="w-80 h-80 text-accent" />
            </div>
@@ -58,9 +58,9 @@ export default function Vehicle() {
                     <Car className="w-4 h-4" />
                     Asset Model
                   </label>
-                  <input
+                   <input
                     placeholder="e.g. Tesla Model S"
-                    className="w-full px-8 py-5 bg-surface border border-border rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all font-bold text-xl text-primary placeholder:text-muted/10 uppercase tracking-tight"
+                    className="w-full px-6 sm:px-8 py-4 sm:py-5 bg-surface border border-border rounded-xl sm:rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all font-bold text-lg sm:text-xl text-primary placeholder:text-muted/10 uppercase tracking-tight"
                     onChange={e => setModel(e.target.value)}
                     required
                   />
@@ -71,9 +71,9 @@ export default function Vehicle() {
                     <Hash className="w-4 h-4" />
                     Identification Tag
                   </label>
-                  <input
+                   <input
                     placeholder="HEX-4402"
-                    className="w-full px-8 py-5 bg-surface border border-border rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all font-bold text-xl text-accent placeholder:text-muted/10 uppercase tracking-[0.3em]"
+                    className="w-full px-6 sm:px-8 py-4 sm:py-5 bg-surface border border-border rounded-xl sm:rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all font-bold text-lg sm:text-xl text-accent placeholder:text-muted/10 uppercase tracking-[0.3em]"
                     onChange={e => setPlate(e.target.value)}
                     required
                   />
@@ -84,9 +84,9 @@ export default function Vehicle() {
                     <Palette className="w-4 h-4" />
                     Shell Color
                   </label>
-                  <input
+                   <input
                     placeholder="e.g. Obsidian Black"
-                    className="w-full px-8 py-5 bg-surface border border-border rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all font-bold text-xl text-primary placeholder:text-muted/10 uppercase"
+                    className="w-full px-6 sm:px-8 py-4 sm:py-5 bg-surface border border-border rounded-xl sm:rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all font-bold text-lg sm:text-xl text-primary placeholder:text-muted/10 uppercase"
                     onChange={e => setColor(e.target.value)}
                     required
                   />
@@ -98,8 +98,8 @@ export default function Vehicle() {
                     Unit Classification
                   </label>
                   <div className="relative">
-                    <select 
-                      className="w-full px-8 py-5 bg-surface border border-border rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all font-bold text-xl text-primary appearance-none cursor-pointer uppercase tracking-tight"
+                     <select 
+                      className="w-full px-6 sm:px-8 py-4 sm:py-5 bg-surface border border-border rounded-xl sm:rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all font-bold text-lg sm:text-xl text-primary appearance-none cursor-pointer uppercase tracking-tight"
                       onChange={e => setType(e.target.value)}
                       required
                     >
@@ -118,21 +118,21 @@ export default function Vehicle() {
                     <Users className="w-4 h-4" />
                     Seating Capacity
                   </label>
-                  <div className="flex items-center gap-6 glass-card p-2 border-border/50 group-focus-within:border-accent/40 transition-all">
+                  <div className="flex items-center gap-4 sm:gap-6 glass-card p-2 border-border/50 group-focus-within:border-accent/40 transition-all">
                      <button 
                         type="button"
                         onClick={() => setCapacity(Math.max(1, capacity - 1))}
-                        className="w-14 h-14 rounded-xl bg-surface border border-border flex items-center justify-center text-primary hover:border-accent/40 transition-all"
+                        className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-surface border border-border flex items-center justify-center text-primary hover:border-accent/40 transition-all"
                      >
-                        <span className="text-2xl">-</span>
+                        <span className="text-xl">-</span>
                      </button>
-                     <span className="text-3xl font-bold text-primary flex-1 text-center">{capacity}</span>
+                     <span className="text-xl sm:text-3xl font-bold text-primary flex-1 text-center">{capacity}</span>
                      <button 
                         type="button"
                         onClick={() => setCapacity(Math.min(6, capacity + 1))}
-                        className="w-14 h-14 rounded-xl bg-accent text-background flex items-center justify-center hover:scale-105 transition-all shadow-lg"
+                        className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-accent text-background flex items-center justify-center hover:scale-105 transition-all shadow-lg"
                      >
-                        <span className="text-2xl">+</span>
+                        <span className="text-xl">+</span>
                      </button>
                   </div>
                 </div>
@@ -151,14 +151,14 @@ export default function Vehicle() {
               <button
                 className="btn-primary w-full h-18 text-[11px] font-bold tracking-[0.4em] gap-5 shadow-2xl shadow-accent/30 active:scale-95"
               >
-                <span>PROCEED TO VAULT SUBMISSION</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                 <span>SUBMIT VAULT</span>
+                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-2 transition-transform" />
               </button>
            </form>
         </div>
       </div>
       
-      <footer className="fixed bottom-10 left-1/2 -translate-x-1/2 text-center opacity-30 w-full px-6 flex flex-col items-center gap-6">
+      <footer className="mt-20 text-center opacity-30 w-full px-6 flex flex-col items-center gap-6">
          <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
                <Zap size={14} className="text-accent" />

@@ -55,30 +55,39 @@ const Recenter = ({ lat, lng }: any) => {
   return null;
 };
 
+import { useTheme } from "../context/ThemeContext";
+
 export default function RideMap({
   pickup,
   destination,
   driverLocation,
   route = [],
 }: any) {
+  const { theme } = useTheme();
   const fallback = pickup || driverLocation || { lat: 26.8467, lng: 80.9462 };
 
   return (
-    <div className="relative w-full h-full group overflow-hidden rounded-[2.5rem] border border-white/10 shadow-2xl">
+    <div className="relative w-full h-full group overflow-hidden rounded-[2.5rem] border border-border shadow-2xl bg-background">
       <MapContainer
         center={[fallback.lat, fallback.lng]}
         zoom={15}
         zoomControl={false}
         style={{ height: "100%", width: "100%", zIndex: 0 }}
       >
-        <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+        <TileLayer 
+          attribution='&copy; <a href="https://carto.com/">Carto</a>'
+          url={theme === 'dark' 
+            ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          }
+        />
 
         {/* Polyline → pure OSRM route passed from dashboard */}
         {route.length > 1 && (
           <Polyline
             positions={route.map((p: any) => [p.lat, p.lng])}
             pathOptions={{ 
-              color: '#10b981', 
+              color: theme === 'dark' ? '#10b981' : '#3b82f6', 
               weight: 6, 
               opacity: 0.8,
               lineCap: 'round',
@@ -104,14 +113,14 @@ export default function RideMap({
 
       {/* Decorative HUD Scaling Labels */}
       <div className="absolute top-6 left-6 z-10 flex items-center gap-4 opacity-40 group-hover:opacity-100 transition-opacity duration-700 cursor-help">
-         <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-            <Zap className="w-5 h-5 text-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,1)]" />
+         <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20">
+            <Zap className="w-5 h-5 text-accent animate-pulse shadow-[0_0_10px_rgba(59,130,246,1)]" />
          </div>
-         <p className="text-[10px] font-black uppercase tracking-[0.4em] italic text-emerald-500">Trajectory Stream v4.2</p>
+         <p className="text-[10px] font-black uppercase tracking-[0.4em] italic text-accent">Trajectory Stream v4.2</p>
       </div>
       
       <div className="absolute bottom-6 right-6 z-10 hidden md:flex items-center gap-4 opacity-[0.05] group-hover:opacity-30 transition-opacity duration-1000">
-         <Activity className="w-4 h-4 text-emerald-500" />
+         <Activity className="w-4 h-4 text-accent" />
          <p className="text-[8px] font-black uppercase tracking-[0.6em] italic">Real-time Node Synchronization: OK</p>
       </div>
     </div>
