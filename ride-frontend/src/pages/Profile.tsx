@@ -1,28 +1,62 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from '../store/authSlice';
 import type { RootState } from '../store';
 import { Mail, Phone, Calendar, Edit2, LogOut, ShieldCheck, Award, Star, ArrowRight, User, Activity } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
 const Profile: React.FC = () => {
+  const dispatch = useDispatch();
   const { user, token } = useSelector((s: RootState) => s.auth);
   const [profile, setProfile] = useState<any>(null);
   const [rideCount, setRideCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout", {
+        refreshToken: localStorage.getItem("refreshToken"),
+        deviceId: "web"
+      });
+    } catch (e) {
+      console.error("Logout API failed", e);
+    }
+    
+    // Explicitly clear local storage here
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    
+    // Clear redux state
+    dispatch(logout());
+    
+    // Navigate away
+    navigate("/login");
+  };
+
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
-        const [profileRes, historyRes] = await Promise.all([
+        const [profileRes, historyRes] = await Promise.allSettled([
           api.get("/rider/profile"),
           api.get("/ride/history")
         ]);
         
-        setProfile(profileRes.data.rider);
-        setRideCount(historyRes.data.filter((r: any) => r.status === 'COMPLETED').length);
+        if (profileRes.status === 'fulfilled') {
+          setProfile(profileRes.value.data.rider);
+        } else {
+          console.error("Failed to fetch profile data:", profileRes.reason);
+        }
+
+        if (historyRes.status === 'fulfilled') {
+          setRideCount(historyRes.value.data.filter((r: any) => r.status === 'COMPLETED').length);
+        } else {
+          console.error("Failed to fetch history data:", historyRes.reason);
+        }
       } catch (err) {
-        console.error("Failed to fetch profile data:", err);
+        console.error("Failed to fetch profile/history:", err);
       } finally {
         setLoading(false);
       }
@@ -39,7 +73,7 @@ const Profile: React.FC = () => {
     );
   }
 
-  const displayName = profile?.name ? `${profile.name.first} ${profile.name.last}` : (user as any).name;
+  const displayName = profile?.name ? `${profile.name.first} ${profile.name.last}` : 'Rider';
 
 
   return (
@@ -140,7 +174,7 @@ const Profile: React.FC = () => {
                     </div>
                     <div className="min-w-0">
                       <p className="text-[8px] sm:text-[9px] font-bold text-muted uppercase tracking-widest mb-0.5">Mobile</p>
-                      <p className="text-sm sm:text-base font-semibold text-primary truncate leading-none">{profile?.mobile || (user as any).phone || (user as any).mobile || 'Not specified'}</p>
+                      <p className="text-sm sm:text-base font-semibold text-primary truncate leading-none">{profile?.mobile || user?.mobileNumber || 'Not specified'}</p>
                     </div>
                  </div>
                </div>
@@ -178,6 +212,7 @@ const Profile: React.FC = () => {
 
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                <button 
+                 onClick={handleLogout}
                  className="h-12 sm:h-14 flex-1 rounded-xl bg-rose-500/5 border border-rose-500/10 text-rose-500 font-bold uppercase tracking-widest text-[8px] sm:text-[10px] hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center gap-2 sm:gap-3 active:scale-95 group"
                >
                  <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />

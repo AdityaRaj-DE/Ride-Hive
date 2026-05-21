@@ -5,6 +5,8 @@ import type { RootState, AppDispatch } from "../store";
 import { useNavigate } from "react-router-dom";
 import { User, Mail, ArrowRight, Sparkles, ShieldCheck, Activity } from 'lucide-react';
 
+import { fetchMe } from "../store/authSlice";
+
 export default function RiderOnboarding() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -29,6 +31,7 @@ export default function RiderOnboarding() {
 
     const result = await dispatch(completeRiderOnboarding(payload));
     if (completeRiderOnboarding.fulfilled.match(result)) {
+      await dispatch(fetchMe());
       navigate("/dashboard");
     }
   };

@@ -28,8 +28,12 @@ async function authenticate(req, res, next) {
 }
 
 const requireRider = (req, res, next) => {
-  if (req.user.activeRole !== "rider") return res.status(403).json({ message: "Requires rider" });
-  if (!req.user.onboarding?.rider) return res.status(403).json({ message: "Rider not onboarded" });
+  if (req.user.activeRole !== "rider" && req.user.activeRole !== "admin") {
+    return res.status(403).json({ message: "Requires rider or admin" });
+  }
+  if (!req.user.onboarding?.rider && req.user.activeRole !== "admin") {
+    return res.status(403).json({ message: "Rider not onboarded" });
+  }
   next();
 };
 

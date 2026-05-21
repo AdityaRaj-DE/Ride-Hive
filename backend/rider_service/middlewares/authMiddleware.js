@@ -86,8 +86,8 @@ function requireActiveRole(role) {
   return (req, res, next) => {
     if (!req.user?.activeRole) return res.status(403).json({ message: "Forbidden: activeRole missing" });
 
-    if (req.user.activeRole !== role) {
-      return res.status(403).json({ message: `Forbidden: activeRole must be ${role}` });
+    if (req.user.activeRole !== role && req.user.activeRole !== "admin") {
+      return res.status(403).json({ message: `Forbidden: activeRole must be ${role} or admin` });
     }
 
     next();
@@ -99,6 +99,8 @@ function requireActiveRole(role) {
  */
 function requireOnboarded(role) {
   return (req, res, next) => {
+    if (req.user?.activeRole === "admin") return next();
+    
     if (!req.user?.onboarding) {
       return res.status(403).json({ message: "Forbidden: onboarding missing" });
     }

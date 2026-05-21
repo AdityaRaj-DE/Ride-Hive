@@ -139,7 +139,7 @@ const ProfileEdit: React.FC = () => {
               <div className="relative">
                 <input 
                   type="text"
-                  value={(user as any).mobile || (user as any).phone || ''}
+                  value={user?.mobileNumber || ''}
                   disabled
                   className="w-full px-6 py-4 bg-surface border border-border rounded-xl font-semibold text-lg text-primary cursor-not-allowed italic"
                 />

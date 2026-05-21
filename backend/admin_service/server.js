@@ -23,7 +23,7 @@ app.use(morgan("dev"));
 app.set("io", io);
 
 mongoose
-  .connect(process.env.MONGO_URI || "mongodb://localhost:27017/ridehive_admin")
+  .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/ridehive_admin")
   .then(() => console.log("Admin Service DB Connected"))
   .catch((err) => console.error("Admin Service DB Connection Error:", err));
 
