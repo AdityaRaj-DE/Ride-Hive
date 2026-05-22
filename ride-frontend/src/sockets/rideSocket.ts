@@ -3,11 +3,18 @@ import { store } from "../store";
 import { setRideFromServer, setRideError, updateRideStatus } from "../store/rideSlice";
 import { setDriverLocation } from "../store/rideSlice";
 
-let initialized = false;
-
 export const initRideSocketListeners = (socket: Socket) => {
-  if (initialized) return;
-  initialized = true;
+  // Remove existing listeners to prevent duplicates
+  socket.off("ride.restore");
+  socket.off("ride.assigned");
+  socket.off("ride.created");
+  socket.off("ride.updated");
+  socket.off("ride.finishing");
+  socket.off("ride.error");
+  socket.off("driver.location");
+  socket.off("pool.rider_added");
+  socket.off("pool.assigned");
+  socket.off("pool.updated");
 
   const dispatchRide = (ride: any) => {
     const userId = store.getState().auth.user?.id;

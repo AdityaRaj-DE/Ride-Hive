@@ -10,6 +10,7 @@ export const connectDriverSocket = (token: string) => {
   if (!socket) {
     socket = io(import.meta.env.VITE_API_URL || "http://localhost:3000", {
        auth: { token },
+       withCredentials: true,
        // transports: ["websocket"],
     });
     (socket as any)._lastToken = token;

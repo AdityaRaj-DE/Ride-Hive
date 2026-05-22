@@ -28,11 +28,11 @@ export default function BookRide() {
 
     useEffect(() => {
         if (state?.pickup) {
-            setPickup({ ...state.pickup, label: "Selected Pickup" });
+            setPickup({ ...state.pickup, label: state.pickup.label || "Selected Pickup" });
             setUsingCurrentLocation(false);
         }
         if (state?.drop) {
-            setDrop({ ...state.drop, label: "Selected Drop" });
+            setDrop({ ...state.drop, label: state.drop.label || "Selected Drop" });
         }
     }, [state]);
 

@@ -1,12 +1,15 @@
 import { useState, useMemo } from "react";
 import { MapContainer, TileLayer, useMapEvents } from "react-leaflet";
+import type { Map as LeafletMap } from "leaflet";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { CheckCircle2, ChevronLeft, Target } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import LocationSearch from "../components/LocationSearch";
 
 type LatLng = {
   lat: number;
   lng: number;
+  label?: string;
 };
 
 export default function MapPicker() {
@@ -33,6 +36,10 @@ export default function MapPicker() {
     lat: initialCenter[0],
     lng: initialCenter[1],
   });
+  const [locationLabel, setLocationLabel] = useState<string | undefined>(
+    type === "pickup" ? existingPickup?.label : existingDrop?.label
+  );
+  const [map, setMap] = useState<LeafletMap | null>(null);
 
   function MapEvents() {
     useMapEvents({
@@ -48,7 +55,7 @@ export default function MapPicker() {
     if (type === "pickup") {
       navigate("/book-ride", {
         state: {
-          pickup: center,
+          pickup: { ...center, label: locationLabel || "Selected Pickup" },
           drop: existingDrop,
         },
       });
@@ -56,7 +63,7 @@ export default function MapPicker() {
       navigate("/book-ride", {
         state: {
           pickup: existingPickup,
-          drop: center,
+          drop: { ...center, label: locationLabel || "Selected Drop" },
         },
       });
     }
@@ -71,6 +78,7 @@ export default function MapPicker() {
           zoom={15}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
+          ref={setMap}
         >
           <TileLayer
             attribution='&copy; <a href="https://carto.com/">Carto</a>'
@@ -85,23 +93,38 @@ export default function MapPicker() {
 
       {/* Header Overlay */}
       <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 z-[30] bg-gradient-to-b from-background via-background/80 to-transparent pb-8 sm:pb-12 pointer-events-none">
-         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 pointer-events-auto">
-            <div className="flex items-center gap-3 sm:gap-4">
-               <button 
-                 onClick={() => navigate(-1)}
-                 className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-surface border border-border flex items-center justify-center text-primary hover:bg-background transition-all active:scale-95 shadow-sm backdrop-blur-md"
-               >
-                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-               </button>
-               <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                     <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></div>
-                     <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-accent">Precision Mode</p>
+         <div className="max-w-7xl mx-auto flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-4 pointer-events-auto">
+               <div className="flex items-center gap-3 sm:gap-4">
+                  <button 
+                    onClick={() => navigate(-1)}
+                    className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-surface border border-border flex items-center justify-center text-primary hover:bg-background transition-all active:scale-95 shadow-sm backdrop-blur-md"
+                  >
+                     <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
+                  <div className="space-y-0.5">
+                     <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></div>
+                        <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-accent">Precision Mode</p>
+                     </div>
+                     <h1 className="text-lg sm:text-2xl md:text-3xl font-black tracking-tighter text-primary uppercase">
+                        Set <span className="text-accent">{type === "pickup" ? "Pickup" : "Drop"}</span>
+                     </h1>
                   </div>
-                  <h1 className="text-lg sm:text-2xl md:text-3xl font-black tracking-tighter text-primary uppercase">
-                     Set <span className="text-accent">{type === "pickup" ? "Pickup" : "Drop"}</span>
-                  </h1>
                </div>
+            </div>
+            
+            <div className="pointer-events-auto mt-2">
+               <LocationSearch 
+                  placeholder={`Search for ${type === "pickup" ? "pickup" : "drop"} location...`}
+                  onLocationSelect={(lat, lng, label) => {
+                     setCenter({ lat, lng });
+                     setLocationLabel(label);
+                     if (map) {
+                        map.flyTo([lat, lng], 15);
+                     }
+                  }}
+               />
             </div>
          </div>
       </div>

@@ -149,6 +149,9 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                            <h3 className="text-lg sm:text-xl font-bold text-primary">
                              {currentStop.type === "PICKUP" ? "Passenger Pickup" : "Passenger Drop"}
                            </h3>
+                           <p className="text-sm font-semibold text-primary mt-1">
+                             {currentStop.type === "PICKUP" ? riderDetails?.pickup?.label || "Location" : riderDetails?.drop?.label || "Location"}
+                           </p>
                         </div>
                      </div>
 
@@ -233,6 +236,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-700">
                   <div className="space-y-2">
                    <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary">Heading to Pickup</h3>
+                   <p className="text-lg font-semibold text-primary mt-1">{activeRide.pickup?.label || "Location"}</p>
                     <p className="text-sm font-medium text-secondary leading-relaxed max-w-md">
                       Follow the navigation terminal to reach the passenger's current location.
                     </p>
@@ -304,6 +308,7 @@ export default function ActiveRideCard({ activeRide, onNavigateToPickup, onNavig
                   
                   <div className="space-y-2">
                      <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-primary">Trip in Progress</h3>
+                     <p className="text-lg font-semibold text-primary mt-1">{activeRide.drop?.label || "Location"}</p>
                     <p className="text-sm font-medium text-secondary leading-relaxed max-w-md">
                       Transporting passenger to the designated drop-off destination.
                     </p>

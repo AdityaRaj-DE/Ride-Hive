@@ -13,6 +13,12 @@ exports.serializeRide = (ride) => {
           lng: ride.pickup.coordinates[0],
           label: ride.pickup.label,
         }
+      : (ride.riders && ride.riders.length > 0)
+      ? {
+          lat: ride.riders[0].pickup.coordinates[1],
+          lng: ride.riders[0].pickup.coordinates[0],
+          label: ride.riders[0].pickup.label,
+        }
       : null,
 
     drop: ride.drop
@@ -20,6 +26,12 @@ exports.serializeRide = (ride) => {
           lat: ride.drop.coordinates[1],
           lng: ride.drop.coordinates[0],
           label: ride.drop.label,
+        }
+      : (ride.riders && ride.riders.length > 0)
+      ? {
+          lat: ride.riders[0].drop.coordinates[1],
+          lng: ride.riders[0].drop.coordinates[0],
+          label: ride.riders[0].drop.label,
         }
       : null,
 

@@ -43,7 +43,7 @@ module.exports = function setupSocket(httpServer) {
   });
 
   io.on("connection", (socket) => {
-    console.log("🔥 Incoming socket connection");
+    console.log(`🔥 Incoming socket connection: user_${socket.user.id} (${socket.user.activeRole})`);
     socket.join(`user_${socket.user.id}`);
 
     if (socket.user.activeRole === "rider") socket.join("riders");

@@ -7,11 +7,16 @@ import {
   setActiveRide,
 } from "../store/slices/driverRideSlice";
 
-let initialized = false;
-
 export const initDriverRideListeners = (socket: Socket) => {
-  if (initialized) return;
-  initialized = true;
+  // Remove existing listeners to prevent duplicates
+  socket.off("ride.created");
+  socket.off("ride.assigned");
+  socket.off("ride.restore");
+  socket.off("driver.location");
+  socket.off("pool.assigned");
+  socket.off("pool.updated");
+  socket.off("pool.rider_added");
+  socket.off("ride.updated");
 
   socket.on("ride.created", (ride) => {
     console.log("Driver received ride.created:", ride);
