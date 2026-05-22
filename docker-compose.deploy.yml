@@ -1,0 +1,280 @@
+version: '3.8'
+
+services:
+  # Caddy Reverse Proxy for Automatic HTTPS
+  caddy:
+    image: caddy:latest
+    container_name: ridehive_caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    command: >
+      caddy reverse-proxy
+      --from api.34.131.233.185.nip.io --to api-gateway:3000
+      --from rider.34.131.233.185.nip.io --to ride-frontend:5173
+      --from driver.34.131.233.185.nip.io --to driver-frontend:5174
+      --from admin.34.131.233.185.nip.io --to admin-frontend:5175
+    depends_on:
+      - api-gateway
+      - ride-frontend
+      - driver-frontend
+      - admin-frontend
+    networks:
+      - ridehive_network
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+  # Central database container
+  mongodb:
+    image: mongo:6.0
+    container_name: ridehive_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - ridehive_network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./backend/auth_service
+    container_name: ridehive_auth_service
+    environment:
+      - PORT=3001
+      - MONGODB_URI=mongodb://mongodb:27017/ridehive_auth
+      - JWT_SECRET=goodkeymustchange
+      - INTERNAL_SERVICE_KEY=super-secret-key-change-this
+      - ADMIN_SERVICE_URL=http://admin-service:3009
+    depends_on:
+      - mongodb
+    networks:
+      - ridehive_network
+
+  # Rider Service
+  rider-service:
+    build:
+      context: ./backend/rider_service
+    container_name: ridehive_rider_service
+    environment:
+      - PORT=3002
+      - MONGODB_URI=mongodb://mongodb:27017/ridehive_rider
+      - JWT_SECRET=goodkeymustchange
+      - INTERNAL_SERVICE_KEY=super-secret-key-change-this
+      - AUTH_SERVICE_URL=http://auth-service:3001
+    depends_on:
+      - mongodb
+    networks:
+      - ridehive_network
+
+  # Driver Service
+  driver-service:
+    build:
+      context: ./backend/driver_service
+    container_name: ridehive_driver_service
+    environment:
+      - PORT=3003
+      - MONGODB_URI=mongodb://mongodb:27017/ridehive_driver
+      - JWT_SECRET=goodkeymustchange
+      - INTERNAL_SERVICE_KEY=super-secret-key-change-this
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - ADMIN_SERVICE_URL=http://admin-service:3009
+    depends_on:
+      - mongodb
+    networks:
+      - ridehive_network
+
+  # Ride Service
+  ride-service:
+    build:
+      context: ./backend/ride_service
+    container_name: ridehive_ride_service
+    environment:
+      - PORT=3004
+      - MONGODB_URI=mongodb://mongodb:27017/ridehive_ride
+      - JWT_SECRET=goodkeymustchange
+      - INTERNAL_SERVICE_KEY=super-secret-key-change-this
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - RIDER_SERVICE_URL=http://rider-service:3002
+      - DRIVER_SERVICE_URL=http://driver-service:3003
+      - PAYMENT_SERVICE_URL=http://payment-service:3005
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3007
+      - ADMIN_SERVICE_URL=http://admin-service:3009
+    depends_on:
+      - mongodb
+    networks:
+      - ridehive_network
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./backend/payment_service
+    container_name: ridehive_payment_service
+    environment:
+      - PORT=3005
+      - MONGODB_URI=mongodb://mongodb:27017/ridehive_payment
+      - JWT_SECRET=goodkeymustchange
+      - INTERNAL_SERVICE_KEY=super-secret-key-change-this
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - DRIVER_SERVICE_URL=http://driver-service:3003
+    depends_on:
+      - mongodb
+    networks:
+      - ridehive_network
+
+  # Feedback Service
+  feedback-service:
+    build:
+      context: ./backend/feedback_service
+    container_name: ridehive_feedback_service
+    environment:
+      - PORT=3006
+      - MONGODB_URI=mongodb://mongodb:27017/ridehive_feedback
+      - MONGO_URI=mongodb://mongodb:27017/ridehive_feedback
+      - JWT_SECRET=goodkeymustchange
+      - INTERNAL_SERVICE_KEY=super-secret-key-change-this
+    depends_on:
+      - mongodb
+    networks:
+      - ridehive_network
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./backend/notification_service
+    container_name: ridehive_notification_service
+    environment:
+      - PORT=3007
+      - MONGODB_URI=mongodb://mongodb:27017/ridehive_notification
+      - JWT_SECRET=goodkeymustchange
+      - INTERNAL_SERVICE_KEY=super-secret-key-change-this
+      - ADMIN_SERVICE_URL=http://admin-service:3009
+    depends_on:
+      - mongodb
+    networks:
+      - ridehive_network
+
+  # Pool Service
+  pool-service:
+    build:
+      context: ./backend/pool_service
+    container_name: ridehive_pool_service
+    environment:
+      - PORT=3008
+      - MONGODB_URI=mongodb://mongodb:27017/ridehive_pool
+      - JWT_SECRET=goodkeymustchange
+      - INTERNAL_SERVICE_KEY=super-secret-key-change-this
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - RIDER_SERVICE_URL=http://rider-service:3002
+      - DRIVER_SERVICE_URL=http://driver-service:3003
+      - RIDE_SERVICE_URL=http://ride-service:3004
+      - PAYMENT_SERVICE_URL=http://payment-service:3005
+      - FEEDBACK_SERVICE_URL=http://feedback-service:3006
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3007
+      - ADMIN_SERVICE_URL=http://admin-service:3009
+    depends_on:
+      - mongodb
+    networks:
+      - ridehive_network
+
+  # Admin Service
+  admin-service:
+    build:
+      context: ./backend/admin_service
+    container_name: ridehive_admin_service
+    environment:
+      - PORT=3009
+      - MONGODB_URI=mongodb://mongodb:27017/ridehive_admin
+      - JWT_SECRET=goodkeymustchange
+      - INTERNAL_SERVICE_KEY=super-secret-key-change-this
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - DRIVER_SERVICE_URL=http://driver-service:3003
+      - RIDE_SERVICE_URL=http://ride-service:3004
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3007
+      - FEEDBACK_SERVICE_URL=http://feedback-service:3006
+    depends_on:
+      - mongodb
+    networks:
+      - ridehive_network
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./backend/api_gateway
+    container_name: ridehive_api_gateway
+    environment:
+      - PORT=3000
+      - JWT_SECRET=goodkeymustchange
+      - INTERNAL_SERVICE_KEY=super-secret-key-change-this
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - RIDER_SERVICE_URL=http://rider-service:3002
+      - DRIVER_SERVICE_URL=http://driver-service:3003
+      - RIDE_SERVICE_URL=http://ride-service:3004
+      - PAYMENT_SERVICE_URL=http://payment-service:3005
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3007
+      - POOL_SERVICE_URL=http://pool-service:3008
+      - ADMIN_SERVICE_URL=http://admin-service:3009
+      - FEEDBACK_SERVICE_URL=http://feedback-service:3006
+      - CORS_ORIGINS=https://rider.34.131.233.185.nip.io,https://driver.34.131.233.185.nip.io,https://admin.34.131.233.185.nip.io
+    depends_on:
+      - auth-service
+      - rider-service
+      - driver-service
+      - ride-service
+      - payment-service
+      - feedback-service
+      - notification-service
+      - pool-service
+      - admin-service
+    networks:
+      - ridehive_network
+
+  # Rider Frontend
+  ride-frontend:
+    build:
+      context: ./ride-frontend
+    container_name: ridehive_ride_frontend
+    environment:
+      - VITE_API_URL=https://api.34.131.233.185.nip.io
+    depends_on:
+      - api-gateway
+    networks:
+      - ridehive_network
+
+  # Driver Frontend
+  driver-frontend:
+    build:
+      context: ./driver-frontend
+    container_name: ridehive_driver_frontend
+    environment:
+      - VITE_API_URL=https://api.34.131.233.185.nip.io
+      - VITE_SOCKET_URL=https://api.34.131.233.185.nip.io
+    depends_on:
+      - api-gateway
+    networks:
+      - ridehive_network
+
+  # Admin Frontend
+  admin-frontend:
+    build:
+      context: ./admin-frontend
+    container_name: ridehive_admin_frontend
+    environment:
+      - VITE_AUTH_SERVICE_URL=https://api.34.131.233.185.nip.io/auth
+    depends_on:
+      - api-gateway
+    networks:
+      - ridehive_network
+
+networks:
+  ridehive_network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
