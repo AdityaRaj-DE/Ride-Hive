@@ -8,12 +8,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    command: >
-      caddy reverse-proxy
-      --from api.34.131.233.185.nip.io --to api-gateway:3000
-      --from rider.34.131.233.185.nip.io --to ride-frontend:5173
-      --from driver.34.131.233.185.nip.io --to driver-frontend:5174
-      --from admin.34.131.233.185.nip.io --to admin-frontend:5175
+    command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
     depends_on:
       - api-gateway
       - ride-frontend
@@ -22,6 +17,7 @@ services:
     networks:
       - ridehive_network
     volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
 

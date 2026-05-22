@@ -1,0 +1,15 @@
+api.34.131.233.185.nip.io {
+    reverse_proxy api-gateway:3000
+}
+
+rider.34.131.233.185.nip.io {
+    reverse_proxy ride-frontend:5173
+}
+
+driver.34.131.233.185.nip.io {
+    reverse_proxy driver-frontend:5174
+}
+
+admin.34.131.233.185.nip.io {
+    reverse_proxy admin-frontend:5175
+}
