@@ -85,6 +85,17 @@ export default function Dashboard() {
                      onClick={() => navigate("/profile")}
                      color="accent"
                   />
+                  {(user as any)?.onboarding?.driver && (
+                     <div className="col-span-2 lg:col-span-1">
+                        <QuickActionCard
+                           title="Plans"
+                           desc="Driver Subscription"
+                           icon={Zap}
+                           onClick={() => navigate("/driver/subscription")}
+                           color="success"
+                        />
+                     </div>
+                  )}
                   <div className="col-span-2 lg:col-span-1">
                      <QuickActionCard
                         title="Safety"

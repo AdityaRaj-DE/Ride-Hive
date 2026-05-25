@@ -164,26 +164,32 @@ export default function useRideCall(socket: any, rideId: string | null) {
   // Accept incoming call (receiver)
   const acceptIncoming = async () => {
     if (!socket || !rideId) throw new Error("Socket or rideId missing");
+    if (!pcRef.current) throw new Error("No incoming call peer connection");
+
     setConnecting(true);
     setIncoming(false);
-
-    const pc = createPeer();
 
     // get mic
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localStreamRef.current = stream;
-      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
-    } catch (err) {
+      stream.getTracks().forEach((t) => pcRef.current!.addTrack(t, stream));
+
+      const answer = await pcRef.current.createAnswer();
+      await pcRef.current.setLocalDescription(answer);
+
+      socket.emit("call_answer", { rideId, answer });
+
       setConnecting(false);
-      setIncoming(false);
+      setInCall(true);
+      startTimer();
+    } catch (err) {
+      console.error("acceptIncoming failed", err);
+      setConnecting(false);
+      setIncoming(true); // revert incoming if failed
+      hangup(true);
       throw err;
     }
-
-    // remote offer will be set by listener (handleOffer will do setRemoteDesc)
-    // create answer when remote desc exists - handleOffer will do that flow.
-
-    setConnecting(false);
   };
 
   const rejectIncoming = () => {
@@ -273,35 +279,7 @@ export default function useRideCall(socket: any, rideId: string | null) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, rideId]);
 
-  // When user accepts an incoming call we must create answer and send it
-  useEffect(() => {
-    if (!incoming || !pcRef.current) return;
-    // create answer flow when user triggers acceptIncoming()
-    // the flow: acceptIncoming() creates local tracks and pc; the remote offer already set in onOffer
-    // so here we wait: when local tracks added, createAnswer and setLocalDescription + emit
-    const tryCreateAnswer = async () => {
-      try {
-        // localStreamRef should be set by acceptIncoming
-        if (!pcRef.current || !pcRef.current.remoteDescription) return;
-        const answer = await pcRef.current.createAnswer();
-        await pcRef.current.setLocalDescription(answer);
-        if (socket && rideId) {
-          socket.emit("call_answer", { rideId, answer });
-        }
-        setIncoming(false);
-        setInCall(true);
-        startTimer();
-      } catch (err) {
-        console.error("createAnswer failed", err);
-      }
-    };
 
-    // small delay to let acceptIncoming perform getUserMedia and tracks add
-    // If user hasn't called acceptIncoming, don't auto answer.
-    const t = setTimeout(() => tryCreateAnswer(), 300);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incoming]);
 
   // when pc becomes remote-connected we should flip states -- handled in onAnswer and onOffer flows
 

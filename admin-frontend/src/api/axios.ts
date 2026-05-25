@@ -1,7 +1,11 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: import.meta.env.VITE_AUTH_SERVICE_URL?.replace('/auth', '') || 'http://localhost:3000',
+  withCredentials: true,
+  headers: {
+    "Bypass-Tunnel-Reminder": "true"
+  }
 });
 
 // Add a request interceptor

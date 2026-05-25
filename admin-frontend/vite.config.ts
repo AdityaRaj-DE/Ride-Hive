@@ -8,5 +8,8 @@ export default defineConfig({
   server: {
     strictPort: true,
     port: 5175,
+    hmr: {
+      clientPort: 443
+    }
   },
 });

@@ -27,6 +27,7 @@ import ProfileEdit from "./pages/ProfileEdit";
 import RideHistory from "./pages/RideHistory";
 import RideDetail from "./pages/RideDetail";
 import Services from "./pages/Services";
+import DriverSubscription from "./pages/DriverSubscription";
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -178,6 +179,16 @@ export default function App() {
               <AuthenticatedLayout>
                 <RequireOnboarding>
                   <ProfileEdit />
+                </RequireOnboarding>
+              </AuthenticatedLayout>
+            }
+          />
+          <Route
+            path="/driver/subscription"
+            element={
+              <AuthenticatedLayout>
+                <RequireOnboarding>
+                  <DriverSubscription />
                 </RequireOnboarding>
               </AuthenticatedLayout>
             }

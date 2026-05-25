@@ -121,6 +121,7 @@ router.patch("/:id/rating", async (req, res) => {
 router.post("/internal/increment-offers", driverController.incrementOffers);
 router.post("/internal/increment-accepted", driverController.incrementAccepted);
 router.patch("/:id/earnings", driverController.updateEarnings);
+router.post("/:id/subscription/activate", driverController.activateSubscription);
 
 // ============================
 // 🔹 ADMIN INTERNAL

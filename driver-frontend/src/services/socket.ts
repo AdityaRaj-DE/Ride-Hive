@@ -11,6 +11,9 @@ export const connectSocket = () => {
     transports: ["websocket", "polling"],
     reconnection: true,
     withCredentials:true,
+    extraHeaders: {
+      "Bypass-Tunnel-Reminder": "true"
+    }
   });
 
   socket.on("connect", () => {

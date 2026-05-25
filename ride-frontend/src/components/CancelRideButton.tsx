@@ -1,7 +1,9 @@
 import { getSocket } from "../sockets/socketClient";
 import { XCircle } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
 
 export default function CancelRideButton({ rideId }: { rideId: string }) {
+  const navigate = useNavigate();
 
   const cancelRide = async () => {
     try {
@@ -10,6 +12,7 @@ export default function CancelRideButton({ rideId }: { rideId: string }) {
       if (socket) {
         socket.emit("cancelRide", { rideId }, (ack: any) => {
           console.log("cancel ack:", ack);
+          navigate("/book-ride");
         });
       }
     } catch (err) {

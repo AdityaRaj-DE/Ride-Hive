@@ -915,3 +915,35 @@ exports.getDriverStatsInternal = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.activateSubscription = async (req, res) => {
+  try {
+    const { id } = req.params; // userId
+    const { plan, durationDays } = req.body;
+
+    const driver = await Driver.findOne({ userId: id });
+    if (!driver) return res.status(404).json({ message: "Driver not found" });
+
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+    driver.subscription = {
+      isActive: true,
+      plan: {
+        name: plan.name,
+        durationDays: durationDays,
+        price: plan.price
+      },
+      startedAt: now,
+      expiresAt: expiresAt
+    };
+
+    await driver.save();
+    console.log(`✅ Subscription activated for driver ${id}: ${plan.name}`);
+
+    res.status(200).json({ success: true, message: "Subscription activated", subscription: driver.subscription });
+  } catch (err) {
+    console.error("activateSubscription error:", err.message);
+    res.status(500).json({ error: "Server error activating subscription" });
+  }
+};
